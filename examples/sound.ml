@@ -1,4 +1,4 @@
-open Jane.Std
+open Core.Std
 open Async.Std
 
 module Sound = Async_extended.Std.Sound (* so omake isn't confused about a circular dependency *)

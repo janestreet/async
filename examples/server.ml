@@ -1,4 +1,4 @@
-open Jane.Std
+open Core.Std
 open Async.Std
 
 module Fd = Unix.Fd
