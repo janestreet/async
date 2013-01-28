@@ -45,9 +45,18 @@ let read_sexps_pipe () =
     >>= fun () ->
     let reader = Reader.create reader_fd in
     test_sexps reader)
+;;
+
+let load_sexps_fail () =
+  Reader.load_sexps "reader_test.sexp" (fun _ -> assert false)
+  >>| function
+  | Error _ -> ()
+  | Ok _ -> assert false
+;;
 
 let tests = [
   "Reader_test.read_sexps_file", read_sexps_file;
   "Reader_test.read_sexps_pipe", read_sexps_pipe;
   "Reader_test.read_fail_and_continue", read_fail_and_continue;
+  "Reader_test.load_sexps_fail", load_sexps_fail;
 ]

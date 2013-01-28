@@ -10,6 +10,7 @@ let tests =
   @ Log_test.tests
   @ Process_test.tests
   @ Reader_test.tests
+  @ Ready_to_test.tests
   @ Rpc_test.tests
   @ Socket_test.tests
   @ Tcp_file_test.tests
