@@ -38,14 +38,16 @@ let implementations =
 
 let main () =
   let counter = ref 0 in
-  let server = Rpc.Server.create ~implementations ~on_unknown_rpc:`Ignore in
-  match server with
+  let implementations =
+    Rpc.Implementations.create ~implementations ~on_unknown_rpc:`Ignore
+  in
+  match implementations with
   | Error (`Duplicate_implementations _descrs) -> assert false
-  | Ok server ->
+  | Ok implementations ->
     ignore
       (Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
          (fun _addr reader writer ->
-           Rpc.Connection.server_with_close reader writer ~server
+           Rpc.Connection.server_with_close reader writer ~implementations
              ~connection_state:counter
              ~on_handshake_error:`Ignore)
          : Tcp.Server.inet Deferred.t);

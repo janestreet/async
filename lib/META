@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: a5a898ea4aa01860dc1b86eb1741fa33)
-version = "108.07.01"
+# DO NOT EDIT (digest: 1e7f2f62609b62e0758bdc6be4b23f70)
+version = "108.08.00"
 description = "Jane Street Capital's asynchronous execution library"
 requires = "async_core async_unix async_extra threads"
 archive(byte) = "async.cma"
