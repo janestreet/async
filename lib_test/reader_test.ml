@@ -4,6 +4,23 @@ open Async.Std
 
 exception Unexpected_sexps of Sexp.t list with sexp
 
+let read_fail_and_continue () =
+  let file = "reader_test.sexp" in
+  Reader.file_contents file
+  >>= fun expected_contents ->
+  Reader.with_file file ~f:(fun reader ->
+    try_with (fun () ->
+      Reader.read_until reader (`Pred (fun _ -> assert false)) ~keep_delim:false)
+    >>= function
+    | Ok _ -> assert false
+    | Error _ ->
+      Reader.contents reader
+      >>| fun got_contents ->
+      assert (got_contents = expected_contents);
+      (* Async_core.Debug.log "contents" s <:sexp_of< string >> *)
+  )
+;;
+
 let test_sexps reader =
   let sexps = Reader.read_sexps reader in
   Pipe.to_list sexps
@@ -32,4 +49,5 @@ let read_sexps_pipe () =
 let tests = [
   "Reader_test.read_sexps_file", read_sexps_file;
   "Reader_test.read_sexps_pipe", read_sexps_pipe;
+  "Reader_test.read_fail_and_continue", read_fail_and_continue;
 ]

@@ -95,6 +95,20 @@ let flush_on_close () =
     Unix.unlink file;
 ;;
 
+let schedule_non_zero_pos () =
+  let file = "schedule-non-zero-pos.txt" in
+  Writer.with_file file ~f:(fun writer ->
+    let buf = Bigstring.create 2 in
+    Bigstring.set buf 1 '$';
+    Writer.schedule_bigstring writer buf ~pos:1 ~len:1;
+    return ())
+  >>= fun () ->
+  Reader.with_file file ~f:Reader.contents
+  >>= fun contents ->
+  assert_string_equal contents "$";
+  Unix.unlink file
+;;
+
 let stdout () =
   Core.Std.printf "not from writer 1\n";
   return ()
@@ -103,8 +117,9 @@ let tests = [
   "Writer_test.write", write;
   "Writer_test.10 writers", multiple_writers 10;
   "Writer_test.100 writers", multiple_writers 100;
-  "Writer_test.1000 writers", multiple_writers 1000;
+  "Writer_test.500 writers", multiple_writers 500;
   "Writer_test.append", append 1000;
   "Writer_test.flush on close", flush_on_close;
   "Writer_test.stdout", stdout;
+  "Writer_test.schedule_with_nonzero_pos", schedule_non_zero_pos;
 ]
