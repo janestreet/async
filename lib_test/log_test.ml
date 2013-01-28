@@ -122,7 +122,7 @@ let tests = [
   "Log_test.write_and_read (bin-prot)", write_and_read `Bin_prot;
   "Log_test.speed_regression (sexp)", speed_test `Sexp (sec 8.);
   "Log_test.speed_regression (text)", speed_test `Text (sec 8.);
-  "Log_test.speed_regression (bin-prot)", speed_test `Bin_prot (sec 2.);
+  "Log_test.speed_regression (bin-prot)", speed_test `Bin_prot (sec 5.);
   "Log_test.rotation", rotation_test;
 ]
 
