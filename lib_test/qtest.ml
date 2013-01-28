@@ -16,7 +16,6 @@ let tests =
   @ Tcp_serve.tests
   @ Test_handler.tests
   @ Thread_safe_test.tests
-  @ Unpack_sequence_test.tests
   @ Wait_test.tests
   @ Writer_test.tests
 ;;
