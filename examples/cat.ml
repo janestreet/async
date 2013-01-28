@@ -8,23 +8,22 @@ let cat ~input ~output =
   let writer = Writer.create ~raise_when_consumer_leaves:false output in
   let buf = String.create 4096 in
   let rec loop () =
-    upon
-      (choose
-        [
-          choice (Reader.read reader buf) (fun r -> `Reader r);
-          choice (Writer.consumer_left writer) (fun () -> `Epipe);
-        ])
-    (function
-      | `Reader r ->
-        begin
-          match r with
-          | `Eof -> upon (Writer.flushed writer) (fun _ ->
-            never_returns (Shutdown.shutdown_and_raise 0))
-          | `Ok len ->
-              Writer.write_substring writer (Substring.create buf ~pos:0 ~len);
-              loop ()
-        end
-      | `Epipe -> never_returns (Shutdown.shutdown_and_raise 0))
+    choose
+      [
+        choice (Reader.read reader buf) (fun r -> `Reader r);
+        choice (Writer.consumer_left writer) (fun () -> `Epipe);
+      ]
+    >>> function
+    | `Epipe -> shutdown 0
+    | `Reader r ->
+      match r with
+      | `Eof ->
+        Writer.flushed writer
+        >>> fun _ ->
+        shutdown 0
+      | `Ok len ->
+        Writer.write_substring writer (Substring.create buf ~pos:0 ~len);
+        loop ()
   in
   loop ()
 ;;
