@@ -3,7 +3,7 @@
 OASISFormat:  0.3
 OCamlVersion: >= 3.12.1
 Name:         async
-Version:      108.00.02
+Version:      108.07.00
 Synopsis:     Jane Street Capital's asynchronous execution library
 Authors:      Jane street capital
 Copyrights:   (C) 2008-2012 Jane Street Capital LLC
@@ -26,6 +26,19 @@ Library async
                       async_extra,
                       threads
 
+Executable test_runner
+  Path:               lib_test
+  MainIs:             test_runner.ml
+  Build$:            flag(tests)
+  Custom:             true
+  CompiledObject:     best
+  Install:            false
+  BuildDepends:       async,oUnit (>= 1.0.2)
+
+Test test_runner
+  Run$:              flag(tests)
+  Command:            $test_runner
+  WorkingDirectory:   lib_test
 
 Document "async"
   Title:                Jane street's async library

@@ -5,14 +5,14 @@ module Fd = Unix.Fd
 
 let cat ~input ~output =
   let reader = Reader.create input in
-  let writer = Writer.create ~raise_epipe:false output in
+  let writer = Writer.create ~raise_when_consumer_leaves:false output in
   let buf = String.create 4096 in
   let rec loop () =
     upon
       (choose
         [
           choice (Reader.read reader buf) (fun r -> `Reader r);
-          choice (Writer.got_epipe writer) (fun () -> `Epipe);
+          choice (Writer.consumer_left writer) (fun () -> `Epipe);
         ])
     (function
       | `Reader r ->

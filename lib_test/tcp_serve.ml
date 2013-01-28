@@ -1,8 +1,6 @@
 open Core.Std ;;
 open Async.Std ;;
 
-let port = 4138 ;;
-
 let server_read_test = Ivar.create () ;;
 let server_write_test = Ivar.create () ;;
 let server_close_test = Ivar.create () ;;
@@ -25,7 +23,7 @@ let tcp_serve_test () =
 
     Ivar.fill all_tests_success ()
   end;
-  upon (Clock.after (sec 35.)) (fun () ->
+  upon (after (sec 35.)) (fun () ->
     let check ivar s = if Ivar.is_empty ivar then failwithf "tcp_serve_test: %s" s () in
     check client_write_test "client_write_test";
     check server_read_test "server_read_test";
@@ -37,19 +35,20 @@ let tcp_serve_test () =
 
     check all_tests_success "all_tests_success!?!"
   );
-  Tcp.serve
-    ~max_buffer_age:(sec 1.0)
+  Tcp.Server.create Tcp.on_port_chosen_by_os
+    ~buffer_age_limit:(`At_most (sec 1.))
     ~on_handler_error:(`Call (fun _a e ->
-      failwithf "Tcp.serve: handler error: %s" (Exn.to_string e) ()
+      failwithf "Tcp.Server.create: handler error: %s" (Exn.to_string e) ()
     ))
-    ~port
     (fun inet reader writer ->
       Writer.close_finished writer >>> (fun () -> Ivar.fill server_close_test ());
 
       let echo line =
         Writer.write
           writer
-          (sprintf "%s: %s\n" (Unix.Socket.address_string_of_inet inet) line);
+          (sprintf "%s: %s\n"
+             (Unix.Inet_addr.to_string (Socket.Address.Inet.addr inet))
+             line);
       in
       Reader.read_line reader
       >>= function
@@ -64,35 +63,35 @@ let tcp_serve_test () =
                   Ivar.fill server_write_test ();
                   echo line
     )
-  >>= fun () ->
-      Tcp.with_connection
-        ~host:"localhost"
-        ~port
-        (fun reader writer ->
-          Writer.close_finished writer >>> (fun () -> Ivar.fill client_close_test ());
+  >>= fun server ->
+  Tcp.with_connection (Tcp.to_host_and_port "localhost" (Tcp.Server.listening_on server))
+    (fun reader writer ->
+      Writer.close_finished writer >>> (fun () -> Ivar.fill client_close_test ());
 
-          Writer.write writer "foo\n";
-          Ivar.fill client_write_test ();
+      Writer.write writer "foo\n";
+      Ivar.fill client_write_test ();
 
+      Reader.read_line reader
+      >>= function
+      | `Eof -> failwith "client: read test: premature EOF"
+      | `Ok s ->
+        ignore s;
+        Ivar.fill client_read_test ();
+        Writer.write writer "bar\n";
+        Reader.read_line reader
+        >>= function
+        | `Eof -> failwith "client: read test: premature EOF"
+        | `Ok s ->
+          ignore s;
           Reader.read_line reader
-          >>= function
-            | `Eof -> failwith "client: read test: premature EOF"
-            | `Ok s ->
-                ignore s;
-                Ivar.fill client_read_test ();
-                Writer.write writer "bar\n";
-                Reader.read_line reader
-                >>= function
-                  | `Eof -> failwith "client: read test: premature EOF"
-                  | `Ok s ->
-                      ignore s;
-                      Reader.read_line reader
-                      >>| function
-                        | `Ok s -> failwithf "client: expected EOF, instead got: %s" s ()
-                        | `Eof -> Ivar.fill client_eof_test ()
-        )
+          >>| function
+          | `Ok s -> failwithf "client: expected EOF, instead got: %s" s ()
+          | `Eof -> Ivar.fill client_eof_test ()
+    )
   >>= fun () ->
-    Ivar.read all_tests_success
+  Ivar.read all_tests_success
+  >>= fun () ->
+  Tcp.Server.close server
 ;;
 
 let tests =

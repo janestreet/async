@@ -7,9 +7,12 @@ let tests =
   []
   @ Bind_test.tests
   @ Finalizer_test.tests
+  @ Log_test.tests
+  @ Process_test.tests
   @ Reader_test.tests
-  @ Rpc_canary_test.tests
   @ Rpc_test.tests
+  @ Socket_test.tests
+  @ Tcp_file_test.tests
   @ Tcp_serve.tests
   @ Test_handler.tests
   @ Thread_safe_test.tests
@@ -18,6 +21,5 @@ let tests =
   @ Writer_test.tests
 ;;
 
-let () =
-  let module Runner = Qtest_lib.Std.Runner.Make(Version_util) in
-  Runner.main tests
+let () = Runner.main tests
+

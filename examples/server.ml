@@ -12,21 +12,21 @@ let finished () = shutdown 0
 
 let port = 61111
 
-let result =
-    Tcp.serve ~port ~on_handler_error:`Raise
-      (fun _ reader writer ->
-        Deferred.create (fun finished ->
-          let rec loop () =
-            upon (Reader.read_line reader) (function
-              | `Ok query ->
-                  message (sprintf "Server got query: %s\n" query);
-                  Writer.write writer (sprintf "Response to %s\n" query);
-                  loop ()
-              | `Eof ->
-                  Ivar.fill finished ();
-                  message "Server got EOF\n")
-          in
-          loop ()))
+let server =
+  Tcp.Server.create (Tcp.on_port port)
+    (fun _ reader writer ->
+      Deferred.create (fun finished ->
+        let rec loop () =
+          upon (Reader.read_line reader) (function
+          | `Ok query ->
+            message (sprintf "Server got query: %s\n" query);
+            Writer.write writer (sprintf "Response to %s\n" query);
+            loop ()
+          | `Eof ->
+            Ivar.fill finished ();
+            message "Server got EOF\n")
+        in
+        loop ()))
 ;;
 
 let () =
@@ -35,9 +35,9 @@ let () =
 
 let () =
   let queries = ["Hello"; "Goodbye"] in
-  upon result (fun _ ->
+  upon server (fun _ ->
     Core.Std.eprintf "IN SERVER\n%!";
-    upon (Tcp.connect ~host:"localhost" ~port ()) (fun (reader, writer) ->
+    upon (Tcp.connect (Tcp.to_host_and_port "localhost" port)) (fun (reader, writer) ->
       let rec loop queries =
         match queries with
         | [] -> upon (Writer.close writer) (fun _ -> finished ())

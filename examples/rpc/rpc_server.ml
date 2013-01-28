@@ -27,7 +27,7 @@ let implementations =
         last_value := !ctr;
         Pipe.write w !ctr
       in
-      whenever (send ());
+      don't_wait_for (send ());
       Clock.every' ~stop:aborted (sec 0.1) (fun () ->
         if !last_value <> !ctr
         then send () else return ()
@@ -42,17 +42,18 @@ let main () =
   match server with
   | Error (`Duplicate_implementations _descrs) -> assert false
   | Ok server ->
-    whenever
-      (Tcp.serve ~port:8080 ~on_handler_error:`Ignore
+    ignore
+      (Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
          (fun _addr reader writer ->
            Rpc.Connection.server_with_close reader writer ~server
              ~connection_state:counter
-             ~on_handshake_error:`Ignore));
+             ~on_handshake_error:`Ignore)
+         : Tcp.Server.inet Deferred.t);
     never_returns (Scheduler.go ())
 
 let () =
-  Version_util_extended.Command.run
-    (Fcommand.cmd
+  Deprecated_command.run
+    (Deprecated_fcommand.cmd
        ~summary:"A trivial Async-RPC server"
-       (Fcommand.const ())
+       (Deprecated_fcommand.const ())
        main)

@@ -4,27 +4,31 @@ module Socket = Unix.Socket
 
 let printf = Print.printf
 
-let port = 10000
+let port = 10_000
 
 let doit () =
   upon (Socket.bind (Socket.create Socket.Type.tcp)
-           (Socket.Address.inet_addr_any ~port)) (fun s ->
-    upon (Socket.accept (Socket.listen s)) (fun (s, _) ->
-      let buf = String.create 1000 in
-      let reader = Reader.create (Socket.fd s) in
-      let rec loop bytes_read =
-        upon (Reader.read reader buf) (function
+          (Socket.Address.Inet.create_bind_any ~port))
+    (fun s ->
+      Socket.accept (Socket.listen s)
+      >>> function
+      | `Socket_closed -> ()
+      | `Ok (s, _) ->
+        let buf = String.create 1000 in
+        let reader = Reader.create (Socket.fd s) in
+        let rec loop bytes_read =
+          upon (Reader.read reader buf) (function
           | `Eof -> printf "EOF\n"
           | `Ok n ->
-              let bytes_read = bytes_read + n in
-              printf "read %d bytes in total.\n" bytes_read;
-              loop bytes_read)
-      in
-      loop 0));
+            let bytes_read = bytes_read + n in
+            printf "read %d bytes in total.\n" bytes_read;
+            loop bytes_read)
+        in
+        loop 0);
   upon (Clock.after (sec 2.)) (fun () ->
     let s = Socket.create Socket.Type.tcp in
-    upon (Socket.connect s (Socket.Address.inet
-                               (Unix.Inet_addr.of_string "127.0.0.1") ~port))
+    upon (Socket.connect s (Socket.Address.Inet.create
+                              (Unix.Inet_addr.of_string "127.0.0.1") ~port))
       (fun s ->
         let w = Writer.create (Socket.fd s) in
         let buf = String.create 4096 in

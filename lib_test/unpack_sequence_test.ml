@@ -1,5 +1,4 @@
 open Jane.Std
-open Qtest_lib.Std
 open Async.Std
 
 let sexps =
@@ -14,7 +13,7 @@ let sexps =
 ;;
 
 let test () =
-  Unix.pipe ()
+  Unix.pipe (Info.of_string "unpack_sequence_test")
   >>= fun (`Reader reader_fd, `Writer writer_fd) ->
   let string_writer = Writer.create writer_fd in
   let (sexp_reader, unpack_result) =
@@ -28,7 +27,7 @@ let test () =
   (* write all the sexps, one ... character ... at ... a ... time *)
   let rec loop_sexps sexps =
     match sexps with
-    | [] -> whenever (Writer.close string_writer)
+    | [] -> don't_wait_for (Writer.close string_writer)
     | sexp :: sexps ->
       let packed = Wire.to_string sexp in
       let rec loop_bytes i =
@@ -53,8 +52,9 @@ let test () =
   | r -> Error.raise (R.to_error r)
   end;
   all
-  >>| fun all ->
+  >>= fun all ->
   assert (sexps @ sexps = Queue.to_list all);
+  Fd.close reader_fd;
 ;;
 
 let tests =

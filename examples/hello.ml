@@ -13,5 +13,12 @@ let handler _ reader writer =
         | `Eof   -> write (); Ivar.fill i ()
         | _      -> read ()
     in read () )
-let () = ignore (Tcp.serve ~port:55555 ~on_handler_error:`Ignore handler)
+let () = ignore (Tcp.Server.create (Tcp.on_port 55_555) ~on_handler_error:`Ignore handler
+                   : Tcp.Server.inet Deferred.t)
 let () = never_returns (Scheduler.go ())
+
+let dont_run_this() =
+  (* To be happy that abstracting [never_returns] into module [Common0] is ok, make a type
+     check that the [never_returns] type matches between [Exn.handle_uncaught_and_exit]
+     and [never_returns]. *)
+  never_returns (Exn.handle_uncaught_and_exit Scheduler.go)

@@ -93,7 +93,7 @@ let main () =
                           svr
                           clt
                           (Key_value_store.process kvstore msg) in
-  whenever (Pipe.iter_without_pushback ~f:echo (Server.listen_ignore_errors svr))
+  don't_wait_for (Pipe.iter_without_pushback ~f:echo (Server.listen_ignore_errors svr))
 
 let () =
   main ();

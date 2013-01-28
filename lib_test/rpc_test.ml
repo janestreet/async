@@ -1,10 +1,12 @@
 open Core.Std
 open Async.Std
 
-let test ~imp1 ~imp2 ~state1 ~state2 ~f1 ~f2 () =
-  Unix.pipe ()
+module Debug = Async_core.Debug
+
+let test ~imp1 ~imp2 ~state1 ~state2 ~f2 () =
+  Unix.pipe (Info.of_string "rpc_test 1")
   >>= fun (`Reader r1, `Writer w2) ->
-  Unix.pipe ()
+  Unix.pipe (Info.of_string "rpc_test 2")
   >>= fun (`Reader r2, `Writer w1) ->
   let r1 = Reader.create r1 in
   let r2 = Reader.create r2 in
@@ -20,19 +22,21 @@ let test ~imp1 ~imp2 ~state1 ~state2 ~f1 ~f2 () =
   in
   let s1 = s imp1 in
   let s2 = s imp2 in
-  Deferred.choose_ident
-    [ Rpc.Connection.with_close ?server:s1 r1 w1 ~dispatch_queries:f1
-        ~connection_state:state1
-        ~on_handshake_error:`Raise
-    ; Rpc.Connection.with_close ?server:s2 r2 w2 ~dispatch_queries:f2
-        ~connection_state:state2
-        ~on_handshake_error:`Raise
-    ]
+  let f2_done =
+    Rpc.Connection.with_close ?server:s2 r2 w2 ~dispatch_queries:f2
+      ~connection_state:state2
+      ~on_handshake_error:`Raise
+  in
+  Rpc.Connection.with_close ?server:s1 r1 w1 ~dispatch_queries:(fun _ -> f2_done)
+    ~connection_state:state1
+    ~on_handshake_error:`Raise
+;;
 
 let test1 ~imp ~state ~f =
   test
-    ~imp1:imp ~state1:state ~f1:(fun _ -> Deferred.never ())
+    ~imp1:imp ~state1:state
     ~imp2:[] ~state2:() ~f2:f
+;;
 
 module Pipe_count_error = struct
   type t = [`Argument_must_be_positive] with bin_io
@@ -45,6 +49,7 @@ let pipe_count_rpc =
     ~bin_query:Int.bin_t
     ~bin_response:Int.bin_t
     ~bin_error:Pipe_count_error.bin_t
+;;
 
 let pipe_count_imp =
   Rpc.Pipe_rpc.implement pipe_count_rpc (fun () n ~aborted:_ ->
@@ -52,13 +57,12 @@ let pipe_count_imp =
     then return (Error `Argument_must_be_positive)
     else
       let pipe_r, pipe_w = Pipe.create () in
-      begin
-        Deferred.List.iter (List.init n ~f:Fn.id) ~how:`Sequential ~f:(fun i ->
-          Pipe.write pipe_w i)
-        >>> fun () ->
-        Pipe.close pipe_w
-      end;
+      upon
+        (Deferred.List.iter (List.init n ~f:Fn.id) ~how:`Sequential ~f:(fun i ->
+          Pipe.write pipe_w i))
+        (fun () -> Pipe.close pipe_w);
       return (Ok pipe_r))
+;;
 
 let tests =
   List.mapi ~f:(fun i f -> sprintf "rpc-%d" i, f)
@@ -77,6 +81,6 @@ let tests =
       >>= fun result ->
       match result with
       | Ok (Ok _) | Error _ -> assert false
-      | Ok (Error `Argument_must_be_positive) ->
-        Deferred.unit)
+      | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ]
+;;

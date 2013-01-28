@@ -4,7 +4,7 @@ open Async.Std
 
 
 let with_rpc_connection f =
-  Tcp.with_connection ~host:"127.0.0.1" ~port:8080
+  Tcp.with_connection (Tcp.to_host_and_port "127.0.0.1" 8080)
     (fun reader writer ->
       Rpc.Connection.create reader writer ~connection_state:()
       >>= function
@@ -45,17 +45,17 @@ let counter_values () =
 
 (* Setting up the command-line interface *)
 
-let in_async f = whenever (f ()); never_returns (Scheduler.go ())
+let in_async f = don't_wait_for (f ()); never_returns (Scheduler.go ())
 
 let get_unique_id_cmd =
-  Fcommand.(
+  Deprecated_fcommand.(
     cmd ~summary:"get unique id from server"
       (const ())
       (fun () -> in_async get_unique_id)
   )
 
 let set_id_counter_cmd =
-  Fcommand.(
+  Deprecated_fcommand.(
     cmd ~summary:"forcibly set the unique id counter.  DANGEROUS"
       (anon ("counter" %: int))
       (fun i -> in_async (fun () -> set_id_counter i))
@@ -63,7 +63,7 @@ let set_id_counter_cmd =
 
 (* This one is actually unsupported by the server, so using it will trigger an error. *)
 let set_id_counter_cmd_v0 =
-  Fcommand.(
+  Deprecated_fcommand.(
     cmd ~summary:"forcibly set the unique id counter.  DANGEROUS"
       (anon ("counter1" %: int) ++ anon ("counter2" %: int))
       (fun id1 id2 -> in_async (fun () -> set_id_counter_v0 (id1,id2)))
@@ -71,7 +71,7 @@ let set_id_counter_cmd_v0 =
 
 
 let counter_values_cmd =
-  Fcommand.(
+  Deprecated_fcommand.(
     cmd ~summary:"subscribe to changes to counter id"
       (const ())
       (fun () -> in_async counter_values)
@@ -79,8 +79,8 @@ let counter_values_cmd =
 
 
 let () =
-  Version_util_extended.Command.run
-    (Command.group
+  Deprecated_command.run
+    (Deprecated_command.group
        ~summary:"Client for trivial Async-RPC server"
        [ "get-unique-id"    , get_unique_id_cmd
        ; "set-id-counter"   , set_id_counter_cmd

@@ -62,17 +62,16 @@ let start_writer pid fd =
     if n = 0 then begin
       (* All messages sent; make sure to flush writer buffers (easy to
          forget!) and close the underlying file descriptor *)
-      upon (Writer.close writer) (fun () ->
-        let bytes_written = Writer.bytes_written writer in
-        printf "Writer success: %s bytes written\n%!"
-          (Int63.to_string bytes_written);
+      Writer.close writer
+      >>> fun () ->
+      let bytes_written = Writer.bytes_written writer in
+      printf "Writer success: %s bytes written\n%!"
+        (Int63.to_string bytes_written);
         (* Wait for reader to terminate successfully *)
-        upon (Unix.wait (`Pid pid)) (function
-          | wpid, Ok () ->
-              assert (wpid = pid);
-              printf "All successful: transmitted %d messages\n" n_msgs;
-              shutdown 0
-          | _ -> assert false))
+      Unix.waitpid_exn pid
+      >>> fun () ->
+      printf "All successful: transmitted %d messages\n" n_msgs;
+      shutdown 0
     end else begin
       (* Write a value to the writer using the binary protocol *)
       Writer.write_bin_prot writer bin_writer_test test;
@@ -97,8 +96,8 @@ let () =
   | `In_the_child ->
     (* We are the reader *)
     Unix.close ofd;
-    start_reader (Fd.create Fd.Kind.Fifo ifd ~name:"<parent reader>")
-  | `In_the_parent pid -> 
+    start_reader (Fd.create Fd.Kind.Fifo ifd (Info.of_string "<parent reader>"))
+  | `In_the_parent pid ->
     (* We are the writer *)
     Unix.close ifd;
-    start_writer pid (Fd.create Fd.Kind.Fifo ofd ~name:"<child writer>")
+    start_writer pid (Fd.create Fd.Kind.Fifo ofd (Info.of_string "<child writer>"))

@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 2cf1ae157bd6f5cd0a1fb9c38ca28940) *)
+(* DO NOT EDIT (digest: 097de99166661a8fae499a3c15ac6550) *)
 This is the INSTALL file for the async distribution.
 
 This package uses OASIS to generate its build system. See section OASIS for
@@ -9,11 +9,12 @@ Dependencies
 ============
 
 In order to compile this package, you will need:
-* ocaml (>= 3.12.1) for all, doc async
+* ocaml (>= 3.12.1) for all, test test_runner, doc async
 * findlib (>= 1.2.7)
-* async_core
-* async_unix
-* async_extra
+* async_core for library async
+* async_unix for library async
+* async_extra for library async
+* oUnit (>= 1.0.2) for executable test_runner
 
 Installing
 ==========

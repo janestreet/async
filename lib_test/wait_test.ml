@@ -1,6 +1,5 @@
 open Core.Std
 open Async.Std
-open Qtest_lib.Std
 
 let fast_child () = Unix.fork_exec ~prog:"/bin/true"  ~args:[]    ()
 let slow_child () =

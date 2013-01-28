@@ -19,7 +19,7 @@ let read_sexps_file () =
 let read_sexps_pipe () =
   Reader.with_file "reader_test.sexp" ~f:(fun reader ->
     let sexps = Reader.read_sexps reader in
-    Unix.pipe ()
+    Unix.pipe (Info.of_string "reader_test")
     >>= function (`Reader reader_fd, `Writer writer_fd) ->
     let writer = Writer.create writer_fd in
     Pipe.iter sexps ~f:(fun sexp -> Writer.write_sexp writer sexp; Writer.flushed writer)

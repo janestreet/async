@@ -66,6 +66,38 @@ let append max () =
     Reader.close reader
   >>= fun () ->
     Unix.unlink file
+;;
+
+let flush_on_close () =
+  let module Debug = Async_core.Debug in
+  let file = "flush_on_close.txt" in
+  Writer.open_file file
+  >>= fun writer ->
+  let pipe_r, pipe_w = Pipe.create () in
+  let buffer = Buffer.create 1 in
+  let write s =
+    Buffer.add_string buffer s;
+    Pipe.write_without_pushback pipe_w s;
+  in
+  don't_wait_for (Writer.transfer writer (Pipe.map pipe_r ~f:Fn.id)
+                    (fun s -> Writer.write writer s));
+  write "hello\n";
+  Pipe.downstream_flushed pipe_w
+  >>= function
+  | `Reader_closed -> assert false
+  | `Ok ->
+    write "goodbye\n";
+    Writer.close writer
+    >>= fun () ->
+    Reader.file_contents file
+    >>= fun s ->
+    assert (s = Buffer.contents buffer);
+    Unix.unlink file;
+;;
+
+let stdout () =
+  Core.Std.printf "not from writer 1\n";
+  return ()
 
 let tests = [
   "Writer_test.write", write;
@@ -73,4 +105,6 @@ let tests = [
   "Writer_test.100 writers", multiple_writers 100;
   "Writer_test.1000 writers", multiple_writers 1000;
   "Writer_test.append", append 1000;
+  "Writer_test.flush on close", flush_on_close;
+  "Writer_test.stdout", stdout;
 ]

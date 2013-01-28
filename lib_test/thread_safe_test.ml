@@ -56,7 +56,7 @@ let () =
     In_thread.run (fun () -> Thread_safe.deferred ())
     >>= fun (d, put) ->
     assert (try put 13; false with _ -> true);
-    whenever (In_thread.run (fun () -> put 13));
+    don't_wait_for (In_thread.run (fun () -> put 13));
     d
     >>| fun i ->
     assert (i = 13);
@@ -70,7 +70,7 @@ let () =
     assert (try put 13; false with _ -> true);
     let throttle = Throttle.create ~continue_on_error:false ~max_concurrent_jobs:1 in
     let run_in_thread f =
-      whenever (Throttle.enqueue throttle (fun () -> In_thread.run f))
+      don't_wait_for (Throttle.enqueue throttle (fun () -> In_thread.run f))
     in
     let num_elts = 100 in
     for i = 0 to num_elts - 1; do

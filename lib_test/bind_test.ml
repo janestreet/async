@@ -1,4 +1,3 @@
-open Core.Std
 open Async.Std
 
 (* Note: The ordering of trace_connect outputs don't appear

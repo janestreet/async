@@ -28,7 +28,7 @@ let main () =
   >>> fun svr ->
   let echo (clt, msg) = Server.send_ignore_errors svr clt msg in
   let strm = Server.listen_ignore_errors svr in
-  whenever (Pipe.iter_without_pushback ~f:echo strm)
+  don't_wait_for (Pipe.iter_without_pushback ~f:echo strm)
 
 let () =
   main ();
