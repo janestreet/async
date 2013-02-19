@@ -92,7 +92,17 @@ let setup_standard_build_flags () =
 let dispatch = function
   | After_rules as e ->
     setup_standard_build_flags ();
-    dispatch_default e
+    dispatch_default e;
+    (* ocamlbuild rule for native packs is broken. *)
+    rule "async pack"
+      ~dep:"lib/std.cmx"
+      ~prods:["lib/async.cmi"; "lib/async.cmx"; "lib/async." ^ !Options.ext_obj]
+      ~insert:`top
+      (fun _ _ ->
+        let tags = Tags.add "pack" (tags_of_pathname "lib/async.cmx") in
+        Cmd (S [!Options.ocamlopt; A"-pack";
+                Ocamlbuild_pack.Ocaml_compiler.forpack_flags "lib/async.cmx" tags; T tags;
+                A "-I"; A "lib"; A "lib/std.cmx"; A"-o"; A "lib/async.cmx"]))
   | e -> dispatch_default e
 
 let () = Ocamlbuild_plugin.dispatch dispatch
