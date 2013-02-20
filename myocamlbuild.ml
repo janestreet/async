@@ -98,11 +98,21 @@ let dispatch = function
       ~dep:"lib/std.cmx"
       ~prods:["lib/async.cmi"; "lib/async.cmx"; "lib/async." ^ !Options.ext_obj]
       ~insert:`top
-      (fun _ _ ->
-        let tags = Tags.add "pack" (tags_of_pathname "lib/async.cmx") in
-        Cmd (S [!Options.ocamlopt; A"-pack";
-                Ocamlbuild_pack.Ocaml_compiler.forpack_flags "lib/async.cmx" tags; T tags;
-                A "-I"; A "lib"; A "lib/std.cmx"; A"-o"; A "lib/async.cmx"]))
+      (Ocamlbuild_pack.Ocaml_compiler.pack_modules
+         [("cmx", ["cmi"; !Options.ext_obj]); ("cmi", [])] "cmx" "cmxa" !Options.ext_lib
+         (fun tags deps out ->
+           let dirnames = List.union [] (List.map Pathname.dirname deps) in
+           let include_flags =
+             List.fold_right
+               Ocamlbuild_pack.Ocaml_utils.ocaml_add_include_flag
+               dirnames []
+           in
+           Cmd (S [!Options.ocamlopt; A"-pack";
+                   Ocamlbuild_pack.Ocaml_compiler.forpack_flags out tags; T tags;
+                   S include_flags; Command.atomize_paths deps;
+                   A"-o"; Px out]))
+         (fun tags -> tags++"ocaml"++"pack"++"native")
+         ["lib/std.cmx"] "lib/async.cmx")
   | e -> dispatch_default e
 
 let () = Ocamlbuild_plugin.dispatch dispatch
