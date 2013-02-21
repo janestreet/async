@@ -581,26 +581,28 @@ let dispatch = function
   | After_rules as e ->
     setup_standard_build_flags ();
     dispatch_default e;
-    (* ocamlbuild rule for native packs is broken. *)
-    rule "async pack"
-      ~dep:"lib/std.cmx"
-      ~prods:["lib/async.cmi"; "lib/async.cmx"; "lib/async." ^ !Options.ext_obj]
-      ~insert:`top
-      (Ocamlbuild_pack.Ocaml_compiler.pack_modules
-         [("cmx", ["cmi"; !Options.ext_obj]); ("cmi", [])] "cmx" "cmxa" !Options.ext_lib
-         (fun tags deps out ->
-           let dirnames = List.union [] (List.map Pathname.dirname deps) in
-           let include_flags =
-             List.fold_right
-               Ocamlbuild_pack.Ocaml_utils.ocaml_add_include_flag
-               dirnames []
-           in
-           Cmd (S [!Options.ocamlopt; A"-pack";
-                   Ocamlbuild_pack.Ocaml_compiler.forpack_flags out tags; T tags;
-                   S include_flags; Command.atomize_paths deps;
-                   A"-o"; Px out]))
-         (fun tags -> tags++"ocaml"++"pack"++"native")
-         ["lib/std.cmx"] "lib/async.cmx")
+    (* ocamlbuild rule for native packs seems to be broken, it tries to touch
+       lib/async.mli. The workaroung is to remove "touch" at the beginning of commands
+       executed by ocamlbuild. *)
+    let module U = Ocamlbuild_pack.My_unix in
+    let orig_execute_many = U.implem.U.execute_many in
+    let execute_many ?max_jobs ?ticker ?period ?display commands =
+      let commands =
+        List.map
+          (List.map (fun task () ->
+            let cmd = task () in
+            if String.is_prefix "touch " cmd then begin
+              Ocamlbuild_pack.Log.eprintf
+                "removing 'touch' inserted by broken ocamlbuild rule for packed modules.";
+              let idx = String.index cmd ';' in
+              String.after cmd (idx + 1)
+            end else
+              cmd))
+          commands
+      in
+      orig_execute_many ?max_jobs ?ticker ?period ?display commands
+    in
+    U.implem.U.execute_many <- execute_many
   | e -> dispatch_default e
 
 let () = Ocamlbuild_plugin.dispatch dispatch
