@@ -5,7 +5,7 @@ open Async.Std
 
 let with_rpc_connection f =
   Tcp.with_connection (Tcp.to_host_and_port "127.0.0.1" 8080)
-    (fun reader writer ->
+    (fun _ reader writer ->
       Rpc.Connection.create reader writer ~connection_state:()
       >>= function
         | Error exn -> raise exn

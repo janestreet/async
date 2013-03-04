@@ -65,7 +65,7 @@ let tcp_serve_test () =
     )
   >>= fun server ->
   Tcp.with_connection (Tcp.to_host_and_port "localhost" (Tcp.Server.listening_on server))
-    (fun reader writer ->
+    (fun _ reader writer ->
       Writer.close_finished writer >>> (fun () -> Ivar.fill client_close_test ());
 
       Writer.write writer "foo\n";

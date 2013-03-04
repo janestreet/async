@@ -6,7 +6,9 @@ open Qtest_lib.Std;;
 let tests =
   []
   @ Bind_test.tests
+  @ Fd_test.tests
   @ Finalizer_test.tests
+  @ In_thread_test.tests
   @ Log_test.tests
   @ Process_test.tests
   @ Reader_test.tests
@@ -22,4 +24,3 @@ let tests =
 ;;
 
 let () = Runner.main tests
-

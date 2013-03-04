@@ -37,7 +37,7 @@ let () =
   let queries = ["Hello"; "Goodbye"] in
   upon server (fun _ ->
     Core.Std.eprintf "IN SERVER\n%!";
-    upon (Tcp.connect (Tcp.to_host_and_port "localhost" port)) (fun (reader, writer) ->
+    upon (Tcp.connect (Tcp.to_host_and_port "localhost" port)) (fun (_, reader, writer) ->
       let rec loop queries =
         match queries with
         | [] -> upon (Writer.close writer) (fun _ -> finished ())
