@@ -66,12 +66,16 @@ let speed_test fmt max_time () =
       loop (n - 1)
     end
   in
-  let start_time = Time.now () in
+  let start_times = Unix.times () in
   loop 1_000_000;
   Log.flushed log
   >>= fun () ->
-  let stop_time  = Time.now () in
-  let total_time = Time.diff stop_time start_time in
+  let stop_times = Unix.times () in
+  let total_time = Unix.(
+      (stop_times.tms_utime +. stop_times.tms_stime)
+    -. (start_times.tms_utime +. start_times.tms_stime))
+    |! Time.Span.of_sec
+  in
   if Time.Span.(>) total_time max_time then
     failwithf "regression: log write and flush took more than %s (%s)"
       (Time.Span.to_string max_time)
@@ -120,7 +124,7 @@ let rotation_test () =
 let tests = [
   "Log_test.write_and_read (sexp)", write_and_read `Sexp;
   "Log_test.write_and_read (bin-prot)", write_and_read `Bin_prot;
-  "Log_test.speed_regression (sexp)", speed_test `Sexp (sec 11.);
+  "Log_test.speed_regression (sexp)", speed_test `Sexp (sec 8.);
   "Log_test.speed_regression (text)", speed_test `Text (sec 8.);
   "Log_test.speed_regression (bin-prot)", speed_test `Bin_prot (sec 5.);
   "Log_test.rotation", rotation_test;

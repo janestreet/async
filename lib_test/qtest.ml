@@ -1,6 +1,7 @@
 (** Regression test runner. *)
 
 open Core.Std;;
+open Async.Std
 open Qtest_lib.Std;;
 
 let tests =
@@ -22,5 +23,12 @@ let tests =
   @ Wait_test.tests
   @ Writer_test.tests
 ;;
+
+let () =
+  (* this test takes roughly 40s alone, so 25min on something that compiles
+     with -j 12 should be ok *)
+  after (Time.Span.of_min 25.) >>> fun () ->
+  Printf.eprintf "Shutting down test after a 25min timeout\n%!";
+  Shutdown.shutdown 3
 
 let () = Runner.main tests
