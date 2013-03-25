@@ -4,8 +4,6 @@ open Async_test_in_child_process
 
 let () = add_test _here_ Expect.(ok && no_output) (fun () -> return ())
 
-let () = add_test _here_ Expect.error (fun () -> failwith "foo")
-
 let () =
   add_test _here_ Expect.(ok && no_output) (fun () ->
     let ivar = Ivar.create () in
@@ -62,5 +60,3 @@ let () =
     shutdown 0;
     never ());
 ;;
-
-let () = never_returns (main ())

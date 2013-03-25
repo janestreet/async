@@ -76,5 +76,3 @@ let () =
     Writer.write writer string1;
     Deferred.unit);
 ;;
-
-let () = never_returns (main ())

@@ -44,6 +44,7 @@ module Expect = struct
 
   let ( || ) t1 t2 = Blang.or_ [ t1; t2 ]
   let ( && ) t1 t2 = Blang.and_ [ t1; t2 ]
+  let not t = Blang.not_ t
 end
 
 let test_parent_subcommand = "test-parent"
@@ -137,7 +138,15 @@ let main () =
     Spec.(
       run
         (group ~summary:"testing stuff"
-           [ "test-all",
+           [ "list",
+             basic ~summary:"list all the tests"
+               empty
+               (fun () ->
+                 eprintf "%s\n"
+                   (Sexp.to_string_hum (<:sexp_of< Test.t list >> !Test.all));
+                 shutdown 0);
+
+             "test-all",
              basic ~summary:"run all the tests"
                empty
                (fun () -> shutdown_after (Test.run_all ()));

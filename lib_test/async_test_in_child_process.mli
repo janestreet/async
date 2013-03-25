@@ -12,6 +12,7 @@ module Expect : sig
 
   val ( && ) : t -> t -> t
   val ( || ) : t -> t -> t
+  val not : t -> t
 end
 
 val add_test
