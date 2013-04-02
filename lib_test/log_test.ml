@@ -90,6 +90,7 @@ let rotation_test () =
       size     = None;
       time     = None;
       keep     = `At_least 5;
+      naming_scheme = `Numbered;
     }
   in
   let rec loop n =

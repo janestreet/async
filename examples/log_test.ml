@@ -9,9 +9,10 @@ let main () =
       `Sexp
       ~basename:"/tmp/log_test/messages"
       { Rotation.messages = None
-      ; size = None
-      ; time = Some (Time.Ofday.create ~hr:13 ~min:47 (), Zone.machine_zone ())
-      ; keep = `At_least 3
+      ; size              = None
+      ; time              = Some (Time.Ofday.create ~hr:13 ~min:47 (), Zone.machine_zone ())
+      ; keep              = `At_least 3
+      ; naming_scheme     = `Numbered
       }
   in
   Global.set_output [Output.screen; rotating_file];
