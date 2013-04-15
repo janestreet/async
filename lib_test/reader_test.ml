@@ -56,6 +56,48 @@ let load_sexps_fail () =
   | Ok _ -> assert false
 ;;
 
+let lseek () =
+  Reader.with_file "reader_test.sexp" ~f:(fun reader ->
+    Reader.read_line reader
+    >>= function
+    | `Eof -> assert false
+    | `Ok line ->
+      assert_string_equal line "(first sexp)";
+      Reader.lseek reader (Int64.of_int 20) ~mode:`Set
+      >>= fun new_pos ->
+      assert_int_equal (Int64.to_int_exn new_pos) 20;
+      Reader.read_line reader
+      >>= function
+      | `Eof -> assert false
+      | `Ok line ->
+        assert_string_equal line "(a b c)";
+        Reader.lseek reader (Int64.of_int 0) ~mode:`Set
+        >>= fun new_pos ->
+        assert_int_equal (Int64.to_int_exn new_pos) 0;
+        Reader.read_line reader
+        >>= function
+        | `Eof -> assert false
+        | `Ok line ->
+          assert_string_equal line "(first sexp)";
+          Reader.lseek reader (Int64.of_int (-12)) ~mode:`End
+          >>= fun new_pos ->
+          assert_int_equal (Int64.to_int_exn new_pos) 48;
+          Reader.read_line reader
+          >>= function
+          | `Eof -> assert false
+          | `Ok line ->
+            assert_string_equal line "(last sexp)";
+            (* Seek past the end of the file *)
+            Reader.lseek reader (Int64.of_int 2) ~mode:`End
+            >>= fun new_pos ->
+            assert_int_equal (Int64.to_int_exn new_pos) 62;
+            Reader.read_line reader
+            >>| function
+            (* We get Eof because we are past the end of the file. *)
+            | `Eof -> ()
+            | `Ok line ->
+              failwithf "expected eof, got %s" line ())
+
 let reader_of_string ?buf_len str =
   Unix.pipe (Info.of_string "reader test")
   >>= fun (`Reader reader_fd, `Writer writer_fd) ->
@@ -235,8 +277,40 @@ let read_zero_terminated_strings () =
   Reader.close reader
 ;;
 
+let read_bin_prot_fail_with_max_length_exceeded_and_continue () =
+  let file = "reader_test" in
+  let i = 13 in
+  Monitor.protect (fun () ->
+    Writer.with_file file ~f:(fun writer ->
+      Writer.write_bin_prot writer Int.bin_writer_t i;
+      Writer.write writer "\n";
+      Writer.write_bin_prot writer Int.bin_writer_t i;
+      Deferred.unit)
+    >>= fun () ->
+    Reader.with_file file ~f:(fun reader ->
+      let read_int ~max_len =
+        try_with (fun () -> Reader.read_bin_prot reader Int.bin_reader_t ~max_len)
+      in
+      read_int ~max_len:0
+      >>= function
+      | Ok _ -> assert false
+      | Error  _ ->
+        Reader.read_until reader (`Char '\n') ~keep_delim:true
+        >>= function
+        | `Eof_without_delim _ | `Eof -> assert false
+        | `Ok _ ->
+          read_int ~max_len:8
+          >>= function
+          | Error _ | Ok `Eof -> assert false
+          | Ok (`Ok i') ->
+            assert (i = i');
+            Deferred.unit))
+    ~finally:(fun () -> Unix.unlink file)
+;;
+
 let tests = [
   "Reader_test.load_sexps_fail", load_sexps_fail;
+  "Reader_test.lseek", lseek;
   "Reader_test.read_blocks_ending_with_incomplete_one",
   read_blocks_ending_with_incomplete_one;
   "Reader_test.read_fail_and_continue", read_fail_and_continue;
@@ -247,4 +321,6 @@ let tests = [
   "Reader_test.read_sexps_file", read_sexps_file;
   "Reader_test.read_sexps_pipe", read_sexps_pipe;
   "Reader_test.read_zero_terminated_strings", read_zero_terminated_strings;
+  "Reader_test.read_bin_prot_fail_with_max_length_exceeded_and_continue",
+  read_bin_prot_fail_with_max_length_exceeded_and_continue;
 ]
