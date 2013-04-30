@@ -16,7 +16,7 @@ let () =
     don't_wait_for (Pipe.iter_without_pushback errors_reader ~f:(fun error ->
       Printf.printf "ERROR: %s" (Error.to_string_hum error))
     );
-    let player = Player.create ~error_pipe:errors_writer Player.Local in
+    let player = Player.create ~error_pipe:errors_writer Player.Playback_location.Local in
     Deferred.List.iter (List.init 100 ~f:ignore) ~f:(fun () ->
       Player.play player ~don't_play_same_for:(sec 0.)
         ~filename:"/j/office/sounds/chime.wav";
