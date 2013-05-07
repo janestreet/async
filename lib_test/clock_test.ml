@@ -7,11 +7,10 @@ let closeness ~expected ~actual = Float.abs (expected -. actual) /. expected
 
 let sub_milli () =
   Deferred.create (fun success ->
-    let interval = sec 0.0001 in
+    let interval = sec 0.0002 in
     let trial_length = sec 0.1 in
     let expected_num_intervals = Time.Span.(//) trial_length interval in
     let rec test trials_remaining =
-      log "test" trials_remaining <:sexp_of< int >>;
       if trials_remaining = 0 then failwith "unable to succeed";
       let stop = ref false in
       let num_not_late = ref 0 in
