@@ -308,6 +308,19 @@ let read_bin_prot_fail_with_max_length_exceeded_and_continue () =
     ~finally:(fun () -> Unix.unlink file)
 ;;
 
+let read_one_chunk_at_a_time_until_eof_share_buffer () =
+  reader_of_string (String.create 1)
+  >>= fun reader ->
+  let r = ref None in
+  Reader.read_one_chunk_at_a_time_until_eof reader
+    ~handle_chunk:(fun buf ~pos:_ ~len:_ ->
+      r := Some (Bigstring.sub_shared buf);
+      return `Continue)
+  >>= function
+    | `Stopped _ | `Eof_with_unconsumed_data _ -> assert false
+    | `Eof -> Reader.close reader
+;;
+
 let tests = [
   "Reader_test.load_sexps_fail", load_sexps_fail;
   "Reader_test.lseek", lseek;
@@ -323,4 +336,7 @@ let tests = [
   "Reader_test.read_zero_terminated_strings", read_zero_terminated_strings;
   "Reader_test.read_bin_prot_fail_with_max_length_exceeded_and_continue",
   read_bin_prot_fail_with_max_length_exceeded_and_continue;
+  "Reader_test.read_one_chunk_at_a_time_until_eof_share_buffer",
+  read_one_chunk_at_a_time_until_eof_share_buffer;
+
 ]
