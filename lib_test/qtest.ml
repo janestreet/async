@@ -7,6 +7,7 @@ open Qtest_lib.Std;;
 let tests =
   []
   @ Bind_test.tests
+  @ Busy_poll_test.tests
   @ Clock_test.tests
   @ Fd_test.tests
   @ Finalizer_test.tests
