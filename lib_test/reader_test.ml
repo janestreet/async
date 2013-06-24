@@ -108,14 +108,14 @@ let reader_of_string ?buf_len str =
   return reader
 ;;
 
-let read_one_chunk_at_a_time_until_eof_errors () =
+let read_one_chunk_at_a_time_errors () =
   let is_error = Result.is_error in
   let is_ok = Result.is_ok in
   let check (result_is_correct, handle_chunk) =
     reader_of_string (String.create 10)
     >>= fun reader ->
     try_with (fun () ->
-      Reader.read_one_chunk_at_a_time_until_eof reader ~handle_chunk:(fun _ ~pos:_ ~len ->
+      Reader.read_one_chunk_at_a_time reader ~handle_chunk:(fun _ ~pos:_ ~len ->
         return (`Consumed (handle_chunk len))))
     >>= fun result ->
     Reader.close reader
@@ -146,7 +146,7 @@ let read_partial_chunks () =
   reader_of_string "0123456789" ~buf_len:5
   >>= fun reader ->
   let step = ref 0 in
-  Reader.read_one_chunk_at_a_time_until_eof reader
+  Reader.read_one_chunk_at_a_time reader
     ~handle_chunk:(fun buf ~pos ~len ->
       incr step;
       match !step with
@@ -172,21 +172,49 @@ let read_partial_chunks () =
         ])))
   >>= fun result ->
   assert_equal (`Stopped ()) result
-    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_until_eof_result >>;
+    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_result >>;
   Reader.close reader
+;;
+
+let read_partial_chunks_multiple_times () =
+  (* Read chunk by chunk without consuming everything available each time. *)
+  let test consumed =
+    let input = "0123456789" in
+    reader_of_string input ~buf_len:5
+    >>= fun reader ->
+    let rec loop acc =
+      Reader.read_one_chunk_at_a_time reader
+        ~handle_chunk:(fun buf ~pos ~len ->
+          let len = min consumed len in
+          let str = Bigstring.to_string buf ~pos ~len in
+          return (`Stop_consumed (str, len)))
+      >>= function
+      | `Eof -> return acc
+      | `Eof_with_unconsumed_data data -> return (data :: acc)
+      | `Stopped str -> loop (str :: acc)
+    in
+    loop []
+    >>= fun result ->
+    List.iter result ~f:(fun chunk ->
+      assert (String.length chunk <= consumed));
+    let result = String.concat ~sep:"" (List.rev result) in
+    assert_string_equal result input;
+    Reader.close reader
+  in
+  Deferred.List.iter [ 1; 2; 3; 5; 100 ] ~f:test
 ;;
 
 let read_blocks_ending_with_incomplete_one () =
   (* Read blocks of length 4, ending with an incomplete one. *)
   reader_of_string "aaaabbbbcc" ~buf_len:3
   >>= fun reader ->
-  Reader.read_one_chunk_at_a_time_until_eof reader
+  Reader.read_one_chunk_at_a_time reader
     ~handle_chunk:(fun buf ~pos ~len ->
       ignore (buf, pos);
       return (`Consumed (len - len mod 4, `Need 4)))
   >>= fun result ->
   assert_equal (`Eof_with_unconsumed_data "cc") result
-    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_until_eof_result >>;
+    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_result >>;
   Reader.close reader
 ;;
 
@@ -202,7 +230,7 @@ let read_messages () =
   >>= fun reader ->
   let state = ref `Size (* [`Size] or [`Body body_size] *) in
   let messages = ref [] in
-  Reader.read_one_chunk_at_a_time_until_eof reader
+  Reader.read_one_chunk_at_a_time reader
     ~handle_chunk:(fun buf ~pos ~len ->
       let orig_len = len in
       let rec loop ~pos ~len =
@@ -228,7 +256,7 @@ let read_messages () =
       loop ~pos ~len)
   >>= fun result ->
   assert_equal `Eof result
-    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_until_eof_result >>;
+    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_result >>;
   assert_equal (List.rev data) !messages
     ~sexp_of_t:<:sexp_of< string list >>;
   Reader.close reader
@@ -253,7 +281,7 @@ let read_zero_terminated_strings () =
   >>= fun reader ->
   let strings = ref [] in
   let start = ref 0 in
-  Reader.read_one_chunk_at_a_time_until_eof reader
+  Reader.read_one_chunk_at_a_time reader
     ~handle_chunk:(fun buf ~pos ~len ->
       let orig_len = len in
       let rec loop ~pos ~len =
@@ -271,7 +299,7 @@ let read_zero_terminated_strings () =
       loop ~pos ~len)
   >>= fun result ->
   assert_equal `Eof result
-    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_until_eof_result >>;
+    ~sexp_of_t:<:sexp_of< unit Reader.read_one_chunk_at_a_time_result >>;
   assert_equal (List.rev data) !strings
     ~sexp_of_t:<:sexp_of< string list >>;
   Reader.close reader
@@ -308,11 +336,11 @@ let read_bin_prot_fail_with_max_length_exceeded_and_continue () =
     ~finally:(fun () -> Unix.unlink file)
 ;;
 
-let read_one_chunk_at_a_time_until_eof_share_buffer () =
+let read_one_chunk_at_a_time_share_buffer () =
   reader_of_string (String.create 1)
   >>= fun reader ->
   let r = ref None in
-  Reader.read_one_chunk_at_a_time_until_eof reader
+  Reader.read_one_chunk_at_a_time reader
     ~handle_chunk:(fun buf ~pos:_ ~len:_ ->
       r := Some (Bigstring.sub_shared buf);
       return `Continue)
@@ -329,14 +357,16 @@ let tests = [
   "Reader_test.read_fail_and_continue", read_fail_and_continue;
   "Reader_test.read_messages", read_messages;
   "Reader_test.read_partial_chunks", read_partial_chunks;
-  "Reader_test.read_one_chunk_at_a_time_until_eof_errors",
-  read_one_chunk_at_a_time_until_eof_errors;
+  "Reader_test.read_partial_chunks_multiple_times",
+  read_partial_chunks_multiple_times;
+  "Reader_test.read_one_chunk_at_a_time_errors",
+  read_one_chunk_at_a_time_errors;
   "Reader_test.read_sexps_file", read_sexps_file;
   "Reader_test.read_sexps_pipe", read_sexps_pipe;
   "Reader_test.read_zero_terminated_strings", read_zero_terminated_strings;
   "Reader_test.read_bin_prot_fail_with_max_length_exceeded_and_continue",
   read_bin_prot_fail_with_max_length_exceeded_and_continue;
-  "Reader_test.read_one_chunk_at_a_time_until_eof_share_buffer",
-  read_one_chunk_at_a_time_until_eof_share_buffer;
+  "Reader_test.read_one_chunk_at_a_time_share_buffer",
+  read_one_chunk_at_a_time_share_buffer;
 
 ]
