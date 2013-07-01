@@ -24,6 +24,7 @@ let tests =
   @ Thread_safe_test.tests
   @ Wait_test.tests
   @ Writer_test.tests
+  @ Dynamic_port_writer_test.tests
 ;;
 
 let () =
