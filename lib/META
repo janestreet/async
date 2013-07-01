@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 3f263236b59993d93128c3f43ad2c981)
+version = "109.32.00"
+description = "Jane Street Capital's asynchronous execution library"
+requires = "async_core async_unix async_extra threads"
+archive(byte) = "async.cma"
+archive(byte, plugin) = "async.cma"
+archive(native) = "async.cmxa"
+archive(native, plugin) = "async.cmxs"
+exists_if = "async.cma"
+# OASIS_STOP
+
