@@ -70,7 +70,7 @@ let tests =
       let n = 3 in
       Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n
       >>= fun (pipe_r, _id) ->
-      Pipe.fold pipe_r ~init:0 ~f:(fun x i ->
+      Pipe.fold_without_pushback pipe_r ~init:0 ~f:(fun x i ->
         assert (x=i);
         i+1)
       >>= fun x ->
