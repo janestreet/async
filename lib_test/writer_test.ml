@@ -2,38 +2,60 @@ open Core.Std
 open Qtest_lib.Std
 open Async.Std
 
-let write () =
+let concat = String.concat
+
+let tests = ref []
+
+let add_test name { Lexing. pos_fname; pos_lnum; _ } f =
+  let name =
+    concat [ Filename.basename pos_fname
+           ; ":"; Int.to_string pos_lnum
+           ; " "; name
+           ]
+  in
+  tests := (name, f) :: !tests
+;;
+
+let write = add_test "write" _here_ (fun () ->
   let file = "tmp_writer_test.txt" in
   Writer.open_file file
   >>= fun writer ->
-    Writer.write writer "abc\n";
-    Writer.write writer "def\n";
-    Writer.write writer "ghi\n";
-    Writer.close writer
+  Writer.write writer "abc\n";
+  Writer.write writer "def\n";
+  Writer.write writer "ghi\n";
+  Writer.close writer
   >>= fun () ->
-    Reader.with_file file ~f:Reader.contents
+  Reader.with_file file ~f:Reader.contents
   >>= fun contents ->
-    assert_string_equal contents "abc\ndef\nghi\n";
-    Unix.unlink file
+  assert_string_equal contents "abc\ndef\nghi\n";
+  Unix.unlink file)
+;;
 
-let multiple_writers n () =
-  let files = Array.init n ~f:(fun i ->
-    sprintf "writer_test%d.txt" i)
-  in
-  let files = Array.to_list files in
-  let writers = List.map ~f:Writer.open_file files in
-  Deferred.all writers
-  >>= fun writers ->
+let multiple_writers here n =
+  add_test (concat [ Int.to_string n; " writers" ]) here (fun () ->
+    let files = Array.init n ~f:(fun i ->
+      sprintf "writer_test%d.txt" i)
+    in
+    let files = Array.to_list files in
+    let writers = List.map ~f:Writer.open_file files in
+    Deferred.all writers
+    >>= fun writers ->
     for i = 1 to 10
     do
       List.iter writers ~f:(fun writer ->
         Writer.writef writer "line %d\n" i)
     done;
     Deferred.all_unit (List.map ~f:Writer.close writers)
-  >>= fun () ->
-    Deferred.all_unit (List.map ~f:Unix.unlink files)
+    >>= fun () ->
+    Deferred.all_unit (List.map ~f:Unix.unlink files))
+;;
 
-let append max () =
+let () = multiple_writers _here_ 10
+let () = multiple_writers _here_ 100
+let () = multiple_writers _here_ 500
+
+let append = add_test "append" _here_ (fun () ->
+  let max = 1000 in
   let file = "tmp_writer_test_append.txt" in
   Writer.save file ~contents:""
   >>= fun () ->
@@ -46,26 +68,26 @@ let append max () =
     let rec write i =
       append (Int.to_string i ^ "\n")
       >>> fun () ->
-        if i < max
-        then write (i + 1)
-        else Ivar.fill ivar ()
+      if i < max
+      then write (i + 1)
+      else Ivar.fill ivar ()
     in
     write 1)
   >>= fun () ->
-    Reader.open_file file
+  Reader.open_file file
   >>= fun reader ->
-    let lines = Reader.lines reader in
-    let expected = ref 1 in
-    Pipe.iter' lines ~f:(fun lines ->
-      Queue.iter lines ~f:(fun line ->
-        assert_string_equal (Int.to_string !expected) line;
-        incr expected);
-      Deferred.unit)
+  let lines = Reader.lines reader in
+  let expected = ref 1 in
+  Pipe.iter' lines ~f:(fun lines ->
+    Queue.iter lines ~f:(fun line ->
+      assert_string_equal (Int.to_string !expected) line;
+      incr expected);
+    Deferred.unit)
   >>= fun () ->
-    assert_string_equal (Int.to_string !expected) (Int.to_string (max + 1));
-    Reader.close reader
+  assert_string_equal (Int.to_string !expected) (Int.to_string (max + 1));
+  Reader.close reader
   >>= fun () ->
-    Unix.unlink file
+  Unix.unlink file)
 ;;
 
 let write_lots writer =
@@ -73,8 +95,9 @@ let write_lots writer =
   for _i = 1 to 64 do
     Writer.write writer ss
   done
+;;
 
-let buffer_age_limit () =
+let () = add_test "buffer_age_limit" _here_ (fun () ->
   Unix.pipe (Info.of_string "buffer_age_limit")
   >>= function (`Reader reader_fd, `Writer writer_fd) ->
     let writer_to_close = ref None in
@@ -86,17 +109,17 @@ let buffer_age_limit () =
       write_lots writer;
       after (sec 5.)
       >>| fun () ->
-        `Did_not_raise_error)
-  >>= function
+      `Did_not_raise_error)
+    >>= function
     | Ok `Did_not_raise_error -> failwith "buffer-age check did not fire"
     | Error _ ->
       (* buffer-age check fired correctly *)
       Writer.close ~force_close:(return ()) (Option.value_exn !writer_to_close)
-  >>= fun () ->
-    Unix.Fd.close reader_fd
+      >>= fun () ->
+      Unix.Fd.close reader_fd)
 ;;
 
-let reduce_buffer_age_limit () =
+let () = add_test "reduce_buffer_age_limit" _here_ (fun () ->
   Unix.pipe (Info.of_string "buffer_age_limit")
   >>= function (`Reader reader_fd, `Writer writer_fd) ->
     let writer_to_close = ref None in
@@ -110,16 +133,16 @@ let reduce_buffer_age_limit () =
       after (sec 2.)
       >>| fun () ->
       `Did_not_raise_error)
-  >>= function
-  | Ok `Did_not_raise_error -> failwith "buffer-age check did not fire"
-  | Error _ ->
-    (* buffer-age check fired correctly *)
-    Writer.close ~force_close:(return ()) (Option.value_exn !writer_to_close)
-    >>= fun () ->
-    Unix.Fd.close reader_fd;
+    >>= function
+    | Ok `Did_not_raise_error -> failwith "buffer-age check did not fire"
+    | Error _ ->
+      (* buffer-age check fired correctly *)
+      Writer.close ~force_close:(return ()) (Option.value_exn !writer_to_close)
+      >>= fun () ->
+      Unix.Fd.close reader_fd)
 ;;
 
-let increase_buffer_age_limit () =
+let () = add_test "increase_buffer_age_limit" _here_ (fun () ->
   Unix.pipe (Info.of_string "buffer_age_limit")
   >>= function (`Reader reader_fd, `Writer writer_fd) ->
     let writer =
@@ -128,12 +151,13 @@ let increase_buffer_age_limit () =
     Writer.set_buffer_age_limit writer (`At_most (sec 180.));
     write_lots writer;
     after (sec 5.)
-  >>= fun () ->
+    >>= fun () ->
     Writer.close ~force_close:(return ()) writer
-  >>= fun () ->
-    Unix.Fd.close reader_fd
+    >>= fun () ->
+    Unix.Fd.close reader_fd)
+;;
 
-let flush_on_close () =
+let () = add_test "flush_on_close" _here_ (fun () ->
   let module Debug = Async_core.Debug in
   let file = "flush_on_close.txt" in
   Writer.open_file file
@@ -157,10 +181,10 @@ let flush_on_close () =
     Reader.file_contents file
     >>= fun s ->
     assert (s = Buffer.contents buffer);
-    Unix.unlink file;
+    Unix.unlink file)
 ;;
 
-let schedule_non_zero_pos () =
+let () = add_test "schedule_non_zero_pos" _here_ (fun () ->
   let file = "schedule-non-zero-pos.txt" in
   Writer.with_file file ~f:(fun writer ->
     let buf = Bigstring.create 2 in
@@ -171,23 +195,42 @@ let schedule_non_zero_pos () =
   Reader.with_file file ~f:Reader.contents
   >>= fun contents ->
   assert_string_equal contents "$";
-  Unix.unlink file
+  Unix.unlink file)
 ;;
 
-let stdout () =
+let () = add_test "stdout" _here_ (fun () ->
   Core.Std.printf "not from writer 1\n";
-  return ()
+  return ())
+;;
 
-let tests = [
-  "Writer_test.10 writers", multiple_writers 10;
-  "Writer_test.100 writers", multiple_writers 100;
-  "Writer_test.500 writers", multiple_writers 500;
-  "Writer_test.append", append 1000;
-  "Writer_test.buffer_age_limit", buffer_age_limit;
-  "Writer_test.flush on close", flush_on_close;
-  "Writer_test.increase_buffer_age_limit", increase_buffer_age_limit;
-  "Writer_test.reduce_buffer_age_limit", reduce_buffer_age_limit;
-  "Writer_test.schedule_with_nonzero_pos", schedule_non_zero_pos;
-  "Writer_test.stdout", stdout;
-  "Writer_test.write", write;
-]
+let transfer_test f =
+  let pipe_reader, pipe_writer = Pipe.create () in
+  Unix.pipe (Info.create "transfer" () <:sexp_of< unit >>)
+  >>= fun (`Reader rfd, `Writer wfd) ->
+  let reader = Reader.create rfd in
+  let writer = Writer.create wfd ~raise_when_consumer_leaves:false in
+  let transfer_finished =
+    Writer.transfer writer pipe_reader (fun s -> Writer.write writer s)
+  in
+  f pipe_reader pipe_writer reader writer;
+  transfer_finished
+  >>= fun () ->
+  Reader.close reader
+  >>= fun () ->
+  Writer.close writer
+;;
+
+let () = add_test "transfer close consumer" _here_ (fun () ->
+  transfer_test (fun _pipe_reader pipe_writer reader _writer ->
+    don't_wait_for
+      (Reader.close reader
+       >>| fun () ->
+       Pipe.write_without_pushback pipe_writer "hello")))
+;;
+
+let () = add_test "transfer close producer" _here_ (fun () ->
+  transfer_test (fun _pipe_reader pipe_writer _reader _writer ->
+    Pipe.close pipe_writer))
+;;
+
+let tests = List.rev !tests
