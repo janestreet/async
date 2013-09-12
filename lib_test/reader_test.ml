@@ -349,6 +349,14 @@ let read_one_chunk_at_a_time_share_buffer () =
     | `Eof -> Reader.close reader
 ;;
 
+let drain_test () =
+  Reader.open_file "reader_test.sexp"
+  >>= fun reader ->
+  Reader.drain reader
+  >>| fun () ->
+  assert (Reader.is_closed reader);
+;;
+
 let tests = [
   "Reader_test.load_sexps_fail", load_sexps_fail;
   "Reader_test.lseek", lseek;
@@ -368,5 +376,5 @@ let tests = [
   read_bin_prot_fail_with_max_length_exceeded_and_continue;
   "Reader_test.read_one_chunk_at_a_time_share_buffer",
   read_one_chunk_at_a_time_share_buffer;
-
+  "Reader_test.drain_test", drain_test;
 ]
