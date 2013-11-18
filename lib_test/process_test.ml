@@ -83,6 +83,21 @@ let test7 () =
     | _ -> assert false
 ;;
 
+let test8 () =
+  Process.run ~prog:"false" ~args:[] ()
+  >>| function
+  | Error _ -> ()
+  | Ok "" -> failwith "false returned zero"
+  | Ok s -> failwiths "false returned zero and produced output" s <:sexp_of< string >>
+;;
+
+let test9 () =
+  Process.run ~prog:"false" ~args:[] ~accept_nonzero_exit:[1] ()
+  >>| function
+  | Error e -> Error.raise e
+  | Ok stdout -> <:test_eq< string >> stdout ""
+;;
+
 let tests =
   [ "Process_test1", test1;
     "Process_test2", test2;
@@ -91,5 +106,7 @@ let tests =
     "Process_test5", test5;
     "Process_test6", test6;
     "Process_test7", test7;
+    "Process_test8", test8;
+    "Process_test9", test9;
   ]
 ;;

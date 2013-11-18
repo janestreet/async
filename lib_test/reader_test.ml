@@ -349,6 +349,30 @@ let read_one_chunk_at_a_time_share_buffer () =
     | `Eof -> Reader.close reader
 ;;
 
+let test_macros () =
+  In_thread.run (fun () ->
+    let test = Pa_ounit_lib.Runtime.collect (fun () ->
+      let module Test = Sexplib_ounit_tests.Test_macros.Make (struct
+        let load_sexp_conv_exn file f =
+          Thread_safe.block_on_async (fun () ->
+            Reader.load_sexp_exn ~expand_macros:true file f)
+          |> function
+          | Ok x -> x
+          | Error e -> raise (Monitor.extract_exn e)
+        let load_sexps_conv file f =
+          Thread_safe.block_on_async_exn (fun () ->
+            Async_unix.Reader0.Macro_loader.load_sexps_conv file f)
+      end)
+      in
+      ())
+    in
+    let open OUnit in
+    List.iter (OUnit.run_test_tt test) ~f:(function
+      | RSuccess _ -> ()
+      | RFailure _ | RError _ | RSkip _ | RTodo _ -> raise Exit)
+  )
+;;
+
 let drain_test () =
   Reader.open_file "reader_test.sexp"
   >>= fun reader ->
@@ -376,5 +400,6 @@ let tests = [
   read_bin_prot_fail_with_max_length_exceeded_and_continue;
   "Reader_test.read_one_chunk_at_a_time_share_buffer",
   read_one_chunk_at_a_time_share_buffer;
+  "Reader_test.test_macros", test_macros;
   "Reader_test.drain_test", drain_test;
 ]
