@@ -75,7 +75,7 @@ let () =
     assert (i = 13);
   )
 
-let log_string = Async_core.Debug.log_string
+let log_string = Async_kernel.Debug.log_string
 
 let () =
   test "Thread_safe_pipe" (fun () ->

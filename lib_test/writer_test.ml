@@ -158,7 +158,7 @@ let () = add_test "increase_buffer_age_limit" _here_ (fun () ->
 ;;
 
 let () = add_test "flush_on_close" _here_ (fun () ->
-  let module Debug = Async_core.Debug in
+  let module Debug = Async_kernel.Debug in
   let file = "flush_on_close.txt" in
   Writer.open_file file
   >>= fun writer ->

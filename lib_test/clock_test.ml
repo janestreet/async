@@ -1,7 +1,7 @@
 open Core.Std
 open Async.Std
 
-let log = Async_core.Debug.log
+let log = Async_kernel.Debug.log
 
 let closeness ~expected ~actual = Float.abs (expected -. actual) /. expected
 

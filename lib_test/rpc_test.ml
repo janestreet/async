@@ -1,7 +1,7 @@
 open Core.Std
 open Async.Std
 
-module Debug = Async_core.Debug
+module Debug = Async_kernel.Debug
 
 let test ~imp1 ~imp2 ~state1 ~state2 ~f2 () =
   Unix.pipe (Info.of_string "rpc_test 1")

@@ -57,3 +57,19 @@ let printable_sexp () =
 let tests = [
   "Socket_test.printable_sexp", printable_sexp;
 ]
+
+open Async_test_in_child_process
+
+let () =
+  add_test _here_ Expect.ok (fun () ->
+    Unix.close (Fd.stdin ())
+    >>= fun () ->
+    Tcp.Server.create Tcp.on_port_chosen_by_os
+      (fun _address _reader _writer -> Deferred.unit)
+    >>= fun server ->
+    Tcp.with_connection
+      (Tcp.to_host_and_port "localhost" (Tcp.Server.listening_on server))
+      (fun _socket _reader _writer -> Deferred.unit)
+    >>= fun () ->
+    return ())
+;;

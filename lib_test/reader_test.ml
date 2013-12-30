@@ -17,7 +17,7 @@ let read_fail_and_continue () =
       Reader.contents reader
       >>| fun got_contents ->
       assert (got_contents = expected_contents);
-      (* Async_core.Debug.log "contents" s <:sexp_of< string >> *)
+      (* Async_kernel.Debug.log "contents" s <:sexp_of< string >> *)
   )
 ;;
 

@@ -3,7 +3,7 @@ open Async.Std  let _ = _squelch_unused_module_warning_
 
 open Core_bench.Std
 
-module Ivar = Async_core.Raw_ivar
+module Ivar = Async_kernel.Raw_ivar
 
 let deep _n =
   let n = 30 in
