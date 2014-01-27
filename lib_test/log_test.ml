@@ -83,44 +83,128 @@ let speed_test fmt max_time () =
   Unix.unlink file
 ;;
 
-let rotation_test () =
+let rotation_test =
+  let max_files = 5 in
+  let expected_msgs_per_file = 1 in
   let rotation =
     {Log.Rotation.
-      messages = Some 100;
-      size     = None;
-      time     = None;
-      keep     = `At_least 5;
-      naming_scheme = `Numbered;
+       messages = Some expected_msgs_per_file;
+     size     = None;
+     time     = None;
+     keep     = `At_least max_files;
+     naming_scheme = `Numbered;
     }
   in
   let rec loop n =
-    if n <= 10 then begin
+    if n > 0 then begin
       let o = Log.Output.rotating_file `Sexp ~basename:"test" rotation in
-      let log = Log.create ~level:`Info ~output:[o] in
-      Log.info log "test";
+      (* rotation on start-up is different from rotation during a log life-time.  This
+         case of a log containing multiple copies of the same output is weird but legal,
+         and it shakes out some race conditions in the rotation code. *)
+      let log = Log.create ~level:`Info ~output:[o; o; o; o; o] in
+      Log.info log "test %d" n;
+      Clock.after (Time.Span.of_sec 1.)
+      >>= fun () ->
+      Log.info log "test %d" n;
       let flushed = Log.flushed log in
       Log.close log;
       flushed
       >>= fun () ->
-      loop (n + 1)
+      loop (n - 1)
     end else Deferred.unit
   in
-  loop 0
-  >>= fun () ->
-  Sys.readdir "."
-  >>= fun files ->
-  let files = Array.to_list files in
-  let logs =
-    List.filter files ~f:(fun fn ->
-      String.is_prefix fn ~prefix:"test."
-      && String.is_suffix fn ~suffix:".log")
+  let check_num_msgs_per_file fnames expected =
+    Deferred.List.map fnames ~f:(fun fname ->
+      Pipe.to_list (Log.Reader.pipe `Sexp fname)
+      >>| fun msgs ->
+      let observed = List.length msgs in
+      if Int.(=) observed expected_msgs_per_file
+      then Ok ()
+      else Or_error.error "too many messages in log file"
+             (observed, "instead of", expected) <:sexp_of< int * string * int >>)
   in
-  Deferred.List.iter logs ~f:(fun fn -> Unix.unlink fn)
-  >>| fun () ->
-  let num_logs = List.length logs in
-  if num_logs = 6 then ()
-  else failwith "more logs than expected after rotation"
+  let check_num_files logs expected =
+    let num_logs = List.length logs in
+    if Int.(=) num_logs expected
+    then Ok ()
+    else Or_error.error "too many log files after rotation"
+           (num_logs, "instead of", expected) <:sexp_of< int * string * int >>
+  in
+  fun () ->
+    loop (2 * max_files)
+    >>= fun () ->
+    Sys.readdir "."
+    >>= fun files ->
+    let logs = Array.fold files ~init:[] ~f:(fun acc fn ->
+      if String.is_prefix fn ~prefix:"test." && String.is_suffix fn ~suffix:".log"
+      then fn :: acc
+      else acc)
+    in
+    check_num_msgs_per_file logs expected_msgs_per_file
+    >>= fun too_many_msgs_errors ->
+    (Or_error.ok_exn
+      (Or_error.combine_errors_unit
+         (check_num_files logs (max_files + 1) :: too_many_msgs_errors)));
+    (* if the tests failed, leave the output around for debugging *)
+    Deferred.List.iter logs ~f:(fun fn -> Unix.unlink fn)
 ;;
+
+let rotation_types =
+  let max_files = 4 in
+  let keep = `At_least max_files in
+  let prefix = "rotation_type_test" in
+  let is_log fn = String.is_prefix fn ~prefix && String.is_suffix fn ~suffix:".log" in
+  let time_stamps () =
+    Sys.readdir "."
+    >>= Deferred.Array.filter_map ~f:(fun fn ->
+      if is_log fn
+      then
+        Unix.stat fn
+        >>| Unix.Stats.mtime
+        >>| Option.some
+      else
+        return None
+    )
+    >>| Time.Set.of_array
+  in
+  fun () -> Deferred.List.iter [`Numbered ; `Timestamped] ~f:(fun naming_scheme ->
+    let rotation =
+      { Log.Rotation.messages = None
+      ; size = None
+      ; time = None
+      ; keep
+      ; naming_scheme
+      }
+    in
+    let rec loop n prev_ts =
+      if n=0 then Deferred.unit
+      else
+        let output = [Log.Output.rotating_file `Sexp ~basename:prefix rotation] in
+        let log = Log.create ~level:`Debug ~output in
+        Log.info log "Some output %d" n;
+        Log.flushed log
+        >>= fun () ->
+        time_stamps ()
+        >>= fun cur_ts ->
+        let removed = Set.diff prev_ts cur_ts in
+        Set.iter cur_ts ~f:(fun c ->
+          Set.iter removed ~f:(fun r ->
+            assert (Time.(<) r c)
+          )
+        );
+        Clock.after (Time.Span.of_ms 1.)
+        >>= fun () -> loop (n-1) cur_ts
+    in
+    loop (3 * max_files) Time.Set.empty
+    >>= fun () ->
+    Sys.readdir "."
+    >>= Deferred.Array.iter ~f:(fun fn ->
+      if is_log fn
+      then Unix.unlink fn
+      else Deferred.unit
+    )
+  )
+
 
 let tests = [
   "Log_test.write_and_read (sexp)", write_and_read `Sexp;
@@ -129,5 +213,6 @@ let tests = [
   "Log_test.speed_regression (text)", speed_test `Text (sec 8.);
   "Log_test.speed_regression (bin-prot)", speed_test `Bin_prot (sec 5.);
   "Log_test.rotation", rotation_test;
+  "Log_test.rotation (types)", rotation_types
 ]
 
