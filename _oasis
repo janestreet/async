@@ -79,15 +79,3 @@ Executable squash
   CompiledObject:     best
   Install:            false
   BuildDepends:       async
-
-# +-------------------------------------------------------------------+
-# | Doc                                                               |
-# +-------------------------------------------------------------------+
-
-Document "async"
-  Title:                Jane street's async library
-  Type:                 ocamlbuild (0.3)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib
-  XOCamlbuildLibraries: async
-
