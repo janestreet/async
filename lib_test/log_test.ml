@@ -87,13 +87,11 @@ let rotation_test =
   let max_files = 5 in
   let expected_msgs_per_file = 1 in
   let rotation =
-    {Log.Rotation.
-       messages = Some expected_msgs_per_file;
-     size     = None;
-     time     = None;
-     keep     = `At_least max_files;
-     naming_scheme = `Numbered;
-    }
+    Log.Rotation.create
+      ~messages:expected_msgs_per_file
+      ~keep:(`At_least max_files)
+      ~naming_scheme:`Numbered
+      ()
   in
   let rec loop n =
     if n > 0 then begin
@@ -168,14 +166,7 @@ let rotation_types =
     >>| Time.Set.of_array
   in
   fun () -> Deferred.List.iter [`Numbered ; `Timestamped] ~f:(fun naming_scheme ->
-    let rotation =
-      { Log.Rotation.messages = None
-      ; size = None
-      ; time = None
-      ; keep
-      ; naming_scheme
-      }
-    in
+    let rotation = Log.Rotation.create ~keep ~naming_scheme () in
     let rec loop n prev_ts =
       if n=0 then Deferred.unit
       else

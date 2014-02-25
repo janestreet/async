@@ -8,12 +8,11 @@ let main () =
     Output.rotating_file
       `Sexp
       ~basename:"/tmp/log_test/messages"
-      { Rotation.messages = None
-      ; size              = None
-      ; time              = Some (Time.Ofday.create ~hr:13 ~min:47 (), Time.Zone.machine_zone ())
-      ; keep              = `At_least 3
-      ; naming_scheme     = `Numbered
-      }
+      (Rotation.create
+         ~time:(Time.Ofday.create ~hr:13 ~min:47 ())
+         ~keep:(`At_least 3)
+         ~naming_scheme:`Numbered
+         ())
   in
   Global.set_output [rotating_file];
   let i = ref 0 in
