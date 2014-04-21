@@ -10,17 +10,26 @@ let () = never_returns (Scheduler.go ())
   *)
 
 let () =
-  don't_wait_for begin
-    let module Player = Async_jane.Std.Sound_player in
-    let errors_reader, errors_writer = Pipe.create () in
-    don't_wait_for (Pipe.iter_without_pushback errors_reader ~f:(fun error ->
-      Printf.printf "ERROR: %s" (Error.to_string_hum error))
-    );
-    let player = Player.create ~error_pipe:errors_writer Player.Playback_location.Local in
-    Deferred.List.iter (List.init 100 ~f:ignore) ~f:(fun () ->
-      Player.play player ~don't_play_same_for:(sec 0.)
-        ~filename:"/j/office/sounds/chime.wav";
-      Clock.after (sec 0.1)
+  Command.async_basic ~summary:"testing jane sound player"
+    Command.Spec.(
+      empty
+      +> anon ("SOUND-FILE" %: file)
+      +> anon ("TIMES" %: int)
+      +> anon ("INTERVAL" %: Arg_type.create Time.Span.of_string)
     )
-  end;
-  never_returns (Scheduler.go ())
+    (fun filename times interval () ->
+       let module Player = Async_jane.Std.Sound_player in
+       let errors_reader, errors_writer = Pipe.create () in
+       don't_wait_for (Pipe.iter_without_pushback errors_reader ~f:(fun error ->
+         Log.Global.error "%s" (Error.to_string_hum error))
+       );
+       let player =
+         Player.create ~error_pipe:errors_writer Player.Playback_location.Local
+       in
+       Deferred.List.iter (List.init times ~f:ignore) ~f:(fun () ->
+         Player.play player ~don't_play_same_for:(sec 0.) ~filename;
+         Clock.after interval
+       )
+       >>= never
+    )
+  |> Command.run
