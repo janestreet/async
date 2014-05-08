@@ -87,7 +87,7 @@ end
 
 let main () =
   let kvstore = Key_value_store.create () in
-  Server.create ~port:12321 ~auth:(fun _ _ -> return `Allow) ()
+  Server.create ~port:12321 ~auth:(fun _ _ _ -> return `Allow) ()
   >>> fun svr ->
   let echo (clt, msg) = Server.send_ignore_errors
                           svr
