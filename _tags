@@ -1,3 +1,63 @@
 # OASIS_START
+# DO NOT EDIT (digest: a13b6424f3907088e70cf9fc9f0443da)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library async
+"lib/async.cmxs": use_async
+"lib/std.cmx": for-pack(Async)
+<lib/*.ml{,i}>: package(async_kernel)
+<lib/*.ml{,i}>: package(async_unix)
+<lib/*.ml{,i}>: package(async_extra)
+<lib/*.ml{,i}>: package(threads)
+# Executable test_runner
+<lib_test/test_runner.{native,byte}>: use_async
+<lib_test/test_runner.{native,byte}>: package(async_kernel)
+<lib_test/test_runner.{native,byte}>: package(async_unix)
+<lib_test/test_runner.{native,byte}>: package(async_extra)
+<lib_test/test_runner.{native,byte}>: package(threads)
+<lib_test/*.ml{,i}>: use_async
+<lib_test/*.ml{,i}>: package(async_kernel)
+<lib_test/*.ml{,i}>: package(async_unix)
+<lib_test/*.ml{,i}>: package(async_extra)
+<lib_test/*.ml{,i}>: package(threads)
+# Executable nanos_per_job
+<bench/nanos_per_job.{native,byte}>: use_async
+<bench/nanos_per_job.{native,byte}>: package(async_kernel)
+<bench/nanos_per_job.{native,byte}>: package(async_unix)
+<bench/nanos_per_job.{native,byte}>: package(async_extra)
+<bench/nanos_per_job.{native,byte}>: package(threads)
+<bench/*.ml{,i}>: use_async
+<bench/*.ml{,i}>: package(async_kernel)
+<bench/*.ml{,i}>: package(async_unix)
+<bench/*.ml{,i}>: package(async_extra)
+<bench/*.ml{,i}>: package(threads)
+# Executable handlers
+<benchmarks/handlers.{native,byte}>: use_async
+<benchmarks/handlers.{native,byte}>: package(async_kernel)
+<benchmarks/handlers.{native,byte}>: package(async_unix)
+<benchmarks/handlers.{native,byte}>: package(async_extra)
+<benchmarks/handlers.{native,byte}>: package(threads)
+# Executable squash
+<benchmarks/squash.{native,byte}>: use_async
+<benchmarks/squash.{native,byte}>: package(async_kernel)
+<benchmarks/squash.{native,byte}>: package(async_unix)
+<benchmarks/squash.{native,byte}>: package(async_extra)
+<benchmarks/squash.{native,byte}>: package(threads)
+<benchmarks/*.ml{,i}>: use_async
+<benchmarks/*.ml{,i}>: package(async_kernel)
+<benchmarks/*.ml{,i}>: package(async_unix)
+<benchmarks/*.ml{,i}>: package(async_extra)
+<benchmarks/*.ml{,i}>: package(threads)
 # OASIS_STOP
 # <lib_test/*.ml{,i}>: syntax_camlp4o
