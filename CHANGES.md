@@ -4,14 +4,14 @@
 
 ## 109.53.00
 
-Bump version number
+- Bump version number
 
 ## 109.14.00
 
 - Added function `Monitor.kill`, which kills a monitor and all its
   descendants.
 
-  This prevents any jobs from ever running in the monitor again.
+    This prevents any jobs from ever running in the monitor again.
 
 ## 109.09.00
 
