@@ -35,3 +35,4 @@ let counter_values = Rpc.Pipe_rpc.create
   ~bin_query:Unit.bin_t
   ~bin_response:Int.bin_t
   ~bin_error:Unit.bin_t
+  ()

@@ -51,7 +51,7 @@ let at_intervals () =
 
 let error () =
   let monitor = Monitor.create () in
-  let d1 = Stream.next (Monitor.errors monitor) in
+  let d1 = Stream.next (Monitor.detach_and_get_error_stream monitor) in
   let d2 =
    within' ~monitor (fun () ->
       Scheduler.add_busy_poller (fun () -> failwith "foo"))
@@ -63,7 +63,7 @@ let error () =
 
 let stop_after_error () =
   let monitor = Monitor.create () in
-  let d = Stream.next (Monitor.errors monitor) in
+  let d = Stream.next (Monitor.detach_and_get_error_stream monitor) in
   don't_wait_for
     (within' ~monitor (fun () ->
        let first_time = ref true in

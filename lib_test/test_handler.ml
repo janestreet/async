@@ -15,7 +15,7 @@ let t0 () =
 
 let t1 () =
   let monitor = Monitor.create ~name:"1st-monitor" () in
-  let errors = Monitor.errors monitor in
+  let errors = Monitor.detach_and_get_error_stream monitor in
   Deferred.create (fun ivar ->
     begin
       Scheduler.within' ~monitor (fun () -> raise Exn) >>> fun _ ->
@@ -34,8 +34,8 @@ let t1 () =
 let t2 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun _ -> raise Exn (* to m1 *)))
@@ -54,8 +54,8 @@ let t2 () =
 let t3 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun _ -> raise Exn (* to m1 *)))
@@ -75,8 +75,8 @@ let t3 () =
 let t6 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun x -> x))
@@ -98,8 +98,8 @@ let t6 () =
 let t4 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun _ -> raise Exn (* to m1 *)))
@@ -119,8 +119,8 @@ let t4 () =
 let t7 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun x -> x))
@@ -142,8 +142,8 @@ let t7 () =
 let t5 () =
   let m1 = Monitor.create ~name:"1st-monitor" () in
   let m2 = Monitor.create ~name:"2nd-monitor" () in
-  let errors1 = Monitor.errors m1 in
-  let errors2 = Monitor.errors m2 in
+  let errors1 = Monitor.detach_and_get_error_stream m1 in
+  let errors2 = Monitor.detach_and_get_error_stream m2 in
   Deferred.create (fun ivar ->
     Scheduler.within' ~monitor:m1 (fun () ->
       return (Handler.create (fun _ -> raise Exn (* to m1 *)))

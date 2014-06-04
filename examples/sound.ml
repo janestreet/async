@@ -10,7 +10,7 @@ let () = never_returns (Scheduler.go ())
   *)
 
 let () =
-  Command.async_basic ~summary:"testing jane sound player"
+  Command.async ~summary:"testing jane sound player"
     Command.Spec.(
       empty
       +> anon ("SOUND-FILE" %: file)

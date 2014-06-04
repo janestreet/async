@@ -49,6 +49,7 @@ let pipe_count_rpc =
     ~bin_query:Int.bin_t
     ~bin_response:Int.bin_t
     ~bin_error:Pipe_count_error.bin_t
+    ()
 ;;
 
 let pipe_count_imp =
