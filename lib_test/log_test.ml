@@ -54,7 +54,7 @@ let speed_test fmt max_time () =
   let log =
     Log.create ~level:`Info ~output:[ Log.Output.file fmt ~filename:file ]
   in
-  let msg = lazy
+  let msg =
     "the quick brown fox jumped over the lazy dog two or three times to make the \
     description longer"
   in
@@ -62,7 +62,7 @@ let speed_test fmt max_time () =
     if n = 0
     then ()
     else begin
-      Log.of_lazy log msg;
+      Log.info log "%s" msg;
       loop (n - 1)
     end
   in
