@@ -1,87 +1,80 @@
 open Core.Std
-open Core_extended.Std
 open Async.Std
 
-
-let with_rpc_connection f =
+let dispatch_gen dispatch rpc arg =
   Tcp.with_connection (Tcp.to_host_and_port "127.0.0.1" 8080)
     (fun _ reader writer ->
-      Rpc.Connection.create reader writer ~connection_state:()
-      >>= function
-        | Error exn -> raise exn
-        | Ok conn ->
-          f conn
-          >>= fun () ->
-          shutdown 0;
-          return ()
+       Rpc.Connection.create reader writer ~connection_state:()
+       >>= function
+       | Error exn -> raise exn
+       | Ok conn ->
+         dispatch rpc conn arg
+         >>= fun x ->
+         shutdown 0;
+         return x
     )
 
+let dispatch rpc arg =
+  dispatch_gen Rpc.Rpc.dispatch_exn rpc arg
+
+let pipe_dispatch rpc arg =
+  dispatch_gen Rpc.Pipe_rpc.dispatch_exn rpc arg
+
 let set_id_counter new_id =
-  with_rpc_connection (fun conn ->
-    Rpc.Rpc.dispatch_exn Rpc_intf.set_id_counter conn new_id
-  )
+  dispatch Rpc_intf.set_id_counter new_id
 
 let set_id_counter_v0 new_id_pair =
-  with_rpc_connection (fun conn ->
-    Rpc.Rpc.dispatch_exn Rpc_intf.set_id_counter_v0 conn new_id_pair
-  )
+  dispatch Rpc_intf.set_id_counter_v0 new_id_pair
 
 let get_unique_id () =
-  with_rpc_connection (fun conn ->
-    Rpc.Rpc.dispatch_exn Rpc_intf.get_unique_id conn ()
-    >>= fun id ->
-    printf "UNIQUE ID: %d\n" id;
-    return ()
-  )
+  dispatch Rpc_intf.get_unique_id ()
+  >>= fun id ->
+  printf "UNIQUE ID: %d\n" id;
+  return ()
 
 let counter_values () =
-  with_rpc_connection (fun conn ->
-    Rpc.Pipe_rpc.dispatch_exn Rpc_intf.counter_values conn ()
-    >>= fun (reader,_id) ->
-    Pipe.iter_without_pushback reader ~f:(fun i ->
-      printf "COUNTER: %d\n%!" i)
-  )
-
+  pipe_dispatch Rpc_intf.counter_values ()
+  >>= fun (reader,_id) ->
+  Pipe.iter_without_pushback reader ~f:(fun i ->
+    printf "COUNTER: %d\n%!" i)
 
 (* Setting up the command-line interface *)
 
-let in_async f = don't_wait_for (f ()); never_returns (Scheduler.go ())
-
 let get_unique_id_cmd =
-  Deprecated_fcommand.(
-    cmd ~summary:"get unique id from server"
-      (const ())
-      (fun () -> in_async get_unique_id)
-  )
+  Command.async_basic
+    ~summary:"get unique id from server"
+    Command.Spec.empty
+    (fun () -> get_unique_id ())
 
 let set_id_counter_cmd =
-  Deprecated_fcommand.(
-    cmd ~summary:"forcibly set the unique id counter.  DANGEROUS"
-      (anon ("counter" %: int))
-      (fun i -> in_async (fun () -> set_id_counter i))
-  )
+  Command.async_basic
+    ~summary:"forcibly set the unique id counter.  DANGEROUS"
+    Command.Spec.(
+      empty
+      +> anon ("counter" %: int)
+    )
+    (fun i () -> set_id_counter i)
 
 (* This one is actually unsupported by the server, so using it will trigger an error. *)
 let set_id_counter_cmd_v0 =
-  Deprecated_fcommand.(
-    cmd ~summary:"forcibly set the unique id counter.  DANGEROUS"
-      (anon ("counter1" %: int) ++ anon ("counter2" %: int))
-      (fun id1 id2 -> in_async (fun () -> set_id_counter_v0 (id1,id2)))
-  )
-
+  Command.async_basic
+    ~summary:"forcibly set the unique id counter.  DANGEROUS"
+    Command.Spec.(
+      empty
+      +> anon ("counter1" %: int)
+      +> anon ("counter2" %: int)
+    )
+    (fun id1 id2 () -> set_id_counter_v0 (id1,id2))
 
 let counter_values_cmd =
-  Deprecated_fcommand.(
-    cmd ~summary:"subscribe to changes to counter id"
-      (const ())
-      (fun () -> in_async counter_values)
-  )
-
+  Command.async_basic
+    ~summary:"subscribe to changes to counter id"
+    Command.Spec.empty
+    (fun () -> counter_values ())
 
 let () =
-  Deprecated_command.run
-    (Deprecated_command.group
-       ~summary:"Client for trivial Async-RPC server"
+  Command.run
+    (Command.group ~summary:"Client for trivial Async-RPC server"
        [ "get-unique-id"    , get_unique_id_cmd
        ; "set-id-counter"   , set_id_counter_cmd
        ; "set-id-counter-v0", set_id_counter_cmd_v0

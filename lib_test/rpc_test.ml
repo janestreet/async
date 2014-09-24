@@ -17,7 +17,7 @@ let test ~imp1 ~imp2 ~state1 ~state2 ~f2 () =
     then Some (
       Rpc.Implementations.create_exn
         ~implementations:imp
-        ~on_unknown_rpc:`Ignore)
+        ~on_unknown_rpc:`Close_connection)
     else None
   in
   let s1 = s imp1 in

@@ -1,5 +1,4 @@
 open Core.Std
-open Core_extended.Std
 open Async.Std
 
 
@@ -39,23 +38,24 @@ let implementations =
 let main () =
   let counter = ref 0 in
   let implementations =
-    Rpc.Implementations.create ~implementations ~on_unknown_rpc:`Ignore
+    Rpc.Implementations.create ~implementations ~on_unknown_rpc:`Close_connection
   in
   match implementations with
   | Error (`Duplicate_implementations _descrs) -> assert false
   | Ok implementations ->
-    ignore
-      (Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
-         (fun _addr reader writer ->
+    let server =
+      Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
+        (fun _addr reader writer ->
            Rpc.Connection.server_with_close reader writer ~implementations
              ~connection_state:counter
              ~on_handshake_error:`Ignore)
-         : Tcp.Server.inet Deferred.t);
-    never_returns (Scheduler.go ())
+    in
+    ignore (server : (_,_) Tcp.Server.t  Deferred.t);
+    Deferred.never ()
 
 let () =
-  Deprecated_command.run
-    (Deprecated_fcommand.cmd
+  Command.run
+    (Command.async_basic
        ~summary:"A trivial Async-RPC server"
-       (Deprecated_fcommand.const ())
+       Command.Spec.empty
        main)
