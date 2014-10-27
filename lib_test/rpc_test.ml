@@ -24,11 +24,11 @@ let test ~imp1 ~imp2 ~state1 ~state2 ~f2 () =
   let s2 = s imp2 in
   let f2_done =
     Rpc.Connection.with_close ?implementations:s2 r2 w2 ~dispatch_queries:f2
-      ~connection_state:state2
+      ~connection_state:(fun _ -> state2)
       ~on_handshake_error:`Raise
   in
   Rpc.Connection.with_close ?implementations:s1 r1 w1 ~dispatch_queries:(fun _ -> f2_done)
-    ~connection_state:state1
+    ~connection_state:(fun _ -> state1)
     ~on_handshake_error:`Raise
 ;;
 

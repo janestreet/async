@@ -4,15 +4,11 @@ open Async.Std
 let dispatch_gen dispatch rpc arg =
   Tcp.with_connection (Tcp.to_host_and_port "127.0.0.1" 8080)
     (fun _ reader writer ->
-       Rpc.Connection.create reader writer ~connection_state:()
+       Rpc.Connection.create reader writer ~connection_state:(fun _ -> ())
        >>= function
        | Error exn -> raise exn
-       | Ok conn ->
-         dispatch rpc conn arg
-         >>= fun x ->
-         shutdown 0;
-         return x
-    )
+       | Ok conn -> dispatch rpc conn arg)
+
 
 let dispatch rpc arg =
   dispatch_gen Rpc.Rpc.dispatch_exn rpc arg
@@ -28,9 +24,9 @@ let set_id_counter_v0 new_id_pair =
 
 let get_unique_id () =
   dispatch Rpc_intf.get_unique_id ()
-  >>= fun id ->
-  printf "UNIQUE ID: %d\n" id;
-  return ()
+  >>| fun id ->
+  printf "UNIQUE ID: %d\n" id
+;;
 
 let counter_values () =
   pipe_dispatch Rpc_intf.counter_values ()

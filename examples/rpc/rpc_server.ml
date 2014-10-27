@@ -47,7 +47,7 @@ let main () =
       Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
         (fun _addr reader writer ->
            Rpc.Connection.server_with_close reader writer ~implementations
-             ~connection_state:counter
+             ~connection_state:(fun _ -> counter)
              ~on_handshake_error:`Ignore)
     in
     ignore (server : (_,_) Tcp.Server.t  Deferred.t);
