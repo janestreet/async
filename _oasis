@@ -2,7 +2,7 @@ OASISFormat:      0.3
 OCamlVersion:     >= 4.00.0
 FindlibVersion:   >= 1.3.2
 Name:             async
-Version:          112.06.00
+Version:          112.17.00
 Synopsis:         Jane Street Capital's asynchronous execution library
 Authors:          Jane Street Capital LLC <opensource@janestreet.com>
 Copyrights:       (C) 2008-2013 Jane Street Capital LLC <opensource@janestreet.com>
@@ -29,10 +29,13 @@ Library async
   Path:               lib
   FindlibName:        async
   Pack:               true
-  Modules:            Std
+  Modules:            Scheduler_unit_tests,
+                      Std
   BuildDepends:       async_kernel,
                       async_unix,
                       async_extra,
+                      pa_ounit,
+                      pa_ounit.syntax,
                       threads
 
 # +-------------------------------------------------------------------+

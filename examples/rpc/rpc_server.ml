@@ -35,7 +35,7 @@ let implementations =
     )
   ]
 
-let main () =
+let main ~port =
   let counter = ref 0 in
   let implementations =
     Rpc.Implementations.create ~implementations ~on_unknown_rpc:`Close_connection
@@ -44,7 +44,7 @@ let main () =
   | Error (`Duplicate_implementations _descrs) -> assert false
   | Ok implementations ->
     let server =
-      Tcp.Server.create (Tcp.on_port 8080) ~on_handler_error:`Ignore
+      Tcp.Server.create (Tcp.on_port port) ~on_handler_error:`Ignore
         (fun _addr reader writer ->
            Rpc.Connection.server_with_close reader writer ~implementations
              ~connection_state:(fun _ -> counter)
@@ -54,8 +54,13 @@ let main () =
     Deferred.never ()
 
 let () =
-  Command.run
-    (Command.async_basic
-       ~summary:"A trivial Async-RPC server"
-       Command.Spec.empty
-       main)
+  Command.async_basic
+    ~summary:"A trivial Async-RPC server"
+    Command.Spec.(
+      empty
+      +> flag "-port" ~doc:" Port to listen on"
+           (optional_with_default 8080 int)
+    )
+    (fun port () -> main ~port)
+  |> Command.run
+

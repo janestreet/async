@@ -34,7 +34,7 @@ let clear_nonblock () =
 
 let syscall_in_thread_doesn't_raise () =
   Fd.syscall_in_thread ~name:"z" (Fd.stdout ())
-    (fun _ -> raise (Unix.Unix_error (Unix.EINTR, "", "")))
+    (fun _ -> raise (Unix.Unix_error (EINTR, "", "")))
   >>| function
   | `Error _ -> ()
   | `Already_closed | `Ok _ -> assert false

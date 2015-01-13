@@ -1,3 +1,4 @@
 # OASIS_START
 # OASIS_STOP
 # <lib_test/*.ml{,i}>: syntax_camlp4o
+<lib/*.ml>: syntax_camlp4o

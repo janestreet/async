@@ -50,7 +50,7 @@ module Protocol = struct
   end
 end
 
-module Server = Typed_tcp.Make(Protocol)
+module Server = Typed_tcp.Make(Protocol)()
 
 module Key_value_store = struct
 

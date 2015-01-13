@@ -1,72 +1,79 @@
 open Core.Std
 open Async.Std
 
-let dispatch_gen dispatch rpc arg =
-  Tcp.with_connection (Tcp.to_host_and_port "127.0.0.1" 8080)
-    (fun _ reader writer ->
-       Rpc.Connection.create reader writer ~connection_state:(fun _ -> ())
-       >>= function
-       | Error exn -> raise exn
-       | Ok conn -> dispatch rpc conn arg)
+type addr = { host:string; port:int }
 
+let dispatch rpc {host;port} arg =
+  Rpc.Connection.with_client ~host ~port
+    (fun conn -> Rpc.Rpc.dispatch_exn rpc conn arg)
+  >>| Result.ok_exn
 
-let dispatch rpc arg =
-  dispatch_gen Rpc.Rpc.dispatch_exn rpc arg
+let pipe_dispatch rpc {host;port} arg f =
+  Rpc.Connection.with_client ~host ~port
+    (fun conn ->
+       Rpc.Pipe_rpc.dispatch_exn rpc conn arg
+       >>= fun (pipe,_) ->
+       f pipe
+    )
+  >>| Result.ok_exn
 
-let pipe_dispatch rpc arg =
-  dispatch_gen Rpc.Pipe_rpc.dispatch_exn rpc arg
+let set_id_counter addr new_id =
+  dispatch Rpc_intf.set_id_counter addr new_id
 
-let set_id_counter new_id =
-  dispatch Rpc_intf.set_id_counter new_id
+let set_id_counter_v0 addr new_id_pair =
+  dispatch Rpc_intf.set_id_counter_v0 addr new_id_pair
 
-let set_id_counter_v0 new_id_pair =
-  dispatch Rpc_intf.set_id_counter_v0 new_id_pair
-
-let get_unique_id () =
-  dispatch Rpc_intf.get_unique_id ()
+let get_unique_id addr =
+  dispatch Rpc_intf.get_unique_id addr ()
   >>| fun id ->
   printf "UNIQUE ID: %d\n" id
 ;;
 
-let counter_values () =
-  pipe_dispatch Rpc_intf.counter_values ()
-  >>= fun (reader,_id) ->
-  Pipe.iter_without_pushback reader ~f:(fun i ->
-    printf "COUNTER: %d\n%!" i)
+let counter_values addr =
+  pipe_dispatch Rpc_intf.counter_values addr () (fun reader ->
+    Pipe.iter_without_pushback reader ~f:(fun i ->
+      printf "COUNTER: %d\n%!" i))
 
 (* Setting up the command-line interface *)
+
+let host_and_port () =
+  Command.Spec.(
+    step (fun k host port -> k {host; port})
+    +> flag "-host" ~doc:" server IP" (optional_with_default "127.0.0.1" string)
+    +> flag "-port" ~doc:" server port" (optional_with_default 8080 int)
+  )
 
 let get_unique_id_cmd =
   Command.async_basic
     ~summary:"get unique id from server"
-    Command.Spec.empty
-    (fun () -> get_unique_id ())
+    (host_and_port ())
+    (fun addr () -> get_unique_id addr)
 
 let set_id_counter_cmd =
   Command.async_basic
     ~summary:"forcibly set the unique id counter.  DANGEROUS"
     Command.Spec.(
-      empty
+      host_and_port ()
       +> anon ("counter" %: int)
     )
-    (fun i () -> set_id_counter i)
+    (fun addr i () -> set_id_counter addr i)
 
 (* This one is actually unsupported by the server, so using it will trigger an error. *)
 let set_id_counter_cmd_v0 =
   Command.async_basic
     ~summary:"forcibly set the unique id counter.  DANGEROUS"
     Command.Spec.(
-      empty
+      host_and_port ()
       +> anon ("counter1" %: int)
       +> anon ("counter2" %: int)
     )
-    (fun id1 id2 () -> set_id_counter_v0 (id1,id2))
+    (fun addr id1 id2 () -> set_id_counter_v0 addr (id1,id2))
 
 let counter_values_cmd =
   Command.async_basic
     ~summary:"subscribe to changes to counter id"
-    Command.Spec.empty
-    (fun () -> counter_values ())
+    (host_and_port ())
+    (fun addr () -> counter_values addr)
 
 let () =
   Command.run

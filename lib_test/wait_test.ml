@@ -9,7 +9,7 @@ let slow_child () =
 
 let raises_echild f =
   try ignore (f ()); false with
-  | Unix.Unix_error (Unix.ECHILD, _, _) -> true
+  | Unix.Unix_error (ECHILD, _, _) -> true
 ;;
 
 let test_raises_echild () =

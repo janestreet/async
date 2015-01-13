@@ -233,4 +233,34 @@ let () = add_test "transfer close producer" _here_ (fun () ->
     Pipe.close pipe_writer))
 ;;
 
+let () = add_test "save_sexps" _here_ (fun () ->
+  let values = ["abc",1 ;"def",2 ;"ghi jkl mno",123124] in
+  let sexps = List.map values ~f:<:sexp_of<string * int>> in
+  let file = "save_sexps" in
+  Writer.save_sexps file sexps
+  >>= fun () ->
+  Reader.load_sexps_exn file <:of_sexp<string * int>>
+  >>= fun read_values ->
+  Unix.unlink file
+  >>| fun () ->
+  <:test_eq<(string * int) list>> values read_values)
+;;
+
+let () = add_test "write_sexp" _here_ (fun () ->
+  (* this tests a special case when writing a single sexp that's not surrounded by
+     quotes or parens, in those cases write_sexp must add whitespace after the sexp *)
+  let values = [1;2;-3;4;-1;1;123;-1;-5] in
+  let sexps = List.map values ~f:Int.sexp_of_t in
+  let file = "write_sexp" in
+  Writer.with_file file ~f:(fun w ->
+    List.iter sexps ~f:(fun s -> Writer.write_sexp w s);
+    Deferred.unit)
+  >>= fun () ->
+  Reader.load_sexps_exn file Int.t_of_sexp
+  >>= fun read_values ->
+  Unix.unlink file
+  >>| fun () ->
+  <:test_eq<int list>> values read_values)
+;;
+
 let tests = List.rev !tests

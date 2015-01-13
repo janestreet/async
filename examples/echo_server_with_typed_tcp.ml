@@ -21,7 +21,7 @@ module Protocol = struct
   end
 end
 
-module Server = Typed_tcp.Make(Protocol)
+module Server = Typed_tcp.Make(Protocol)()
 
 let main () =
   Server.create ~port:12321 ~auth:(fun _ _ _ -> return `Allow) ()
