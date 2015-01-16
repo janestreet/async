@@ -1,4 +1,82 @@
 # OASIS_START
+# DO NOT EDIT (digest: 8173755a50051ae5a3e1cba490f8c3a2)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library async
+"lib/async.cmxs": use_async
+"lib/scheduler_unit_tests.cmx": for-pack(Async)
+"lib/std.cmx": for-pack(Async)
+<lib/*.ml{,i,y}>: package(async_extra)
+<lib/*.ml{,i,y}>: package(async_kernel)
+<lib/*.ml{,i,y}>: package(async_unix)
+<lib/*.ml{,i,y}>: package(pa_ounit)
+<lib/*.ml{,i,y}>: package(pa_ounit.syntax)
+<lib/*.ml{,i,y}>: package(threads)
+# Executable test_runner
+<lib_test/test_runner.{native,byte}>: package(async_extra)
+<lib_test/test_runner.{native,byte}>: package(async_kernel)
+<lib_test/test_runner.{native,byte}>: package(async_unix)
+<lib_test/test_runner.{native,byte}>: package(pa_ounit)
+<lib_test/test_runner.{native,byte}>: package(pa_ounit.syntax)
+<lib_test/test_runner.{native,byte}>: package(threads)
+<lib_test/test_runner.{native,byte}>: use_async
+<lib_test/*.ml{,i,y}>: package(async_extra)
+<lib_test/*.ml{,i,y}>: package(async_kernel)
+<lib_test/*.ml{,i,y}>: package(async_unix)
+<lib_test/*.ml{,i,y}>: package(pa_ounit)
+<lib_test/*.ml{,i,y}>: package(pa_ounit.syntax)
+<lib_test/*.ml{,i,y}>: package(threads)
+<lib_test/*.ml{,i,y}>: use_async
+# Executable nanos_per_job
+<bench/nanos_per_job.{native,byte}>: package(async_extra)
+<bench/nanos_per_job.{native,byte}>: package(async_kernel)
+<bench/nanos_per_job.{native,byte}>: package(async_unix)
+<bench/nanos_per_job.{native,byte}>: package(pa_ounit)
+<bench/nanos_per_job.{native,byte}>: package(pa_ounit.syntax)
+<bench/nanos_per_job.{native,byte}>: package(threads)
+<bench/nanos_per_job.{native,byte}>: use_async
+<bench/*.ml{,i,y}>: package(async_extra)
+<bench/*.ml{,i,y}>: package(async_kernel)
+<bench/*.ml{,i,y}>: package(async_unix)
+<bench/*.ml{,i,y}>: package(pa_ounit)
+<bench/*.ml{,i,y}>: package(pa_ounit.syntax)
+<bench/*.ml{,i,y}>: package(threads)
+<bench/*.ml{,i,y}>: use_async
+# Executable handlers
+<benchmarks/handlers.{native,byte}>: package(async_extra)
+<benchmarks/handlers.{native,byte}>: package(async_kernel)
+<benchmarks/handlers.{native,byte}>: package(async_unix)
+<benchmarks/handlers.{native,byte}>: package(pa_ounit)
+<benchmarks/handlers.{native,byte}>: package(pa_ounit.syntax)
+<benchmarks/handlers.{native,byte}>: package(threads)
+<benchmarks/handlers.{native,byte}>: use_async
+# Executable squash
+<benchmarks/squash.{native,byte}>: package(async_extra)
+<benchmarks/squash.{native,byte}>: package(async_kernel)
+<benchmarks/squash.{native,byte}>: package(async_unix)
+<benchmarks/squash.{native,byte}>: package(pa_ounit)
+<benchmarks/squash.{native,byte}>: package(pa_ounit.syntax)
+<benchmarks/squash.{native,byte}>: package(threads)
+<benchmarks/squash.{native,byte}>: use_async
+<benchmarks/*.ml{,i,y}>: package(async_extra)
+<benchmarks/*.ml{,i,y}>: package(async_kernel)
+<benchmarks/*.ml{,i,y}>: package(async_unix)
+<benchmarks/*.ml{,i,y}>: package(pa_ounit)
+<benchmarks/*.ml{,i,y}>: package(pa_ounit.syntax)
+<benchmarks/*.ml{,i,y}>: package(threads)
+<benchmarks/*.ml{,i,y}>: use_async
 # OASIS_STOP
 # <lib_test/*.ml{,i}>: syntax_camlp4o
 <lib/*.ml>: syntax_camlp4o
