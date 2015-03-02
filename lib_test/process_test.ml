@@ -26,7 +26,7 @@ let test3 () =
   >>= function
   | Error error -> Error.raise error
   | Ok process ->
-    Process.wait process
+    Process.collect_output_and_wait process
     >>| fun { Process.Output. stdout = _; stderr; exit_status } ->
     assert (Result.is_ok exit_status);
     assert (stderr = "");
@@ -73,10 +73,10 @@ let test7 () =
   >>= function
   | Error e -> Error.raise e
   | Ok process ->
-    let wait = Process.wait process in
+    let output = Process.collect_output_and_wait process in
     let signal = Signal.usr1 in
     Signal.send_i signal (`Pid (Process.pid process));
-    wait
+    output
     >>| fun { Process.Output. exit_status; _ } ->
     match exit_status with
     | Error (`Signal signal') -> assert (signal = signal')

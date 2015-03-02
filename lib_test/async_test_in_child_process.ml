@@ -94,7 +94,7 @@ module Test = struct
     >>= function
     | Error e -> Error.raise e
     | Ok process ->
-      Process.wait process
+      Process.collect_output_and_wait process
       >>= fun output ->
       Monitor.try_with (fun () -> Expect.eval t.expect output)
       >>| function
