@@ -1,3 +1,8 @@
+## 112.24.00
+
+Keep up to date with interface changes in `Async_kernel`, `Async_extra` and
+`Async_unix`.
+
 ## 112.17.00
 
 Added tests and updated examples
