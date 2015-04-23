@@ -5,7 +5,7 @@ Name:             async
 Version:          112.24.00
 Synopsis:         Jane Street Capital's asynchronous execution library
 Authors:          Jane Street Group, LLC <opensource@janestreet.com>
-Copyrights:       (C) 2008-2013 Jane Street Group, LLC <opensource@janestreet.com>
+Copyrights:       (C) 2008-2013 Jane Street Group LLC <opensource@janestreet.com>
 Maintainers:      Jane Street Group, LLC <opensource@janestreet.com>
 License:          Apache-2.0
 LicenseFile:      LICENSE.txt
@@ -36,6 +36,11 @@ Library async
                       async_extra,
                       pa_ounit,
                       pa_ounit.syntax,
+                      threads
+  XMETARequires:      async_kernel,
+                      async_unix,
+                      async_extra,
+                      pa_ounit,
                       threads
 
 # +-------------------------------------------------------------------+
