@@ -26,7 +26,7 @@ Description:
 # +-------------------------------------------------------------------+
 
 Library async
-  Path:               lib
+  Path:               src
   FindlibName:        async
   Pack:               true
   Modules:            Scheduler_unit_tests,
@@ -43,7 +43,7 @@ Library async
 # +-------------------------------------------------------------------+
 
 Executable test_runner
-  Path:               lib_test
+  Path:               test
   MainIs:             test_runner.ml
   Build$:             flag(tests)
   CompiledObject:     best
@@ -68,7 +68,7 @@ Executable nanos_per_job
   BuildDepends:       async
 
 Executable handlers
-  Path:               benchmarks
+  Path:               bench2
   MainIs:             handlers.ml
   Build$:             flag(tests)
   CompiledObject:     best
@@ -76,7 +76,7 @@ Executable handlers
   BuildDepends:       async
 
 Executable squash
-  Path:               benchmarks
+  Path:               bench2
   MainIs:             squash.ml
   Build$:             flag(tests)
   CompiledObject:     best
