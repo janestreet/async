@@ -1,3 +1,7 @@
+## 112.35.00
+
+- Include some previously-omitted benchmarks
+
 ## 112.24.00
 
 Keep up to date with interface changes in `Async_kernel`, `Async_extra` and

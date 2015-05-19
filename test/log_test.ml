@@ -16,8 +16,10 @@ let write_and_read (fmt : Log.Output.machine_readable_format) () =
   clear_file file
   >>= fun () ->
   let log  =
-    Log.create ~level:`Debug
+    Log.create
+      ~level:`Debug
       ~output:[ Log.Output.file (fmt :> Log.Output.format) ~filename:file ]
+      ~on_error:`Raise
   in
   let messages = [
     `Debug, "debugging message";
@@ -52,7 +54,10 @@ let speed_test fmt max_time () =
   clear_file file
   >>= fun () ->
   let log =
-    Log.create ~level:`Info ~output:[ Log.Output.file fmt ~filename:file ]
+    Log.create
+      ~level:`Info
+      ~output:[ Log.Output.file fmt ~filename:file ]
+      ~on_error:`Raise
   in
   let msg =
     "the quick brown fox jumped over the lazy dog two or three times to make the \
@@ -99,7 +104,7 @@ let rotation_test =
       (* rotation on start-up is different from rotation during a log life-time.  This
          case of a log containing multiple copies of the same output is weird but legal,
          and it shakes out some race conditions in the rotation code. *)
-      let log = Log.create ~level:`Info ~output:[o; o; o; o; o] in
+      let log = Log.create ~level:`Info ~output:[o; o; o; o; o] ~on_error:`Raise in
       Log.info log "test %d" n;
       Clock.after (Time.Span.of_sec 1.)
       >>= fun () ->
@@ -171,7 +176,7 @@ let rotation_types =
       if n=0 then Deferred.unit
       else
         let output = [Log.Output.rotating_file `Sexp ~basename:prefix rotation] in
-        let log = Log.create ~level:`Debug ~output in
+        let log = Log.create ~level:`Debug ~output ~on_error:`Raise in
         Log.info log "Some output %d" n;
         Log.flushed log
         >>= fun () ->
@@ -196,6 +201,31 @@ let rotation_types =
     )
   )
 
+let error_logging_test () =
+  let output_received = Ivar.create () in
+  let output =
+    Log.Output.create (fun _ ->
+      Ivar.fill_if_empty output_received ();
+      Deferred.unit)
+  in
+  let real_output = Log.Global.get_output () in
+  Log.Global.set_output [ output ];
+  let monitor_returned = Ivar.create () in
+  Monitor.try_with (fun () ->
+    upon (Ivar.read monitor_returned) (fun () -> assert false);
+    Deferred.unit)
+  >>= function
+  | Error e -> raise e
+  | Ok ()   ->
+    Ivar.fill monitor_returned ();
+    Clock.with_timeout (sec 5.) (Ivar.read output_received)
+    >>| fun res ->
+    Log.Global.set_output real_output;
+    begin match res with
+    | `Timeout   -> failwith "error_logging_test timeout"
+    | `Result () -> ()
+    end
+;;
 
 let tests = [
   "Log_test.write_and_read (sexp)", write_and_read `Sexp;
@@ -204,6 +234,7 @@ let tests = [
   "Log_test.speed_regression (text)", speed_test `Text (sec 8.);
   "Log_test.speed_regression (bin-prot)", speed_test `Bin_prot (sec 5.);
   "Log_test.rotation", rotation_test;
-  "Log_test.rotation (types)", rotation_types
+  "Log_test.rotation (types)", rotation_types;
+  "Monitor.try_with errors go to the global error log", error_logging_test;
 ]
 

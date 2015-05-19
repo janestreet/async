@@ -233,6 +233,40 @@ let () = add_test "transfer close producer" _here_ (fun () ->
     Pipe.close pipe_writer))
 ;;
 
+let dfor from to_ ~f =
+  let rec loop i =
+    if i > to_
+    then return ()
+    else f i >>= fun () -> loop (i + 1)
+  in
+  loop from
+;;
+
+let () = add_test "write_iobuf" _here_ (fun () ->
+  let file = "write_iobuf_test" in
+  let iobuf = Iobuf.of_string "hello" in
+  dfor (-1) (Iobuf.length iobuf + 1) ~f:(fun pos ->
+    dfor (-1) (Iobuf.length iobuf + 1 - pos) ~f:(fun len ->
+      let slice_is_ok = pos >= 0 && len >= 0 && pos + len <= Iobuf.length iobuf in
+      Writer.with_file file ~f:(fun writer ->
+        begin
+          try
+            Writer.write_iobuf writer iobuf ~pos ~len
+          with _ -> assert (not slice_is_ok);
+        end;
+        return ())
+      >>= fun () ->
+      Reader.file_contents file
+      >>= fun s ->
+      <:test_result< string >> s
+        ~expect:(if slice_is_ok
+                 then Iobuf.to_string (Iobuf.sub_shared iobuf ~pos ~len)
+                 else "");
+      return ()))
+  >>= fun () ->
+  Unix.unlink file)
+;;
+
 let () = add_test "save_sexps" _here_ (fun () ->
   let values = ["abc",1 ;"def",2 ;"ghi jkl mno",123124] in
   let sexps = List.map values ~f:<:sexp_of<string * int>> in

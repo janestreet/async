@@ -2,7 +2,7 @@ OASISFormat:      0.3
 OCamlVersion:     >= 4.00.0
 FindlibVersion:   >= 1.3.2
 Name:             async
-Version:          112.24.00
+Version:          112.35.00
 Synopsis:         Jane Street Capital's asynchronous execution library
 Authors:          Jane Street Group, LLC <opensource@janestreet.com>
 Copyrights:       (C) 2008-2013 Jane Street Group LLC <opensource@janestreet.com>
@@ -29,13 +29,16 @@ Library async
   Path:               src
   FindlibName:        async
   Pack:               true
-  Modules:            Scheduler_unit_tests,
+  Modules:            Clock_unit_tests,
+                      Scheduler_unit_tests,
                       Std
   BuildDepends:       async_kernel,
                       async_unix,
                       async_extra,
                       pa_ounit,
                       pa_ounit.syntax,
+                      pa_test,
+                      pa_test.syntax,
                       threads
 
 # +-------------------------------------------------------------------+
@@ -59,6 +62,22 @@ Test test_runner
 # | Benchmarks                                                        |
 # +-------------------------------------------------------------------+
 
+Executable handlers
+  Path:               bench
+  MainIs:             handlers.ml
+  Build$:             flag(tests)
+  CompiledObject:     best
+  Install:            false
+  BuildDepends:       async
+
+Executable loop
+  Path:               bench
+  MainIs:             loop.ml
+  Build$:             flag(tests)
+  CompiledObject:     best
+  Install:            false
+  BuildDepends:       async
+
 Executable nanos_per_job
   Path:               bench
   MainIs:             nanos_per_job.ml
@@ -67,17 +86,25 @@ Executable nanos_per_job
   Install:            false
   BuildDepends:       async
 
-Executable handlers
-  Path:               bench2
-  MainIs:             handlers.ml
+Executable queens
+  Path:               bench
+  MainIs:             queens.ml
   Build$:             flag(tests)
   CompiledObject:     best
   Install:            false
   BuildDepends:       async
 
 Executable squash
-  Path:               bench2
+  Path:               bench
   MainIs:             squash.ml
+  Build$:             flag(tests)
+  CompiledObject:     best
+  Install:            false
+  BuildDepends:       async
+
+Executable tco
+  Path:               bench
+  MainIs:             tco.ml
   Build$:             flag(tests)
   CompiledObject:     best
   Install:            false

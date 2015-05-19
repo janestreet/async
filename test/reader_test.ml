@@ -351,7 +351,7 @@ let read_one_chunk_at_a_time_share_buffer () =
 
 let test_macros () =
   In_thread.run (fun () ->
-    let test = Pa_ounit_lib.Runtime.collect (fun () ->
+    let tests = Pa_ounit_lib.Runtime.collect (fun () ->
       let module Test = Sexplib_ounit_tests.Test_macros.Make (struct
         let load_sexp_conv_exn file f =
           Thread_safe.block_on_async (fun () ->
@@ -366,11 +366,7 @@ let test_macros () =
       in
       ())
     in
-    let open OUnit in
-    List.iter (OUnit.run_test_tt test) ~f:(function
-      | RSuccess _ -> ()
-      | RFailure _ | RError _ | RSkip _ | RTodo _ -> raise Exit)
-  )
+    List.iter tests ~f:(fun f -> f ()))
 ;;
 
 let drain_test () =
