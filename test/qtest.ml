@@ -12,6 +12,7 @@ let tests =
   @ Fd_test.tests
   @ Finalizer_test.tests
   @ In_thread_test.tests
+  @ Quickcheck_clock_test.tests
   @ Log_test.tests
   @ Process_test.tests
   @ Reader_test.tests
@@ -30,8 +31,10 @@ let tests =
 let () =
   (* this test takes roughly 40s alone, so 25min on something that compiles
      with -j 12 should be ok *)
-  after (Time.Span.of_min 25.) >>> fun () ->
-  Printf.eprintf "Shutting down test after a 25min timeout\n%!";
+  after (Time.Span.of_min 25.)
+  >>> fun () ->
+  eprintf "Shutting down test after a 25min timeout\n%!";
   Shutdown.shutdown 3
+;;
 
 let () = Runner.main tests

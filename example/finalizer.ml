@@ -1,7 +1,7 @@
 open Core.Std
 open Async.Std
 
-let eprintf = Printf.eprintf
+let eprintf = Core.Std.Printf.eprintf
 
 let resurrect = ref []
 

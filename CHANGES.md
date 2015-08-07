@@ -1,3 +1,19 @@
+## 113.00.00
+
+- Added `Async.Std.Printf` module so that one doesn't unintentionally use
+  blocking `Core.Std.Printf` functions in an Async program.
+
+    There was much pre-existing code that did this via:
+
+    : open Core.Std
+    : open Async.Std
+
+    `Async.Std.Printf` defines blocking functions (e.g `printf`,
+    `eprintf`) to cause a type error, but leaves Async-friendly functions
+    (e.g. `sprintf`, `ksprintf`) untouched.
+
+    Replaced uses of `Printf.*`, with `Core.Std.Printf.*` where needed.
+
 ## 112.35.00
 
 - Include some previously-omitted benchmarks

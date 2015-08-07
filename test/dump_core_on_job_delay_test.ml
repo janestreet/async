@@ -4,7 +4,7 @@ open Async.Std
 let main () =
   Async_unix.Dump_core_on_job_delay.start_watching
     ~dump_if_delayed_by:(sec 2.)
-    ~how_to_dump:`Call_abort;
+    ~how_to_dump:Call_abort;
   don't_wait_for begin
     after (sec 5.)
     >>= fun () ->

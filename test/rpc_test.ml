@@ -3,15 +3,13 @@ open Async.Std
 
 module Debug = Async_kernel.Debug
 
-let test ~imp1 ~imp2 ~state1 ~state2 ~f () =
+let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
   Unix.pipe (Info.of_string "rpc_test 1")
   >>= fun (`Reader r1, `Writer w2) ->
   Unix.pipe (Info.of_string "rpc_test 2")
   >>= fun (`Reader r2, `Writer w1) ->
-  let r1 = Reader.create r1 in
-  let r2 = Reader.create r2 in
-  let w1 = Writer.create w1 in
-  let w2 = Writer.create w2 in
+  let t1 = make_transport (r1, w1) in
+  let t2 = make_transport (r2, w2) in
   let s imp =
     if List.length imp > 0
     then Some (
@@ -24,14 +22,14 @@ let test ~imp1 ~imp2 ~state1 ~state2 ~f () =
   let s2 = s imp2 in
   let conn1_ivar = Ivar.create () in
   let f2_done =
-    Rpc.Connection.with_close ?implementations:s2 r2 w2
+    Async_rpc_kernel.Std.Rpc.Connection.with_close ?implementations:s2 t2
       ~dispatch_queries:(fun conn2 ->
         Ivar.read conn1_ivar >>= fun conn1 ->
         f conn1 conn2)
       ~connection_state:(fun _ -> state2)
       ~on_handshake_error:`Raise
   in
-  Rpc.Connection.with_close ?implementations:s1 r1 w1
+  Async_rpc_kernel.Std.Rpc.Connection.with_close ?implementations:s1 t1
     ~dispatch_queries:(fun conn1 ->
       Ivar.fill conn1_ivar conn1;
       f2_done)
@@ -39,8 +37,8 @@ let test ~imp1 ~imp2 ~state1 ~state2 ~f () =
     ~on_handshake_error:`Raise
 ;;
 
-let test1 ~imp ~state ~f =
-  test
+let test1 ~make_transport ~imp ~state ~f =
+  test ~make_transport
     ~imp1:imp ~state1:state
     ~imp2:[] ~state2:() ~f
 ;;
@@ -95,9 +93,9 @@ let pipe_wait_imp ivar =
     return (Ok pipe_r))
 ;;
 
-let tests =
-  List.mapi ~f:(fun i f -> sprintf "rpc-%d" i, f)
-    [ test1 ~imp:[pipe_count_imp] ~state:() ~f:(fun _ conn ->
+let make_tests ~make_transport ~transport_name =
+  List.mapi ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
+    [ test1 ~make_transport ~imp:[pipe_count_imp] ~state:() ~f:(fun _ conn ->
         let n = 3 in
         Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n
         >>= fun (pipe_r, _id) ->
@@ -107,14 +105,14 @@ let tests =
         >>= fun x ->
         <:test_result< int >> ~expect:n x;
         Deferred.unit)
-    ; test1 ~imp:[pipe_count_imp] ~state:() ~f:(fun _ conn ->
+    ; test1 ~make_transport ~imp:[pipe_count_imp] ~state:() ~f:(fun _ conn ->
         Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1)
         >>= fun result ->
         match result with
         | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; let ivar = Ivar.create () in
-      test1 ~imp:[pipe_wait_imp ivar] ~state:() ~f:(fun conn1 conn2 ->
+      test1 ~make_transport ~imp:[pipe_wait_imp ivar] ~state:() ~f:(fun conn1 conn2 ->
         (* Test that the pipe is flushed when the connection is closed. *)
         Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 ()
         >>= fun (pipe_r, _id) ->
@@ -128,4 +126,20 @@ let tests =
         assert (res = `Ok ());
         Deferred.unit)
     ]
+;;
+
+let tests =
+  let max_message_size = 1_000_000 in
+  let make_transport_std (fd_r, fd_w) : Rpc.Transport.t =
+    { reader = Reader.create fd_r |> Rpc.Transport.Reader.of_reader ~max_message_size
+    ; writer = Writer.create fd_w |> Rpc.Transport.Writer.of_writer ~max_message_size
+    }
+  in
+  let make_transport_low_latency (fd_r, fd_w) : Rpc.Transport.t =
+    { reader = Rpc.Low_latency_transport.Reader.create fd_r ~max_message_size
+    ; writer = Rpc.Low_latency_transport.Writer.create fd_w ~max_message_size
+    }
+  in
+  make_tests ~make_transport:make_transport_std         ~transport_name:"std" @
+  make_tests ~make_transport:make_transport_low_latency ~transport_name:"low-latency"
 ;;
