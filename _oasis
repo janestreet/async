@@ -45,6 +45,11 @@ Library async
                       async_extra,
                       pa_ounit,
                       threads
+  XMETARequires:      async_kernel,
+                      async_unix,
+                      async_extra,
+                      pa_ounit,
+                      threads
 
 # +-------------------------------------------------------------------+
 # | Tests                                                             |
