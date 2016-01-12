@@ -8,7 +8,7 @@ module Protocol = struct
            | Req_find   of string
            | Req_remove of string
            | Req_invalid
-    with sexp
+    [@@deriving sexp]
 
 
     let from_raw msg = match String.split msg ~on:' ' with
@@ -23,7 +23,7 @@ module Protocol = struct
     type t = Rep_fail of string
            | Rep_succ of string
            | Rep_help
-    with sexp
+    [@@deriving sexp]
 
 
     let to_raw t = match t with
@@ -69,7 +69,7 @@ module Key_value_store = struct
     |(R.Req_help |
       R.Req_invalid)   -> P.Rep_help
     | R.Req_add (k, v) ->
-        Hashtbl.replace t.store ~key:k ~data:v;
+        Hashtbl.set t.store ~key:k ~data:v;
         P.Rep_succ ("New pair stored: "^k^" -> "^v)
     | R.Req_find k     ->
         begin match Hashtbl.find t.store k with

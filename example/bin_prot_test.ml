@@ -15,7 +15,7 @@ type test =
     f : [`Foo | `Bar] array;
     g : float array;
   }
-with bin_io
+[@@deriving bin_io]
 
 (* This value is very likely larger than e.g. an order, fill, etc. *)
 let test =

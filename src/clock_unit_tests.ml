@@ -1,8 +1,8 @@
 open Core.Std
 open Std
 
-TEST_MODULE "Clock.every" = struct
-  TEST_UNIT = (* [~stop] *)
+let%test_module "Clock.every" = (module struct
+  let%test_unit _ = (* [~stop] *)
     Thread_safe.block_on_async_exn (fun () ->
       let r = ref 1_000 in
       let stop = Ivar.create () in
@@ -14,7 +14,7 @@ TEST_MODULE "Clock.every" = struct
       Ivar.read stop)
   ;;
 
-  TEST_UNIT "[every f ~stop] doesn't hold onto [f] after [stop] becomes determined" =
+  let%test_unit "[every f ~stop] doesn't hold onto [f] after [stop] becomes determined" =
     Thread_safe.block_on_async_exn (fun () ->
       let event =
         Clock.Event.run_after (sec 10.) (fun () -> failwith "test timed out") ()
@@ -41,7 +41,7 @@ TEST_MODULE "Clock.every" = struct
 
   exception E
 
-  TEST_UNIT = (* [~continue_on_error:true] *)
+  let%test_unit _ = (* [~continue_on_error:true] *)
     Thread_safe.block_on_async_exn (fun () ->
       let count = 100 in
       let r = ref count in
@@ -68,7 +68,7 @@ TEST_MODULE "Clock.every" = struct
       Ivar.read finished)
   ;;
 
-  TEST_UNIT = (* [~continue_on_error:false] *)
+  let%test_unit _ = (* [~continue_on_error:false] *)
     Thread_safe.block_on_async_exn (fun () ->
       let exns =
         Monitor.catch_stream (fun () ->
@@ -87,7 +87,7 @@ TEST_MODULE "Clock.every" = struct
       Ivar.read finished)
   ;;
 
-  TEST_UNIT = (* if [f] asynchronously raises and also returns, the exception goes to the
+  let%test_unit _ = (* if [f] asynchronously raises and also returns, the exception goes to the
                  enclosing monitor, and iteration continues. *)
     List.iter
       [ false; true ]
@@ -118,12 +118,12 @@ TEST_MODULE "Clock.every" = struct
           >>= fun () ->
           Ivar.read got_exn))
   ;;
-end
+end)
 
-TEST_MODULE = struct
+let%test_module _ = (module struct
   module Event = Clock.Event
 
-  TEST_UNIT = (* abort *)
+  let%test_unit _ = (* abort *)
     Thread_safe.block_on_async_exn (fun () ->
       let event = Event.after (sec 1_000.) in
       assert (Event.abort event () = `Ok);
@@ -134,7 +134,7 @@ TEST_MODULE = struct
       | `Aborted  () -> return ())
   ;;
 
-  TEST_UNIT = (* happen *)
+  let%test_unit _ = (* happen *)
     Thread_safe.block_on_async_exn (fun () ->
       Deferred.List.iter [ -1.; 0.; 0.01 ] ~f:(fun span ->
         let span = sec span in
@@ -150,19 +150,19 @@ TEST_MODULE = struct
           assert (Event.abort event () = `Previously_happened ())))
   ;;
 
-  TEST_UNIT = (* reschedule *)
+  let%test_unit _ = (* reschedule *)
     Thread_safe.block_on_async_exn (fun () ->
       let count = ref 0 in
-      let time0 = Timing_wheel_ns.now (Async_kernel.Scheduler0.t ()).events in
+      let time0 = Timing_wheel_ns.now (Async_kernel.Scheduler1.t ()).events in
       let after span = Time_ns.add time0 span in
       let module Event = Clock_ns.Event in
       let sec = Time_ns.Span.of_sec in
       let event = Event.run_at (after (sec 1.)) incr count in
       let ensure_scheduled_after span =
-        <:test_result< int >> !count ~expect:0;
+        [%test_result: int] !count ~expect:0;
         match Event.status event with
         | `Aborted () | `Happened () -> assert false
-        | `Scheduled_at time -> <:test_result< Time_ns.t >> time ~expect:(after span)
+        | `Scheduled_at time -> [%test_result: Time_ns.t] time ~expect:(after span)
       in
       ensure_scheduled_after (sec 1.);
       let ensure_reschedule_after_is_ok span =
@@ -192,12 +192,12 @@ TEST_MODULE = struct
       >>| function
       | `Aborted  () -> assert false
       | `Happened () ->
-        <:test_result< int >> !count ~expect:1;
+        [%test_result: int] !count ~expect:1;
         assert (Event.abort event () = `Previously_happened ());
         assert (Event.reschedule_after event (sec 1.) = `Previously_happened ()))
   ;;
 
-  TEST_UNIT = (* [Event.run_after] where [f] raises *)
+  let%test_unit _ = (* [Event.run_after] where [f] raises *)
     Thread_safe.block_on_async_exn (fun () ->
       let event = ref None in
       try_with (fun () ->
@@ -211,7 +211,7 @@ TEST_MODULE = struct
         | `Aborted _ | `Happened _ -> assert false)
   ;;
 
-  TEST_UNIT = (* [Event.run_after] where [f] calls [abort] *)
+  let%test_unit _ = (* [Event.run_after] where [f] calls [abort] *)
     Thread_safe.block_on_async_exn (fun () ->
       let event_ref = ref None in
       let event =
@@ -224,4 +224,4 @@ TEST_MODULE = struct
       | `Aborted () -> ()
       | `Happened () -> assert false)
   ;;
-end
+end)

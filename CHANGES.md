@@ -1,3 +1,8 @@
+## 113.24.00
+
+Keep up to date with interface changes in `Async_kernel`, `Async_extra` and
+`Async_unix`.
+
 ## 113.00.00
 
 - Added `Async.Std.Printf` module so that one doesn't unintentionally use

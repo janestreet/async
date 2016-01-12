@@ -13,7 +13,7 @@ let () =
           num_live_jobs
           (Float.iround_nearest_exn (Time.Span.to_ns elapsed /. Float.of_int !num_jobs));
         Ivar.fill finished ());
-      for _i = 1 to num_live_jobs do
+      for _ = 1 to num_live_jobs do
         let rec loop () =
           upon Deferred.unit (fun () ->
             incr num_jobs;

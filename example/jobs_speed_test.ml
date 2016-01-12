@@ -31,7 +31,7 @@ let () =
   let start = Time.now () in
   upon (run_test ()) (fun () ->
     let stop = Time.now () in
-    Printf.printf "elapsed time: %s\n" (Time.Span.to_string (Time.diff stop start));
+    printf "elapsed time: %s\n" (Time.Span.to_string (Time.diff stop start));
     Shutdown.shutdown 0);
   never_returns (Scheduler.go ());
 ;;

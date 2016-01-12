@@ -2,11 +2,11 @@ open Core.Std
 open Async.Std
 
 module Data = struct
-  type t = (int * string) list with sexp
+  type t = (int * string) list [@@deriving sexp]
 end
 
 type t = Data.t Sexp.With_text.t String.Map.t
-with sexp
+[@@deriving sexp]
 
 let edit_file (type a) (module A : Sexpable with type t = a)   filename =
   let editor =
@@ -49,7 +49,7 @@ let rec edit_loop t =
     let current =
       match Map.find t key with
       | Some x -> x
-      | None -> Sexp.With_text.of_value <:sexp_of<(int*string) list>> []
+      | None -> Sexp.With_text.of_value [%sexp_of: (int*string) list] []
     in
     let filename = Filename.temp_file "test" ".scm" in
     Writer.save filename ~contents:(Sexp.With_text.text current)
@@ -64,7 +64,7 @@ let rec edit_loop t =
       printf "\njust data:\n";
       printf "%s\n"
         (Map.map ~f:Sexp.With_text.value t
-         |> <:sexp_of<Data.t String.Map.t>>
+         |> [%sexp_of: Data.t String.Map.t]
          |> Sexp.to_string_hum);
       edit_loop t
 
