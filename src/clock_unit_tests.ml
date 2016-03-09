@@ -153,7 +153,7 @@ let%test_module _ = (module struct
   let%test_unit _ = (* reschedule *)
     Thread_safe.block_on_async_exn (fun () ->
       let count = ref 0 in
-      let time0 = Timing_wheel_ns.now (Async_kernel.Scheduler1.t ()).events in
+      let time0 = Timing_wheel_ns.now (Async_kernel.Scheduler1.t ()).time_source.events in
       let after span = Time_ns.add time0 span in
       let module Event = Clock_ns.Event in
       let sec = Time_ns.Span.of_sec in
