@@ -19,6 +19,7 @@ depends: [
   "bin_prot"
   "core"
   "fieldslib"
+  "js-build-tools"  {build}
   "ppx_assert"
   "ppx_bench"
   "ppx_driver"
