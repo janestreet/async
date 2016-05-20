@@ -1,4 +1,7 @@
-include Async_kernel.Std
+include (Async_kernel.Std
+         : (module type of struct include Async_kernel.Std end
+             with module Require_explicit_time_source
+             := Async_kernel.Std.Require_explicit_time_source))
 include Async_unix.Std
 include Async_extra.Std
 
