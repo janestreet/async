@@ -1,3 +1,10 @@
+## 113.43.00
+
+- Added some expect tests of `Monitor`, in particular
+  `Monitor.handle_errors`.
+
+- Added a benchmark of `Monitor.try_with`.
+
 ## 113.33.00
 
 Keep up to date with interface changes in `Async_kernel`, `Async_extra` and
@@ -69,4 +76,3 @@ Added tests and updated examples
 ## 109.05.00
 
 - Added `val _squelch_unused_module_warning_` to `Async.Std`.
-
