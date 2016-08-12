@@ -1,4 +1,6 @@
 (library
  ((name async)
   (public_name async)
-  (libraries (async_extra async_kernel async_unix core))))
+  (libraries  (async_extra async_kernel async_unix core))
+  (preprocess (((pps (JANE -check-doc-comments)) All)))
+  ))
