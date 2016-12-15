@@ -25,8 +25,7 @@ let () =
   let promoted_after = Gc.promoted_words () in
   print_sexp
     [%sexp { minor_words    = ((minor_after - minor_before) / num_iters : int)
-           ; promoted_words = ((promoted_after - promoted_before) / num_iters : int)
-           }];
+           ; promoted_words = ((promoted_after - promoted_before) / num_iters : int) }];
   print_sexp
     [%sexp { live_words = (Core_experimental.Std.Size.words !ivars / num_iters : int) }];
 ;;

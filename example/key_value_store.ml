@@ -40,8 +40,8 @@ module Protocol = struct
     let read    (r, _) =
       Reader.read_line r
       >>| function
-        | `Eof -> `Eof
-        | `Ok rawmsg -> `Ok (Client_message.from_raw rawmsg)
+      | `Eof -> `Eof
+      | `Ok rawmsg -> `Ok (Client_message.from_raw rawmsg)
 
     let write (_, w) msg =
       Writer.write w (Server_message.to_raw msg);
@@ -55,12 +55,10 @@ module Server = Typed_tcp.Make(Protocol)()
 module Key_value_store = struct
 
   type t = {
-    store  : (string, string) Hashtbl.t;
-  }
+    store  : (string, string) Hashtbl.t; }
 
   let create () = {
-    store  = Hashtbl.Poly.create ();
-  }
+    store  = Hashtbl.Poly.create (); }
 
   let process t req =
     let module R = Protocol.Client_message in
@@ -69,20 +67,20 @@ module Key_value_store = struct
     |(R.Req_help |
       R.Req_invalid)   -> P.Rep_help
     | R.Req_add (k, v) ->
-        Hashtbl.set t.store ~key:k ~data:v;
-        P.Rep_succ ("New pair stored: "^k^" -> "^v)
+      Hashtbl.set t.store ~key:k ~data:v;
+      P.Rep_succ ("New pair stored: "^k^" -> "^v)
     | R.Req_find k     ->
-        begin match Hashtbl.find t.store k with
-        | None   -> P.Rep_fail ("No value found for: "^k)
-        | Some v -> P.Rep_succ v
-        end
+      begin match Hashtbl.find t.store k with
+      | None   -> P.Rep_fail ("No value found for: "^k)
+      | Some v -> P.Rep_succ v
+      end
     | R.Req_remove k   ->
-        begin match Hashtbl.find t.store k with
-        | None   -> P.Rep_fail ("No value found for: "^k)
-        | Some _ ->
-          Hashtbl.remove t.store k;
-          P.Rep_succ ("Key removed: "^k)
-        end
+      begin match Hashtbl.find t.store k with
+      | None   -> P.Rep_fail ("No value found for: "^k)
+      | Some _ ->
+        Hashtbl.remove t.store k;
+        P.Rep_succ ("Key removed: "^k)
+      end
 end
 
 let main () =

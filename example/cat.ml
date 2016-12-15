@@ -11,8 +11,7 @@ let cat ~input ~output =
     choose
       [
         choice (Reader.read reader buf) (fun r -> `Reader r);
-        choice (Writer.consumer_left writer) (fun () -> `Epipe);
-      ]
+        choice (Writer.consumer_left writer) (fun () -> `Epipe); ]
     >>> function
     | `Epipe -> shutdown 0
     | `Reader r ->

@@ -13,9 +13,9 @@ let bind_loop () =
 let main () =
   bind_loop ()
   >>>
-    fun x ->
-      Print.printf "done %d\n" x;
-      Shutdown.shutdown 0
+  fun x ->
+  Print.printf "done %d\n" x;
+  Shutdown.shutdown 0
 ;;
 
 let () =

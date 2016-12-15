@@ -25,8 +25,8 @@ let ticky_return x =
 let nqueens nq =
 
   let rec safe x d = function
-      | []     -> true
-      | q :: l -> x <> q && x <> q+d && x <> q-d && safe x (d+1) l
+    | []     -> true
+    | q :: l -> x <> q && x <> q+d && x <> q-d && safe x (d+1) l
   in
 
   let nql =
@@ -45,13 +45,12 @@ let nqueens nq =
 
   let rec step n b =
     if n < nq
-      then Deferred.all (List.map ~f:(step (n+1)) (gen [b])) >>= fun rs ->
-        (* Should be Empty
-        let r = ticky_return (List.concat rs)
-        in print_endline (Sexp.to_string (Deferred.sexp_of_t (fun _ -> Sexp.Atom "...") r)); r
-        *)
-           ticky_return (List.concat rs)
-      else ticky_return [b]
+    then Deferred.all (List.map ~f:(step (n+1)) (gen [b])) >>= fun rs ->
+      (* Should be Empty
+         let r = ticky_return (List.concat rs)
+         in print_endline (Sexp.to_string (Deferred.sexp_of_t (fun _ -> Sexp.Atom "...") r)); r *)
+      ticky_return (List.concat rs)
+    else ticky_return [b]
   in
 
   step 0 [] ;;
@@ -59,7 +58,7 @@ let nqueens nq =
 let nq = 8;;
 
 let () = nqueens nq >>> fun solns ->
-    print_int (List.length solns);
-    print_newline ();
-    Shutdown.shutdown 0;;
+  print_int (List.length solns);
+  print_newline ();
+  Shutdown.shutdown 0;;
 let () = never_returns (Scheduler.go ());;

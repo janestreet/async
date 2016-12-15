@@ -17,8 +17,7 @@ struct
   let flush () =
     Deferred.all_unit
       [ Writer.flushed (Lazy.force Writer.stdout)
-      ; Writer.flushed (Lazy.force Writer.stderr)
-      ]
+      ; Writer.flushed (Lazy.force Writer.stderr) ]
 
   let run = Thread_safe.block_on_async_exn
 

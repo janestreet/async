@@ -15,18 +15,18 @@ let port = 61111
 let server =
   Tcp.Server.create (Tcp.on_port port)
     (fun _ reader writer ->
-      Deferred.create (fun finished ->
-        let rec loop () =
-          upon (Reader.read_line reader) (function
-          | `Ok query ->
-            message (sprintf "Server got query: %s\n" query);
-            Writer.write writer (sprintf "Response to %s\n" query);
-            loop ()
-          | `Eof ->
-            Ivar.fill finished ();
-            message "Server got EOF\n")
-        in
-        loop ()))
+       Deferred.create (fun finished ->
+         let rec loop () =
+           upon (Reader.read_line reader) (function
+             | `Ok query ->
+               message (sprintf "Server got query: %s\n" query);
+               Writer.write writer (sprintf "Response to %s\n" query);
+               loop ()
+             | `Eof ->
+               Ivar.fill finished ();
+               message "Server got EOF\n")
+         in
+         loop ()))
 ;;
 
 let () =
@@ -42,14 +42,14 @@ let () =
         match queries with
         | [] -> upon (Writer.close writer) (fun _ -> finished ())
         | query :: queries ->
-            Writer.write writer query;
-            Writer.write_char writer '\n';
-            upon (Reader.read_line reader) (function
-              | `Eof ->
-                  message "reader got unexpected Eof"
-              | `Ok response ->
-                  message (sprintf "Client got response: %s\n" response);
-                  loop queries)
+          Writer.write writer query;
+          Writer.write_char writer '\n';
+          upon (Reader.read_line reader) (function
+            | `Eof ->
+              message "reader got unexpected Eof"
+            | `Ok response ->
+              message (sprintf "Client got response: %s\n" response);
+              loop queries)
       in
       loop queries))
 ;;

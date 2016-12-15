@@ -26,5 +26,7 @@
     thread_pool_not_stuck
     timeouts
     write_forever))
-  (libraries (async async_extended core core_extended))
+  (libraries (async core))
   ))
+
+(enforce_style ())

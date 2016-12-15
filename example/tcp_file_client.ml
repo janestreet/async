@@ -15,8 +15,7 @@ let tail host port files =
         | Some msg -> printf "[%s]%s\n" file msg;
         end
       | Error e ->
-        eprintf "[%s] %s\n" file (Tcp_file.Client.Error.to_string e);
-    ))
+        eprintf "[%s] %s\n" file (Tcp_file.Client.Error.to_string e); ))
   >>| fun (_ : unit list) -> ()
 ;;
 
@@ -24,12 +23,12 @@ let cmd =
   Command.async
     ~summary:"tail files using tcp_file"
     Command.Spec.
-    (empty
-     +> flag "host" (required string) ~doc:"HOST tcp_file server host"
-     +> flag "port" (required int)    ~doc:"PORT tcp_file server port"
-     +> flag "num-clients" (optional_with_default 1 int)
-          ~doc:"NUM run this many clients concurrently (default 1)"
-     +> anon (sequence ("FILE" %: string)))
+      (empty
+       +> flag "host" (required string) ~doc:"HOST tcp_file server host"
+       +> flag "port" (required int)    ~doc:"PORT tcp_file server port"
+       +> flag "num-clients" (optional_with_default 1 int)
+            ~doc:"NUM run this many clients concurrently (default 1)"
+       +> anon (sequence ("FILE" %: string)))
     (fun host port num_clients files () ->
        let num_clients = Int.max 1 num_clients in
        Deferred.List.map ~how:`Parallel

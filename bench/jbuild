@@ -13,3 +13,5 @@
     core_experimental
   ))
 ))
+
+(enforce_style ())

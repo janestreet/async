@@ -13,8 +13,7 @@ type test =
     d : (string * int64) list;
     e : nativeint array;
     f : [`Foo | `Bar] array;
-    g : float array;
-  }
+    g : float array; }
 [@@deriving bin_io]
 
 (* This value is very likely larger than e.g. an order, fill, etc. *)
@@ -26,8 +25,7 @@ let test =
     d = [ ("asdf", 421311L); ("foo.bar", -123412L); ("asdfkasdfkjasdf", Int64.zero) ];
     e = Array.init 64 ~f:(fun i -> Nativeint.shift_right Nativeint.one i);
     f = Array.init 20 ~f:(fun i -> if i mod 2 = 0 then `Foo else `Bar);
-    g = Array.init 20 ~f:float;
-  }
+    g = Array.init 20 ~f:float; }
 
 (* Number of messages to send for testing *)
 let n_msgs = 100_000
@@ -41,8 +39,8 @@ let start_reader fd =
       (* Make sure we now get an EOF *)
       upon (Reader.read_bin_prot reader bin_reader_test) (function
         | `Eof ->
-            print_endline "Reader success";
-            shutdown 0
+          print_endline "Reader success";
+          shutdown 0
         | _ -> assert false)
     else begin
       (* Read another binary protocol message *)
@@ -67,7 +65,7 @@ let start_writer pid fd =
       let bytes_written = Writer.bytes_written writer in
       printf "Writer success: %s bytes written\n%!"
         (Int63.to_string bytes_written);
-        (* Wait for reader to terminate successfully *)
+      (* Wait for reader to terminate successfully *)
       Unix.waitpid_exn pid
       >>> fun () ->
       printf "All successful: transmitted %d messages\n" n_msgs;

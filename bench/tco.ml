@@ -35,8 +35,8 @@ let upon_loop n = Deferred.create (fun i ->
 
 let loop =
   if Array.length Sys.argv < 2
-    then bind_loop
-    else match Array.get Sys.argv 1 with
+  then bind_loop
+  else match Array.get Sys.argv 1 with
     | "bind"      -> bind_loop
     | "pure"      -> pure_loop
     | "slow_upon" -> slow_upon_loop
