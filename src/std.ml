@@ -19,7 +19,7 @@ struct
       [ Writer.flushed (Lazy.force Writer.stdout)
       ; Writer.flushed (Lazy.force Writer.stderr) ]
 
-  let run = Thread_safe.block_on_async_exn
+  let run f = Thread_safe.block_on_async_exn f
 
   let flushed () = Writer.bytes_to_write (Lazy.force Writer.stdout) = 0
 end
