@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Async.Std
 open Print
 
@@ -86,7 +86,7 @@ let start_writer pid fd =
   never_returns (Scheduler.go ())
 
 let () =
-  let module Unix = Core.Std.Unix in
+  let module Unix = Core.Unix in
   (* Create pipe for communicating between reader and writer process *)
   let ifd, ofd = Unix.pipe () in
   (* Fork off reader process *)

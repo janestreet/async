@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Async.Std
 
 module File_tail = Async.Std.File_tail

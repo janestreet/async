@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Async.Std
 
 module Fd = Unix.Fd
@@ -30,13 +30,13 @@ let server =
 ;;
 
 let () =
-  Core.Std.eprintf "TOP\n%!";
+  Core.eprintf "TOP\n%!";
 ;;
 
 let () =
   let queries = ["Hello"; "Goodbye"] in
   upon server (fun _ ->
-    Core.Std.eprintf "IN SERVER\n%!";
+    Core.eprintf "IN SERVER\n%!";
     upon (Tcp.connect (Tcp.to_host_and_port "localhost" port)) (fun (_, reader, writer) ->
       let rec loop queries =
         match queries with

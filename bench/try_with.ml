@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 open! Async_kernel.Std
 
 let print_sexp sexp = Printf.printf "%s\n" (sexp |> Sexp.to_string_hum)

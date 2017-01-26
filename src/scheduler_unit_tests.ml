@@ -1,5 +1,7 @@
-open Core.Std
-open Std
+
+module Local_std = Std
+open Core
+open Local_std
 
 let%test_module _ =
   (module struct

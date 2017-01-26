@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Async.Std
 
 let () =
@@ -9,7 +9,7 @@ let () =
       let start = Time.now () in
       upon (after (sec 5.)) (fun () ->
         let elapsed = Time.diff (Time.now ()) start in
-        Core.Std.eprintf "num_live_jobs: %7d  nanos per job: %d\n%!"
+        Core.eprintf "num_live_jobs: %7d  nanos per job: %d\n%!"
           num_live_jobs
           (Float.iround_nearest_exn (Time.Span.to_ns elapsed /. Float.of_int !num_jobs));
         Ivar.fill finished ());

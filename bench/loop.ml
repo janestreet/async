@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Async.Std
 
 (* Strictly a memory test. *)
