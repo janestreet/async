@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 (* Identical in semantics to Deferred.unit but takes a little longer. *)
 let tick = Scheduler.schedule' (fun () -> return ()) ;;

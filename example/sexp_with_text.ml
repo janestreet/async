@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 module Data = struct
   type t = (int * string) list [@@deriving sexp]

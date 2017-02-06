@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 (* Strictly a memory test. *)
 

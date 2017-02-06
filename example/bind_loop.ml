@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let bind_loop () =
   let rec loop n =

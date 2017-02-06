@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let run_test ~fill_before_upon ~no_ivars ~spawn_factor =
   let spawn =

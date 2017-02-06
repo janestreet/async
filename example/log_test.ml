@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let main () =
   let open Log in

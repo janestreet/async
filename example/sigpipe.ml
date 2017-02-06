@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let (in_fd, out_fd) = Unix.socketpair ()
 

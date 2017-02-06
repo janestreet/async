@@ -1,7 +1,7 @@
 open Core
-open Async.Std
+open Async
 
-module File_tail = Async.Std.File_tail
+module File_tail = Async.File_tail
 
 let () =
   let files = List.tl_exn (Array.to_list Sys.argv) in

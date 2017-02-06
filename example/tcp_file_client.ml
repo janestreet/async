@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let tail host port files =
   Tcp_file.Client.connect ~host ~port

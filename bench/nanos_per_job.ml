@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let () =
   let test num_live_jobs =

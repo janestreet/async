@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 open Print
 
 (* ToDo: Come up with some instrumentation for heap size

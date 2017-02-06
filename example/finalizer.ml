@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let eprintf = Core.Printf.eprintf
 

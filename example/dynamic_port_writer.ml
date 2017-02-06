@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let test_message = "This is a message sent from the child process to the parent process."
 

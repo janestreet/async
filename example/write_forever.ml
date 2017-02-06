@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let () =
   upon (Unix.openfile "/tmp/z.foo" ~mode:[`Creat; `Wronly] ~perm:0o0666)

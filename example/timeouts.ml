@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 ;;
 
 (* Memory usage of this program stays low, demonstrating that [with_timeout span d]

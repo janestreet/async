@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let handler _ reader writer =
   Deferred.create (fun i ->

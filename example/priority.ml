@@ -1,9 +1,9 @@
 open Core
-open Async.Std
+open Async
 
 let printf = Print.printf
 
-module Priority = Async.Std.Priority (* to avoid omake confusion *)
+module Priority = Async.Priority (* to avoid omake confusion *)
 
 let normal = Priority.normal
 let low = Priority.low

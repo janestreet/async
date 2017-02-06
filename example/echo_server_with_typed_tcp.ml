@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 module Protocol = struct
   module Client_message = String

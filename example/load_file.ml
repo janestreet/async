@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let lines file =
   Reader.with_file file

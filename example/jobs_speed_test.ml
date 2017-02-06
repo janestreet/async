@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let num_jobs = 4096
 let num_iters = 4096

@@ -1,5 +1,5 @@
 open! Core
-open Async.Std
+open Async
 
 let () =
   don't_wait_for (
