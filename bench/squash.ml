@@ -3,7 +3,7 @@ open! Async
 
 open Core_bench.Std
 
-module Ivar = Async_kernel.Ivar0
+module Ivar = Async_kernel_private.Ivar0
 
 let deep _n =
   let n = 30 in

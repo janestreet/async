@@ -3,7 +3,7 @@ open Async
 open Core_bench.Std
 
 let stabilize () =
-  Async_kernel.Scheduler.run_cycles_until_no_jobs_remain ()
+  Async_kernel_private.Scheduler.run_cycles_until_no_jobs_remain ()
 ;;
 
 (* Reset the Ivar to the empty state *)
@@ -44,7 +44,7 @@ let bench_choose_over2 =
 ;;
 
 let bench_install_remove_handler =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar = Ivar.create () in
   fun () ->
     reset_ivar ivar;
@@ -52,7 +52,7 @@ let bench_install_remove_handler =
 ;;
 
 let bench_install5_remove1_handler =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar = Ivar.create () in
   fun () ->
     reset_ivar ivar;
@@ -65,7 +65,7 @@ let bench_install5_remove1_handler =
 ;;
 
 let bench_connect_a =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar1 = Ivar.create () in
   let ivar2 = Ivar.create () in
   fun () ->
@@ -77,7 +77,7 @@ let bench_connect_a =
 ;;
 
 let bench_connect_b =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar1 = Ivar.create () in
   let ivar2 = Ivar.create () in
   fun () ->
@@ -89,7 +89,7 @@ let bench_connect_b =
 ;;
 
 let bench_connect_c =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar1 = Ivar.create () in
   let ivar2 = Ivar.create () in
   fun () ->
@@ -101,7 +101,7 @@ let bench_connect_c =
 ;;
 
 let bench_connect_d =
-  let module Ivar = Async_kernel.Ivar0 in
+  let module Ivar = Async_kernel_private.Ivar0 in
   let ivar1 = Ivar.create () in
   let ivar2 = Ivar.create () in
   fun () ->
