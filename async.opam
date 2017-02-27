@@ -6,7 +6,7 @@ bug-reports: "https://github.com/janestreet/async/issues"
 dev-repo: "https://github.com/janestreet/async.git"
 license: "Apache-2.0"
 build: [
-["jbuilder" "build-package" "async" "-j" jobs]
+  ["jbuilder" "build-package" "async" "-j" jobs]
 ]
 depends: [
   "async_extra"
