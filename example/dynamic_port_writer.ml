@@ -11,7 +11,7 @@ let parent =
        >>= fun (dynamic_port_writer, port_d) ->
        let prog = Sys.executable_name in
        Unix.fork_exec ~prog ()
-         ~args:([prog; "child"] @ Dynamic_port_writer.flag_args dynamic_port_writer)
+         ~argv:([prog; "child"] @ Dynamic_port_writer.flag_args dynamic_port_writer)
        >>= fun child_pid ->
        port_d
        >>= fun r ->
