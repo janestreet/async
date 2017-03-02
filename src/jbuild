@@ -5,6 +5,5 @@
   (preprocess (pps (ppx_jane -check-doc-comments)))
   ))
 
-(enforce_style ())
 
 (jbuild_version jane_street)

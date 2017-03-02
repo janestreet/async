@@ -1,7 +1,4 @@
-include (Async_kernel
-         : (module type of struct include Async_kernel end
-             with module Require_explicit_time_source
-             := Async_kernel.Require_explicit_time_source))
+include Async_kernel
 include Async_unix.Std
 include Async_extra.Std
 
@@ -10,7 +7,7 @@ let%test "Async library initialization does not initialize the scheduler" =
 ;;
 
 module Expect_test_config
-  : Expect_test_config.S with module IO = Deferred =
+  : Expect_test_config.S with type 'a IO.t = 'a Deferred.t =
 struct
   module IO = Deferred
 

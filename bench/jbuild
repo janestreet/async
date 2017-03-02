@@ -12,8 +12,8 @@
     core_bench
     core_experimental
   ))
+  (preprocess (pps (ppx_jane)))
 ))
 
-(enforce_style ())
 
 (jbuild_version jane_street)
