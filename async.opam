@@ -13,9 +13,10 @@ depends: [
   "async_kernel"
   "async_unix"
   "core"
-  "jbuilder"
+  "jbuilder"                {build}
   "ppx_driver"
   "ppx_jane"
+  "ocaml-migrate-parsetree"
 ]
 available: [ ocaml-version >= "4.03.0" ]
 descr: "

@@ -27,7 +27,7 @@
     timeouts
     write_forever))
   (libraries (async core))
-  (preprocess (pps (ppx_jane)))
+  (preprocess (pps (ppx_jane ppx_driver.runner)))
   ))
 
 
