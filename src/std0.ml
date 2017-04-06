@@ -19,4 +19,6 @@ struct
   let run f = Thread_safe.block_on_async_exn f
 
   let flushed () = Writer.bytes_to_write (Lazy.force Writer.stdout) = 0
+
+  let upon_backtrace_found = Expect_test_config.upon_backtrace_found
 end
