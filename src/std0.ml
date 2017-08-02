@@ -20,5 +20,5 @@ struct
 
   let flushed () = Writer.bytes_to_write (Lazy.force Writer.stdout) = 0
 
-  let upon_backtrace_found = Expect_test_config.upon_backtrace_found
+  let upon_unreleasable_issue = Expect_test_config.upon_unreleasable_issue
 end
