@@ -6,7 +6,7 @@ module Fd = Unix.Fd
 let cat ~input ~output =
   let reader = Reader.create input in
   let writer = Writer.create ~raise_when_consumer_leaves:false output in
-  let buf = String.create 4096 in
+  let buf = Bytes.create 4096 in
   let rec loop () =
     choose
       [

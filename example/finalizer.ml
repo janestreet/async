@@ -12,7 +12,7 @@ let rec finished x =
 ;;
 
 let () =
-  let s = String.create 10 in
+  let s = Bytes.create 10 in
   Gc.add_finalizer_exn s finished;
 ;;
 
