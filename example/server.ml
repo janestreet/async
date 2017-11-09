@@ -14,6 +14,7 @@ let port = 61111
 
 let server =
   Tcp.Server.create (Tcp.on_port port)
+    ~on_handler_error:`Raise
     (fun _ reader writer ->
        Deferred.create (fun finished ->
          let rec loop () =

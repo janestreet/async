@@ -35,6 +35,7 @@ let child =
     (fun dynamic_port_writer () ->
        let close = Ivar.create () in
        Tcp.Server.create
+         ~on_handler_error:`Raise
          (Dynamic_port_writer.where_to_listen dynamic_port_writer)
          (fun _ _ writer ->
             Writer.write writer test_message;
