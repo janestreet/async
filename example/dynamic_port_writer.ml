@@ -5,7 +5,7 @@ let test_message = "This is a message sent from the child process to the parent 
 
 let parent =
   "parent",
-  Command.async ~summary:"parent" Command.Spec.empty
+  Command.async_spec ~summary:"parent" Command.Spec.empty
     (fun () ->
        Dynamic_port_writer.create ()
        >>= fun (dynamic_port_writer, port_d) ->
@@ -29,7 +29,7 @@ let parent =
 
 let child =
   "child",
-  Command.async
+  Command.async_spec
     ~summary:"child"
     (Command.Spec.(empty +> Dynamic_port_writer.flag))
     (fun dynamic_port_writer () ->

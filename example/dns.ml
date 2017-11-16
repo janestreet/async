@@ -2,7 +2,7 @@ open! Core
 open Async
 
 let command () =
-  Command.async
+  Command.async_spec
     ~summary:"test async getaddrinfo"
     Command.Spec.(
       empty

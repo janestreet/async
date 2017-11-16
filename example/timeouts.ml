@@ -4,7 +4,7 @@ open Async
 
 (* Memory usage of this program stays low, demonstrating that [with_timeout span d]
    doesn't continue to use memory for the timeout after [d] becomes determined. *)
-Command.async
+Command.async_spec
   ~summary:"Run a whole buncha timeouts"
   Command.Spec.empty
   (fun () ->

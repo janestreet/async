@@ -32,7 +32,7 @@ let doit () =
                               (Unix.Inet_addr.of_string "127.0.0.1") ~port))
       (fun s ->
          let w = Writer.create (Socket.fd s) in
-         let buf = Bytes.create 4096 in
+         let buf = String.make 4096 ' ' in
          let rec loop bytes_written =
            Writer.write w buf;
            upon (Writer.flushed w) (fun _ ->

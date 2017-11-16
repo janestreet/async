@@ -26,6 +26,7 @@
     thread_pool_not_stuck
     timeouts
     write_forever))
+  (flags (:standard -safe-string))
   (libraries (async core))
   (preprocess (pps (ppx_jane ppx_driver.runner)))
   ))

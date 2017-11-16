@@ -20,7 +20,7 @@ let tail host port files =
 ;;
 
 let cmd =
-  Command.async
+  Command.async_spec
     ~summary:"tail files using tcp_file"
     Command.Spec.
       (empty
