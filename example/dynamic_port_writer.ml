@@ -16,7 +16,7 @@ let parent =
        port_d
        >>= fun r ->
        let `Port port = ok_exn r in
-       Tcp.connect (Tcp.to_host_and_port "localhost" port)
+       Tcp.connect (Tcp.Where_to_connect.of_host_and_port {host = "localhost"; port})
        >>= fun (_, reader, _) ->
        Reader.contents reader
        >>= fun message ->

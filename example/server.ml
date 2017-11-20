@@ -13,7 +13,7 @@ let finished () = shutdown 0
 let port = 61111
 
 let server =
-  Tcp.Server.create (Tcp.on_port port)
+  Tcp.Server.create (Tcp.Where_to_listen.of_port port)
     ~on_handler_error:`Raise
     (fun _ reader writer ->
        Deferred.create (fun finished ->
@@ -38,21 +38,23 @@ let () =
   let queries = ["Hello"; "Goodbye"] in
   upon server (fun _ ->
     Core.eprintf "IN SERVER\n%!";
-    upon (Tcp.connect (Tcp.to_host_and_port "localhost" port)) (fun (_, reader, writer) ->
-      let rec loop queries =
-        match queries with
-        | [] -> upon (Writer.close writer) (fun _ -> finished ())
-        | query :: queries ->
-          Writer.write writer query;
-          Writer.write_char writer '\n';
-          upon (Reader.read_line reader) (function
-            | `Eof ->
-              message "reader got unexpected Eof"
-            | `Ok response ->
-              message (sprintf "Client got response: %s\n" response);
-              loop queries)
-      in
-      loop queries))
+    upon
+      (Tcp.connect (Tcp.Where_to_connect.of_host_and_port {host = "localhost"; port}))
+      (fun (_, reader, writer) ->
+         let rec loop queries =
+           match queries with
+           | [] -> upon (Writer.close writer) (fun _ -> finished ())
+           | query :: queries ->
+             Writer.write writer query;
+             Writer.write_char writer '\n';
+             upon (Reader.read_line reader) (function
+               | `Eof ->
+                 message "reader got unexpected Eof"
+               | `Ok response ->
+                 message (sprintf "Client got response: %s\n" response);
+                 loop queries)
+         in
+         loop queries))
 ;;
 
 let () = never_returns (Scheduler.go ())

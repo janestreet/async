@@ -12,7 +12,7 @@ let handler _ reader writer =
       | `Eof   -> write (); Ivar.fill i ()
       | _      -> read ()
     in read () )
-let () = ignore (Tcp.Server.create (Tcp.on_port 55_555) ~on_handler_error:`Ignore handler
+let () = ignore (Tcp.Server.create (Tcp.Where_to_listen.of_port 55_555) ~on_handler_error:`Ignore handler
                  : Tcp.Server.inet Deferred.t)
 let () = never_returns (Scheduler.go ())
 

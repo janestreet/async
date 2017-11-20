@@ -11,14 +11,11 @@ module Expect_test_config
 struct
   module IO = Deferred
 
-  let flush () =
-    Deferred.all_unit
-      [ Writer.flushed (Lazy.force Writer.stdout)
-      ; Writer.flushed (Lazy.force Writer.stderr) ]
+  let flush () = return ()
 
   let run f = Thread_safe.block_on_async_exn f
 
-  let flushed () = Writer.bytes_to_write (Lazy.force Writer.stdout) = 0
+  let flushed () = true
 
   let upon_unreleasable_issue = Expect_test_config.upon_unreleasable_issue
 end
