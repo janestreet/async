@@ -1,8 +1,21 @@
-(**/**)
+include Async_kernel
+include Async_unix
+include Async_extra
 
-module Std = Std0
-[@@deprecated "[since 2017-02] use Async. The Std sub-module is no longer needed"]
+let%test "Async library initialization does not initialize the scheduler" =
+  Scheduler.is_ready_to_initialize ()
+;;
 
-(**/**)
+module Expect_test_config
+  : Expect_test_config.S with type 'a IO.t = 'a Deferred.t =
+struct
+  module IO = Deferred
 
-include Std0 (** @inline *)
+  let flush () = return ()
+
+  let run f = Thread_safe.block_on_async_exn f
+
+  let flushed () = true
+
+  let upon_unreleasable_issue = Expect_test_config.upon_unreleasable_issue
+end

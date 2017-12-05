@@ -58,7 +58,7 @@ let rec edit_loop t =
     >>= function
     | None -> edit_loop t
     | Some updated ->
-      let t = Map.add t ~key ~data:updated in
+      let t = Map.set t ~key ~data:updated in
       printf "full sexp of map:\n";
       printf "%s\n" (sexp_of_t t |> Sexp.to_string_hum);
       printf "\njust data:\n";
