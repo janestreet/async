@@ -1,6 +1,14 @@
-include Async_kernel
-include Async_unix
-include Async_extra
+(** {2 Async_kernel} *)
+
+include Async_kernel (** @open *)
+
+(** {2 Async_unix} *)
+
+include Async_unix (** @open *)
+
+(** {2 Async_extra} *)
+
+include Async_extra (** @open *)
 
 let%test "Async library initialization does not initialize the scheduler" =
   Scheduler.is_ready_to_initialize ()
