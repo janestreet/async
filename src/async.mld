@@ -23,7 +23,7 @@ Async comprises three packages, [Async_kernel], [Async_unix],
 and [Async_extra].
 
 - {b {!Async_kernel}} contains Async's core data structures, like
-  {{!Async_kernel.Deferred} Deferred}.  [Async_kernel] is portable, and
+  {{!Async_kernel.Deferred}[Deferred]}.  [Async_kernel] is portable, and
   so can be used in Javascript using {!Async_js}.  In principle it
   could also be used on Windows, but no scheduler has been written
   for Async on Windows as of yet.

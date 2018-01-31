@@ -5,13 +5,9 @@
     cat
     countdown
     dns
-    dynamic_port_writer
-    echo_server_with_typed_tcp
-    file_tail
     finalizer
     hello
     jobs_speed_test
-    key_value_store
     load_file
     log_test
     max_num_open_file_descrs
@@ -23,7 +19,6 @@
     sigpipe
     socket
     speed_test
-    tcp_file_client
     thread_pool_not_stuck
     timeouts
     write_forever))
