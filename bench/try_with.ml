@@ -3,7 +3,7 @@ open! Async_kernel
 
 let print_sexp sexp = Printf.printf "%s\n" (sexp |> Sexp.to_string_hum)
 
-module Scheduler = Async_kernel_private.Scheduler
+module Scheduler = Async_kernel_scheduler
 
 let () =
   Int_conversions.sexp_of_int_style := `Underscores;

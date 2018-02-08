@@ -1,6 +1,11 @@
 (** {2 Async_kernel} *)
 
-include Async_kernel (** @open *)
+include
+  (Async_kernel
+   : (module type of struct include Async_kernel end
+       with module Persistent_connection        := Async_kernel.Persistent_connection
+       with module Require_explicit_time_source := Async_kernel.Require_explicit_time_source))
+(** @open *)
 
 (** {2 Async_unix} *)
 

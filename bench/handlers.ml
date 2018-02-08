@@ -3,7 +3,7 @@ open Async
 open Core_bench.Std
 
 let stabilize () =
-  Async_kernel_private.Scheduler.run_cycles_until_no_jobs_remain ()
+  Async_kernel_scheduler.run_cycles_until_no_jobs_remain ()
 ;;
 
 (* Reset the Ivar to the empty state *)
