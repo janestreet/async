@@ -3,6 +3,10 @@
 - Improved Async scheduler fairness by calling Thread.yield every cycle, which
   releases the OCaml lock if any other OCaml threads are waiting to acquire it.
 
+- Added a new (single-module) library `async.unpack_sequence`, for efficiently
+  unpacking a sequence of packed values coming from a `string Pipe.Reader.t` or
+  a `Reader.t`.
+
 ## v0.10
 
 - Moved `Persistent_connection` to `Async_kernel`, so that it can be used in

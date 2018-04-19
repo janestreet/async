@@ -1,0 +1,8 @@
+(library
+ ((name unpack_sequence)
+  (public_name async.unpack_sequence)
+  (preprocess (pps (ppx_jane -check-doc-comments ppxlib.runner)))
+  (libraries (async))))
+
+
+(jbuild_version 1)
