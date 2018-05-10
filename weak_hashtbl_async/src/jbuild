@@ -1,0 +1,8 @@
+(library
+ ((name weak_hashtbl_async)
+  (public_name async.weak_hashtbl_async)
+  (libraries (async_kernel
+              core.weak_hashtbl))
+  (preprocess (pps (ppx_jane ppxlib.runner)))))
+
+(jbuild_version 1)

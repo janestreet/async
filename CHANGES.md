@@ -7,6 +7,19 @@
   unpacking a sequence of packed values coming from a `string Pipe.Reader.t` or
   a `Reader.t`.
 
+- Increased Unix.listen's default backlog from 10 to 64, to reduce occurrences
+  of TCP clients getting Unexpected EOF errors when the listening server is
+  busy.
+
+- Added an optional argument to Pipe functions fold and iter so they can
+  consider a value flushed when it is processed by the supplied ~f rather than
+  when it is read out of the pipe.
+
+- `Weak_hashtbl` was moved into its own library `Weak_hashtbl_async`, which is
+  released as part of the async package.
+
+- Added function `Tcp.Server.close_finished_and_handlers_determined`.
+
 ## v0.10
 
 - Moved `Persistent_connection` to `Async_kernel`, so that it can be used in
