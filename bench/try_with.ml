@@ -27,5 +27,5 @@ let () =
     [%sexp { minor_words    = ((minor_after - minor_before) / num_iters : int)
            ; promoted_words = ((promoted_after - promoted_before) / num_iters : int) }];
   print_sexp
-    [%sexp { live_words = (Core_experimental.Std.Size.words !ivars / num_iters : int) }];
+    [%sexp { live_words = (Ocaml_value_size.words !ivars / num_iters : int) }];
 ;;

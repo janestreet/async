@@ -13,6 +13,7 @@ depends: [
   "async_kernel"
   "async_unix"
   "core"
+  "core_kernel"
   "ppx_jane"
   "jbuilder"                {build & >= "1.0+beta18.1"}
   "ocaml-migrate-parsetree" {>= "1.0"}

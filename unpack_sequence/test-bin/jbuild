@@ -7,7 +7,8 @@
  ((names (qtest))
   (libraries (jane
               unpack_sequence
-              qtest_lib))
+              qtest_lib
+              live_wire))
   (preprocess (pps (ppx_jane ppxlib.runner)))))
 
 

@@ -19,17 +19,17 @@ let test () =
   let (sexp_reader, unpack_result) =
     Unpack_sequence.unpack_into_pipe
       ~from:(Reader (Reader.create reader_fd))
-      ~using:(Unpack_buffer.create Wire.unpack_sexp)
+      ~using:(Unpack_buffer.create Live_wire.unpack_sexp)
   in
   (* write all the sexps at a single go. *)
   List.iter sexps ~f:(fun sexp ->
-    Writer.write string_writer (Wire.to_string sexp));
+    Writer.write string_writer (Live_wire.to_string sexp));
   (* write all the sexps, one ... character ... at ... a ... time *)
   let rec loop_sexps sexps =
     match sexps with
     | [] -> don't_wait_for (Writer.close string_writer)
     | sexp :: sexps ->
-      let packed = Wire.to_string sexp in
+      let packed = Live_wire.to_string sexp in
       let rec loop_bytes i =
         if i = String.length packed then
           loop_sexps sexps

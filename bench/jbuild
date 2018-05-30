@@ -10,7 +10,7 @@
     async
     core
     core_bench
-    core_experimental
+    ocaml_value_size
   ))
   (preprocess (pps (ppx_jane ppxlib.runner)))
 ))
