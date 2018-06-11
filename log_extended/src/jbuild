@@ -1,0 +1,9 @@
+(library
+ ((name log_extended)
+  (public_name async.log_extended)
+  (libraries (async
+              core.syslog
+              textutils))
+  (preprocess (pps (ppx_jane ppxlib.runner)))))
+
+(jbuild_version 1)

@@ -1,5 +1,8 @@
 ## git version
 
+- Added a new (single-module) library `async.log_extended`, extending
+  `Async.Log` with `Console` and`Syslog` submodules.
+
 - Improved Async scheduler fairness by calling Thread.yield every cycle, which
   releases the OCaml lock if any other OCaml threads are waiting to acquire it.
 
