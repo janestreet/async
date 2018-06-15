@@ -27,5 +27,5 @@ let create ?growth_allowed ?size hashable =
   t
 ;;
 
-let remove_keys_with_unused_data `Do_not_use = assert false
-let set_run_when_unused_data     `Do_not_use = assert false
+let reclaim_space_for_keys_with_unused_data `Do_not_use = assert false
+let set_run_when_unused_data                `Do_not_use = assert false
