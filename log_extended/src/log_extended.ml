@@ -1,5 +1,4 @@
 open Core
-open Textutils
 open Async
 
 include Log

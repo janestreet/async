@@ -1,5 +1,4 @@
 open! Core
-open Textutils
 open! Async
 
 include module type of struct include Async.Log end
