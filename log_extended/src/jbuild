@@ -2,7 +2,7 @@
  ((name log_extended)
   (public_name async.log_extended)
   (libraries (async
-              console
+              textutils.console
               core.syslog))
   (preprocess (pps (ppx_jane ppxlib.runner)))))
 
