@@ -7,7 +7,7 @@ much any program that uses blocking calls (e.g., networking code, disk access),
 timeouts, or event loops (e.g., GUIs).
 
 Read more in [Chapter 18 of *Real World
-OCaml*](https://dev.realworldocaml.org/18-concurrent-programming.html).
+OCaml*][https://dev.realworldocaml.org/18-concurrent-programming.html].
 
 API documentation for the latest release can be found
-[here](https://ocaml.janestreet.com/ocaml-core/latest/doc/async/index.html).
+[here][https://ocaml.janestreet.com/ocaml-core/latest/doc/async/index.html].
