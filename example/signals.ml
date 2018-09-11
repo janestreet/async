@@ -2,7 +2,6 @@ open Core
 open Async
 
 let printf = Print.printf
-
 let () = printf "my pid is %s\n" (Pid.to_string (Unix.getpid ()))
 
 let () =

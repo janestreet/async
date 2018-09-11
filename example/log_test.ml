@@ -14,7 +14,7 @@ let main () =
          ~naming_scheme:`Numbered
          ())
   in
-  Global.set_output [rotating_file];
+  Global.set_output [ rotating_file ];
   let i = ref 0 in
   Clock.every (sec 1.) (fun () ->
     Global.info "%d" !i;
@@ -24,3 +24,4 @@ let main () =
 let () =
   main ();
   never_returns (Scheduler.go ())
+;;

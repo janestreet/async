@@ -14,18 +14,20 @@ let () =
   let minor_before = Gc.minor_words () in
   let promoted_before = Gc.promoted_words () in
   for _ = 1 to num_iters do
-    ignore (try_with (fun () ->
-      let i = Ivar.create () in
-      ivars := i :: !ivars;
-      Ivar.read i));
+    ignore
+      (try_with (fun () ->
+         let i = Ivar.create () in
+         ivars := i :: !ivars;
+         Ivar.read i))
   done;
   Scheduler.run_cycles_until_no_jobs_remain ();
   Gc.full_major ();
   let minor_after = Gc.minor_words () in
   let promoted_after = Gc.promoted_words () in
   print_sexp
-    [%sexp { minor_words    = ((minor_after - minor_before) / num_iters : int)
-           ; promoted_words = ((promoted_after - promoted_before) / num_iters : int) }];
-  print_sexp
-    [%sexp { live_words = (Ocaml_value_size.words !ivars / num_iters : int) }];
+    [%sexp
+      { minor_words = ((minor_after - minor_before) / num_iters : int)
+      ; promoted_words = ((promoted_after - promoted_before) / num_iters : int)
+      }];
+  print_sexp [%sexp { live_words = (Ocaml_value_size.words !ivars / num_iters : int) }]
 ;;

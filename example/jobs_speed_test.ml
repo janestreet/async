@@ -7,22 +7,21 @@ let num_iters = 4096
 let run_test () =
   Deferred.create (fun i ->
     let rec loop n =
-      if n = 0 then
-        Ivar.fill i ()
-      else begin
+      if n = 0
+      then Ivar.fill i ()
+      else
         Deferred.create (fun i ->
           let finished = ref num_jobs in
           let rec loop n =
-            if n > 0 then begin
+            if n > 0
+            then (
               upon Deferred.unit (fun () ->
                 decr finished;
                 if !finished = 0 then Ivar.fill i ());
-              loop (n - 1)
-            end
+              loop (n - 1))
           in
           loop num_jobs)
         >>> fun () -> loop (n - 1)
-      end
     in
     loop num_iters)
 ;;
@@ -33,7 +32,7 @@ let () =
     let stop = Time.now () in
     printf "elapsed time: %s\n" (Time.Span.to_string (Time.diff stop start));
     Shutdown.shutdown 0);
-  never_returns (Scheduler.go ());
+  never_returns (Scheduler.go ())
 ;;
 
 (* jobs_per_cycle

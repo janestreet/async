@@ -1,6 +1,5 @@
 open Core
 open Async
-
 module Fd = Unix.Fd
 
 let cat ~input ~output =
@@ -9,24 +8,20 @@ let cat ~input ~output =
   let buf = Bytes.create 4096 in
   let rec loop () =
     choose
-      [
-        choice (Reader.read reader buf) (fun r -> `Reader r);
-        choice (Writer.consumer_left writer) (fun () -> `Epipe); ]
+      [ choice (Reader.read reader buf) (fun r -> `Reader r)
+      ; choice (Writer.consumer_left writer) (fun () -> `Epipe)
+      ]
     >>> function
     | `Epipe -> shutdown 0
     | `Reader r ->
-      match r with
-      | `Eof ->
-        Writer.flushed writer
-        >>> fun _ ->
-        shutdown 0
-      | `Ok len ->
-        Writer.write_substring writer (Substring.create buf ~pos:0 ~len);
-        loop ()
+      (match r with
+       | `Eof -> Writer.flushed writer >>> fun _ -> shutdown 0
+       | `Ok len ->
+         Writer.write_substring writer (Substring.create buf ~pos:0 ~len);
+         loop ())
   in
   loop ()
 ;;
 
 let () = cat ~input:(Fd.stdin ()) ~output:(Fd.stdout ())
-
 let () = never_returns (Scheduler.go ())
