@@ -14,7 +14,7 @@ and first-class blocking operations with blocking expressed in the
 type system.
 
 Read more in {{:
-https://dev.realworldocaml.org/18-concurrent-programming.html} Chapter
+https://dev.realworldocaml.org/concurrent-programming.html} Chapter
 18 of {e Real World OCaml}}.
 
 {2 Organization}
