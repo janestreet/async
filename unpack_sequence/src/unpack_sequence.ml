@@ -14,7 +14,7 @@ module Unpack_iter_result = struct
   type 'a t =
     | Input_closed
     | Input_closed_in_the_middle_of_data of 'a Unpack_buffer.t
-    | Unpack_error                       of Error.t
+    | Unpack_error of Error.t
   [@@deriving sexp_of]
 
   let to_error : _ t -> Error.t = function
@@ -29,11 +29,10 @@ module Unpack_result = struct
     | Input_closed
     | Input_closed_in_the_middle_of_data of 'a Unpack_buffer.t
     | Output_closed
-    | Unpack_error                       of Error.t
+    | Unpack_error of Error.t
   [@@deriving sexp_of]
 
-  let to_error : _ t -> Error.t =
-    function
+  let to_error : _ t -> Error.t = function
     | Input_closed -> input_closed_error
     | Input_closed_in_the_middle_of_data _ -> input_closed_in_the_middle_of_data_error
     | Output_closed -> Error.of_string "output closed"
@@ -43,20 +42,20 @@ module Unpack_result = struct
   let eof unpack_buffer =
     match Unpack_buffer.is_empty unpack_buffer with
     | Error error -> Unpack_error error
-    | Ok true     -> Input_closed
-    | Ok false    -> Input_closed_in_the_middle_of_data unpack_buffer
+    | Ok true -> Input_closed
+    | Ok false -> Input_closed_in_the_middle_of_data unpack_buffer
   ;;
 
   let of_unpack_iter_result : _ Unpack_iter_result.t -> _ t = function
-    | Input_closed                         -> Input_closed
+    | Input_closed -> Input_closed
     | Input_closed_in_the_middle_of_data x -> Input_closed_in_the_middle_of_data x
-    | Unpack_error e                       -> Unpack_error e
+    | Unpack_error e -> Unpack_error e
   ;;
 end
 
 module Unpack_from = struct
   type t =
-    | Pipe   of string Pipe.Reader.t
+    | Pipe of string Pipe.Reader.t
     | Reader of Reader.t
 end
 
@@ -72,10 +71,9 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
     match to_ with
     | Iter f ->
       fun () ->
-        begin match Unpack_buffer.unpack_iter unpack_buffer ~f with
-        | Ok ()       -> return `Continue
-        | Error error -> return (`Stop (Unpack_result.Unpack_error error))
-        end
+        (match Unpack_buffer.unpack_iter unpack_buffer ~f with
+         | Ok () -> return `Continue
+         | Error error -> return (`Stop (Unpack_result.Unpack_error error)))
     | Pipe output_writer ->
       let f a =
         if Pipe.is_closed output_writer
@@ -86,53 +84,51 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
         Pipe.write_without_pushback output_writer a
       in
       fun () ->
-        match Unpack_buffer.unpack_iter unpack_buffer ~f with
-        | Ok () -> Pipe.pushback output_writer >>| fun () -> `Continue
-        | Error error ->
-          return (`Stop
-                    (if Pipe.is_closed output_writer
-                     then Unpack_result.Output_closed
-                     else Unpack_result.Unpack_error error))
+        (match Unpack_buffer.unpack_iter unpack_buffer ~f with
+         | Ok () -> Pipe.pushback output_writer >>| fun () -> `Continue
+         | Error error ->
+           return
+             (`Stop
+                (if Pipe.is_closed output_writer
+                 then Unpack_result.Output_closed
+                 else Unpack_result.Unpack_error error)))
   in
   let finished_with_input =
     match from with
     | Reader input ->
-      begin
-        (* In rare situations, a reader can asynchronously raise.  We'd rather not raise
-           here, since we have a natural place to report the error. *)
-        try_with (fun () ->
-          Reader.read_one_chunk_at_a_time input
-            ~handle_chunk:(fun buf ~pos ~len ->
-              match Unpack_buffer.feed unpack_buffer buf ~pos ~len with
-              | Error error -> return (`Stop (Unpack_result.Unpack_error error))
-              | Ok () -> unpack_all_available ()))
-        >>| function
+      (* In rare situations, a reader can asynchronously raise.  We'd rather not raise
+         here, since we have a natural place to report the error. *)
+      try_with (fun () ->
+        Reader.read_one_chunk_at_a_time input ~handle_chunk:(fun buf ~pos ~len ->
+          match Unpack_buffer.feed unpack_buffer buf ~pos ~len with
+          | Error error -> return (`Stop (Unpack_result.Unpack_error error))
+          | Ok () -> unpack_all_available ()))
+      >>| (function
         | Error exn -> Unpack_result.Unpack_error (Error.of_exn exn)
         | Ok (`Stopped result) -> result
-        | Ok `Eof  -> Unpack_result.eof unpack_buffer
+        | Ok `Eof -> Unpack_result.eof unpack_buffer
         | Ok (`Eof_with_unconsumed_data _) ->
           (* not possible since we always consume everithing *)
-          assert false
-      end
+          assert false)
     | Pipe input ->
       Deferred.repeat_until_finished () (fun () ->
         Pipe.read' input
         >>= function
         | `Eof -> return (`Finished (Unpack_result.eof unpack_buffer))
         | `Ok q ->
-          match
-            Queue.iter q ~f:(fun string ->
-              match Unpack_buffer.feed_string unpack_buffer string with
-              | Ok () -> ()
-              | Error error -> Error.raise error)
-          with
-          | exception exn ->
-            return (`Finished (Unpack_result.Unpack_error (Error.of_exn exn)))
-          | () ->
-            unpack_all_available ()
-            >>| function
-            | `Continue -> `Repeat ()
-            | `Stop z -> `Finished z)
+          (match
+             Queue.iter q ~f:(fun string ->
+               match Unpack_buffer.feed_string unpack_buffer string with
+               | Ok () -> ()
+               | Error error -> Error.raise error)
+           with
+           | exception exn ->
+             return (`Finished (Unpack_result.Unpack_error (Error.of_exn exn)))
+           | () ->
+             unpack_all_available ()
+             >>| (function
+               | `Continue -> `Repeat ()
+               | `Stop z -> `Finished z)))
   in
   match to_ with
   | Iter _ -> finished_with_input
@@ -157,12 +153,14 @@ let unpack_into_pipe ~from ~using =
 let unpack_iter ~from ~using ~f =
   unpack_all ~from ~to_:(Iter f) ~using
   >>| function
-  | Input_closed                         -> Unpack_iter_result.Input_closed
+  | Input_closed -> Unpack_iter_result.Input_closed
   | Input_closed_in_the_middle_of_data x -> Input_closed_in_the_middle_of_data x
-  | Unpack_error x                       -> Unpack_error x
+  | Unpack_error x -> Unpack_error x
   | Output_closed as t ->
-    failwiths "Unpack_sequence.unpack_iter got unexpected value"
-      t [%sexp_of: _ Unpack_result.t]
+    failwiths
+      "Unpack_sequence.unpack_iter got unexpected value"
+      t
+      [%sexp_of: _ Unpack_result.t]
 ;;
 
 let%test_module _ =
@@ -176,28 +174,27 @@ let%test_module _ =
         | Input_closed_in_the_middle_of_data _, Input_closed_in_the_middle_of_data _ -> 0
         | Output_closed, Output_closed -> 0
         | Unpack_error e_l, Unpack_error e_r -> Error.compare e_l e_r
-        | (Input_closed
-          | Input_closed_in_the_middle_of_data _
-          | Output_closed
-          | Unpack_error _), _
-          -> -1
+        | ( ( Input_closed
+            | Input_closed_in_the_middle_of_data _
+            | Output_closed
+            | Unpack_error _ )
+          , _ ) -> -1
       ;;
     end
 
     let pack bin_writer values =
       List.map values ~f:(fun value ->
-        Bin_prot.Utils.bin_dump ~header:true bin_writer value
-        |> Bigstring.to_string)
+        Bin_prot.Utils.bin_dump ~header:true bin_writer value |> Bigstring.to_string)
       |> String.concat
     ;;
 
     let break_into_pieces string ~of_size =
       let rec loop start_idx =
-        if start_idx < String.length string then begin
+        if start_idx < String.length string
+        then (
           let next_idx = Int.min (start_idx + of_size) (String.length string) in
           let this_slice = String.slice string start_idx next_idx in
-          this_slice :: (loop next_idx)
-        end
+          this_slice :: loop next_idx)
         else []
       in
       loop 0
@@ -220,10 +217,8 @@ let%test_module _ =
 
       (* Create a value unique to the seed. *)
       let create seed =
-        let char = Char.of_int_exn (seed + (Char.to_int 'a')) in
-        { a = String.make seed char
-        ; b = seed
-        }
+        let char = Char.of_int_exn (seed + Char.to_int 'a') in
+        { a = String.make seed char; b = seed }
       ;;
 
       let pack ts = pack bin_writer_t ts
@@ -268,18 +263,18 @@ let%test_module _ =
     end
 
     let values n = List.init n ~f:Value.create
-
     let test_size = 50
 
     let ( >>= ) deferred f =
       let timeout = sec 10. in
-      begin
-        Clock.with_timeout timeout deferred
-        >>| function
+      Clock.with_timeout timeout deferred
+      >>| (function
         | `Timeout ->
-          failwithf !"unpack_sequence.ml: Deferred took more than %{Time.Span}" timeout ()
-        | `Result result -> result
-      end
+          failwithf
+            !"unpack_sequence.ml: Deferred took more than %{Time.Span}"
+            timeout
+            ()
+        | `Result result -> result)
       >>= f
     ;;
 
@@ -294,11 +289,11 @@ let%test_module _ =
     ;;
 
     let setup_iter () =
-      let input_r , input_w  = Pipe.create () in
+      let input_r, input_w = Pipe.create () in
       let output_r, output_w = Pipe.create () in
       let finished =
-        unpack_iter ~from:(Pipe input_r) ~using:(Value.unpack_buffer ())
-          ~f:(fun a -> Pipe.write_without_pushback output_w a)
+        unpack_iter ~from:(Pipe input_r) ~using:(Value.unpack_buffer ()) ~f:(fun a ->
+          Pipe.write_without_pushback output_w a)
         >>| Unpack_result.of_unpack_iter_result
       in
       return (input_w, output_r, finished)
@@ -310,7 +305,8 @@ let%test_module _ =
       Reader.of_pipe pipe_info input_r
       >>= fun reader ->
       let pipe, finished =
-        unpack_into_pipe ~from:(Reader reader)
+        unpack_into_pipe
+          ~from:(Reader reader)
           ~using:(Unpack_buffer.create_bin_prot Value.bin_reader_t)
       in
       return (input_w, pipe, finished)
@@ -319,16 +315,10 @@ let%test_module _ =
     let run_tests ?(only_supports_output_to_pipe = false) test_fn =
       Thread_safe.block_on_async_exn (fun () ->
         Deferred.List.iter
-          ([ setup_reader
-           ; setup_string_pipe_reader
-           ]
-           @ (if only_supports_output_to_pipe
-              then []
-              else [ setup_iter ]))
+          ([ setup_reader; setup_string_pipe_reader ]
+           @ if only_supports_output_to_pipe then [] else [ setup_iter ])
           ~f:(fun setup ->
-            setup ()
-            >>= fun (input, output, finished) ->
-            test_fn input output finished))
+            setup () >>= fun (input, output, finished) -> test_fn input output finished))
     ;;
 
     let%test_unit "test various full reads" =
@@ -339,7 +329,8 @@ let%test_module _ =
             Pipe.close input;
             finished
             >>= fun result ->
-            [%test_result: Value.t Unpack_result.t] result
+            [%test_result: Value.t Unpack_result.t]
+              result
               ~expect:Unpack_result.Input_closed;
             return (`Finished ())
           | _ :: rest ->
@@ -347,17 +338,18 @@ let%test_module _ =
             Deferred.repeat_until_finished 1 (fun of_size ->
               if of_size >= String.length data
               then return (`Finished ())
-              else
+              else (
                 let pieces = break_into_pieces data ~of_size in
-                Pipe.transfer_in_without_pushback input ~from:(Queue.of_list pieces);
+                Pipe.transfer_in_without_pushback
+                  input
+                  ~from:(Queue.of_list pieces);
                 Pipe.read_exactly output ~num_values:(List.length values)
                 >>| function
                 | `Eof | `Fewer _ -> assert false
                 | `Exactly queue ->
                   [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
-                  `Repeat (of_size + 1))
-            >>= fun () ->
-            return (`Repeat rest)))
+                  `Repeat (of_size + 1)))
+            >>= fun () -> return (`Repeat rest)))
     ;;
 
     let%test_unit "input closed in middle of read" =
@@ -404,8 +396,9 @@ let%test_module _ =
         | `Exactly queue ->
           [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
           finished
-          >>| function
-          | Unpack_error _ -> ()
-          | _ -> assert false)
+          >>| (function
+            | Unpack_error _ -> ()
+            | _ -> assert false))
     ;;
   end)
+;;

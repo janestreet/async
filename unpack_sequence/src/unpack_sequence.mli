@@ -10,7 +10,7 @@ module Unpack_iter_result : sig
   type 'a t =
     | Input_closed
     | Input_closed_in_the_middle_of_data of 'a Unpack_buffer.t
-    | Unpack_error                       of Error.t
+    | Unpack_error of Error.t
   [@@deriving sexp_of]
 
   val to_error : _ t -> Error.t
@@ -21,7 +21,7 @@ module Unpack_result : sig
     | Input_closed
     | Input_closed_in_the_middle_of_data of 'a Unpack_buffer.t
     | Output_closed
-    | Unpack_error                       of Error.t
+    | Unpack_error of Error.t
   [@@deriving sexp_of]
 
   val to_error : _ t -> Error.t
@@ -30,7 +30,7 @@ end
 (** [Unpack_from] specifies the source of the sequence of bytes to unpack from. *)
 module Unpack_from : sig
   type t =
-    | Pipe   of string Pipe.Reader.t
+    | Pipe of string Pipe.Reader.t
     | Reader of Reader.t
 end
 
@@ -49,15 +49,15 @@ end
     reader))] because it blits bytes directly from the reader buffer to the unpack buffer,
     without any intervening allocation. *)
 val unpack_into_pipe
-  :  from  : Unpack_from.t
-  -> using : 'a Unpack_buffer.t
+  :  from:Unpack_from.t
+  -> using:'a Unpack_buffer.t
   -> 'a Pipe.Reader.t * 'a Unpack_result.t Deferred.t
 
 (** [unpack_iter] is a more efficient version of [unpack_into_pipe] that calls [f] on each
     value as it is unpacked, rather than putting the value into a pipe.  If [f] raises,
     then the result will be [Unpack_error]. *)
 val unpack_iter
-  :  from  : Unpack_from.t
-  -> using : 'a Unpack_buffer.t
-  -> f     : ('a -> unit)
+  :  from:Unpack_from.t
+  -> using:'a Unpack_buffer.t
+  -> f:('a -> unit)
   -> 'a Unpack_iter_result.t Deferred.t
