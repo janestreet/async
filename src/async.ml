@@ -1,6 +1,17 @@
+open! Async_kernel
+
 (** {2 Async_kernel} *)
 
-include Async_kernel  (** @open *)
+include (Async_kernel : module type of Async_kernel with module Deferred := Deferred)  (** @open *)
+
+module Deferred = struct
+  include (Deferred : module type of Deferred with module Or_error := Deferred.Or_error)
+
+  module Or_error = struct
+    include Async_kernel.Deferred.Or_error
+    module Expect_test_config = Deferred_or_error_expect_test_config
+  end
+end
 
 (** {2 Async_unix} *)
 

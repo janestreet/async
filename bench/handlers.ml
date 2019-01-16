@@ -2,8 +2,6 @@
 open Async
 open Core_bench.Std
 
-let stabilize () = Async_kernel_scheduler.run_cycles_until_no_jobs_remain ()
-
 (* Reset the Ivar to the empty state *)
 let reset_ivar ivar = Obj.set_field (Obj.repr ivar) 0 (Obj.repr 0)
 let bench_create () = ignore (Ivar.create () : unit Ivar.t)

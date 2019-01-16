@@ -34,7 +34,7 @@ let () =
 
 let () = never_returns (Scheduler.go ())
 
-let dont_run_this () =
+let _dont_run_this () =
   (* To be happy that abstracting [never_returns] into module [Common0] is ok, make a type
      check that the [never_returns] type matches between [Exn.handle_uncaught_and_exit]
      and [never_returns]. *)
