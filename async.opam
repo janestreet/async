@@ -13,12 +13,13 @@ depends: [
   "ocaml" {>= "4.07.0"}
   "async_extra"
   "async_kernel"
+  "async_rpc_kernel"
   "async_unix"
   "core"
   "core_kernel"
   "ppx_jane"
   "textutils"
-  "dune"         {build & >= "1.5.1"}
+  "dune"             {build & >= "1.5.1"}
 ]
 synopsis: "Monadic concurrency library"
 description: "

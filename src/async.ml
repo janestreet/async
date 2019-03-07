@@ -21,6 +21,10 @@ include Async_unix  (** @open *)
 
 include Async_extra  (** @open *)
 
+(** {2 Async_rpc} *)
+
+include Async_rpc  (** @open *)
+
 let%test "Async library initialization does not initialize the scheduler" =
   Scheduler.is_ready_to_initialize ()
 ;;
