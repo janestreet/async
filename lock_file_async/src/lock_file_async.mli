@@ -1,5 +1,5 @@
-(** [Async.Lock_file] is a wrapper that provides Async equivalents for
-    {{!Lock_file}[Lock_file]}. *)
+(** [Lock_file_async] is a wrapper that provides Async equivalents for
+    {{!Lock_file_blocking}[Lock_file_blocking]}. *)
 
 open! Core
 open! Async
@@ -27,7 +27,7 @@ val create_exn
 
 (** [waiting_create path] repeatedly tries to lock [path], becoming determined when [path]
     is locked or raising when [abort] becomes determined.  Similar to
-    {{!Lock_file.blocking_create}[Lock_file.blocking_create]}. *)
+    {!Lock_file_blocking.create}. *)
 val waiting_create
   :  ?abort          : unit Deferred.t  (** default is [Deferred.never ()] *)
   -> ?message        : string
@@ -40,7 +40,7 @@ val waiting_create
     otherwise. *)
 val is_locked : string -> bool Deferred.t
 
-(** [Nfs] has analogs of functions in {{!Lock_file.Nfs}[Lock_file.Nfs]}; see
+(** [Nfs] has analogs of functions in {!Lock_file_blocking.Nfs}; see
     there for documentation.  In addition to adding [Deferred]'s, [blocking_create] was
     renamed [waiting_create] to avoid the impression that it blocks Async. *)
 module Nfs : sig
