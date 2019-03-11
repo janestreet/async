@@ -25,6 +25,12 @@ include Async_extra  (** @open *)
 
 include Async_rpc  (** @open *)
 
+(* We define [Quickcheck] using [struct include ... end] rather than as an alias so that
+   we don't have to add [async_quickcheck] to downstream jbuild library imports. *)
+module Quickcheck = struct
+  include Async_quickcheck
+end
+
 let%test "Async library initialization does not initialize the scheduler" =
   Scheduler.is_ready_to_initialize ()
 ;;
