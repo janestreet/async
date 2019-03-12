@@ -17,9 +17,13 @@ end
 
 include Async_unix  (** @open *)
 
-(** {2 Async_extra} *)
+(** {2 Async_command} *)
 
-include Async_extra  (** @open *)
+(* We define [Command] using [struct include ... end] rather than as an alias so that we
+   don't have to add [async_command] to downstream jbuild library imports. *)
+module Command = struct
+  include Async_command
+end
 
 (** {2 Async_rpc} *)
 

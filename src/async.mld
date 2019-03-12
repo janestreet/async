@@ -19,8 +19,8 @@ https://dev.realworldocaml.org/concurrent-programming.html} Chapter
 
 {2 Organization}
 
-Async comprises three packages, [Async_kernel], [Async_unix],
-and [Async_extra].
+Async comprises four packages, [Async_command], [Async_kernel],
+[Async_rpc], and [Async_unix].
 
 - {b {!Async_kernel}} contains Async's core data structures, like
   {{!Async_kernel.Deferred}[Deferred]}.  [Async_kernel] is portable, and
@@ -33,8 +33,9 @@ and [Async_extra].
   `epoll` or `select`, depending on availabilty, and manages a thread pool that
   blocking system calls run in.
 
-- {b {!Async_extra}} includes extras like command-line handling and
-  RPC support built on top of those two packages.
+- {b {!Async_command}} extends [Core.Command]'s command-line handling
+  
+- {b {!Async_rpc}} adds RPC support.
 
 You can most easily understand Async's API by reading the
 documentation of these individually.
