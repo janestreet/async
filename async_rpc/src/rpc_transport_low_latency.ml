@@ -118,7 +118,7 @@ module Reader_internal = struct
     ; mutable reading : bool
     ; mutable closed : bool
     ; close_finished : unit Ivar.t
-    ; mutable buf : Bigstring.t sexp_opaque
+    ; mutable buf : (Bigstring.t[@sexp.opaque])
     ; mutable pos : int (* Start of unconsumed data. *)
     ; mutable max : int
     (* End   of unconsumed data. *)
@@ -429,7 +429,7 @@ module Writer_internal = struct
     ; config : Config.t
     ; connection_state : Connection_state.t
     ; mutable writing : bool
-    ; mutable buf : Bigstring.t sexp_opaque
+    ; mutable buf : (Bigstring.t[@sexp.opaque])
     ; mutable pos : int
     ; mutable bytes_written : Int63.t
     ; monitor : Monitor.t
