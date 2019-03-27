@@ -57,5 +57,5 @@ module Command : sig
     -> log_to_syslog_by_default:bool
     -> ?log_to_file_by_default:string
     -> unit
-    -> unit Command.Spec.param
+    -> unit Command.Param.t
 end
