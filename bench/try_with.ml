@@ -3,8 +3,6 @@ open! Async_kernel
 
 let print_sexp sexp = Printf.printf "%s\n" (sexp |> Sexp.to_string_hum)
 
-module Scheduler = Async_kernel_scheduler
-
 let () =
   Int_conversions.sexp_of_int_style := `Underscores;
   let _info = Info.of_string "foo" in
@@ -20,7 +18,7 @@ let () =
          ivars := i :: !ivars;
          Ivar.read i))
   done;
-  Scheduler.run_cycles_until_no_jobs_remain ();
+  Async_kernel_scheduler.Expert.run_cycles_until_no_jobs_remain ();
   Gc.full_major ();
   let minor_after = Gc.minor_words () in
   let promoted_after = Gc.promoted_words () in
