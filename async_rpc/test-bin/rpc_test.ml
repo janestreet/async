@@ -1,4 +1,5 @@
 open Core
+open Poly
 open Async
 open Rpc
 module Limiter = Limiter_async.Token_bucket

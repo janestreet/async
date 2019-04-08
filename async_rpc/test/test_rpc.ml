@@ -1,4 +1,5 @@
 open! Core
+open Poly
 open! Async
 open! Import
 module Debug = Async_kernel_private.Debug

@@ -1,4 +1,5 @@
 open Core
+open Poly
 open Async
 open Deferred.Let_syntax
 module P = Async_rpc_kernel.Async_rpc_kernel_private.Protocol
