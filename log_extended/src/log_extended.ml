@@ -30,7 +30,7 @@ module Console = struct
         |> (fun styled_msg ->
           Writer.write writer styled_msg;
           Writer.newline writer));
-      Writer.flushed writer)
+      Deferred.any_unit [ Writer.flushed writer; Writer.consumer_left writer ])
 
   module Blocking = struct
     let output
