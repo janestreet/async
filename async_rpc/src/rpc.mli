@@ -21,8 +21,8 @@ module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
 
 module Connection : sig
   include module type of struct
-  include Rpc_kernel.Connection
-end
+    include Rpc_kernel.Connection
+  end
 
   (** These functions are mostly the same as the ones with the same names in
       [Async_rpc_kernel.Rpc.Connection]; see [Connection_intf] in that library for

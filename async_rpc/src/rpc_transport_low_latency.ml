@@ -7,7 +7,7 @@ module Send_result = Kernel_transport.Send_result
 
 external writev2
   :  Core.Unix.File_descr.t
-    -> buf1:Bigstring.t
+  -> buf1:Bigstring.t
   -> pos1:int
   -> len1:int
   -> buf2:Bigstring.t
@@ -43,7 +43,7 @@ module Config = struct
     ; write_timeout : Time_ns.Span.t [@default default_write_timeout]
     ; buffering_threshold_in_bytes : int [@default default_buffering_threshold_in_bytes]
     ; start_batching_after_num_messages : int
-                                            [@default default_start_batching_after_num_messages]
+                                          [@default default_start_batching_after_num_messages]
     }
   [@@deriving sexp]
 

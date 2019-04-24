@@ -8,24 +8,24 @@ module Async_writer = Writer
 
 module Reader : sig
   include module type of struct
-  include Rpc_kernel.Transport.Reader
-end
+    include Rpc_kernel.Transport.Reader
+  end
 
   val of_reader : max_message_size:int -> Async_reader.t -> t
 end
 
 module Writer : sig
   include module type of struct
-  include Rpc_kernel.Transport.Writer
-end
+    include Rpc_kernel.Transport.Writer
+  end
 
   val of_writer : max_message_size:int -> Async_writer.t -> t
 end
 
 include
-module type of struct
-  include Rpc_kernel.Transport
-end
+  module type of struct
+    include Rpc_kernel.Transport
+  end
   with module Reader := Rpc_kernel.Transport.Reader
   with module Writer := Rpc_kernel.Transport.Writer
 
