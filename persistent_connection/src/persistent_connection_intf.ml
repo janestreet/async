@@ -13,6 +13,8 @@ module type S = sig
         [server_name], which should be the name of the server we are connecting to. *)
     -> ?on_event:(Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time.Span.t)
+    -> ?random_state:Random.State.t
+    -> ?time_source:Time_source.t
     -> connect:(address -> conn Or_error.t Deferred.t)
     -> (unit -> address Or_error.t Deferred.t)
     -> t

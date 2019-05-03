@@ -1,6 +1,7 @@
 open! Core
 open! Async
 open! Import
+open! Require_explicit_time_source
 include Persistent_connection_intf
 
 module Make (Conn : T) = struct
@@ -11,6 +12,8 @@ module Make (Conn : T) = struct
         ?log
         ?(on_event = fun _ -> Deferred.unit)
         ?retry_delay
+        ?random_state
+        ?time_source
         ~connect
         get_address
     =
@@ -29,7 +32,14 @@ module Make (Conn : T) = struct
             (Event.sexp_of_t event));
       on_event event
     in
-    create ~server_name ~on_event ?retry_delay ~connect get_address
+    create
+      ~server_name
+      ~on_event
+      ?retry_delay
+      ?random_state
+      ?time_source
+      ~connect
+      get_address
   ;;
 end
 

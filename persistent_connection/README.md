@@ -1,4 +1,4 @@
-# `Persistent_connection`
+# Persistent_connection
 
 A persistent connection is an actively maintained connection to some
 service that eagerly and repeatedly attempts to reconnect whenever the
