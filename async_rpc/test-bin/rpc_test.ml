@@ -241,6 +241,7 @@ module Heartbeat_pipe_test = struct
       Connection.Heartbeat_config.create
         ~timeout:(Time_ns.Span.of_day 1.)
         ~send_every:(Time_ns.Span.of_day 1.)
+        ()
     in
     Connection.serve
       ~implementations

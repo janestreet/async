@@ -36,6 +36,7 @@ let heartbeat_config =
   Rpc.Connection.Heartbeat_config.create
     ~timeout:(Time_ns.Span.of_sec 5.)
     ~send_every:(Time_ns.Span.of_sec 1.)
+    ()
 ;;
 
 let send_a_lot_of_messages rpc conn =
