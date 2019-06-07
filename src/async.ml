@@ -39,9 +39,17 @@ let%test "Async library initialization does not initialize the scheduler" =
   Scheduler.is_ready_to_initialize ()
 ;;
 
-module Expect_test_config : Expect_test_config.S with type 'a IO.t = 'a Deferred.t =
-struct
-  module IO = Deferred
+module Expect_test_config :
+  Expect_test_config.S
+  with type 'a IO_flush.t = 'a Deferred.t
+  with type 'a IO_run.t = 'a Deferred.t = struct
+  module IO_run = Deferred
+
+  module IO_flush = struct
+    include IO_run
+
+    let to_run t = t
+  end
 
   let flush () = return ()
   let run f = Thread_safe.block_on_async_exn f

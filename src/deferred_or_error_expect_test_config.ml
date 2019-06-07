@@ -2,6 +2,14 @@ open! Core_kernel
 open! Async_kernel
 open! Async_unix
 module IO = Async_kernel.Deferred.Or_error
+module IO_run = IO
+
+module IO_flush = struct
+  include IO
+
+  let to_run t = t
+end
+
 open IO
 
 let flush () = return ()
