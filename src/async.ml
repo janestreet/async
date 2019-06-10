@@ -56,3 +56,5 @@ module Expect_test_config :
   let flushed () = true
   let upon_unreleasable_issue = Expect_test_config.upon_unreleasable_issue
 end
+
+module Expect_test_config_with_unit_expect = Expect_test_config_with_unit_expect
