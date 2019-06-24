@@ -42,8 +42,7 @@ module Connection = struct
     Deferred.Or_error.try_with (fun () ->
       Reader.peek_bin_prot reader contains_magic_prefix)
     >>| function
-    | Error _
-    | Ok `Eof -> false
+    | Error _ | Ok `Eof -> false
     | Ok (`Ok b) -> b
   ;;
 
@@ -104,7 +103,8 @@ module Connection = struct
   type on_handshake_error =
     [ `Raise
     | `Ignore
-    | `Call of Exn.t -> unit ]
+    | `Call of Exn.t -> unit
+    ]
 
   let default_transport_maker fd ~max_message_size = Transport.of_fd fd ~max_message_size
 

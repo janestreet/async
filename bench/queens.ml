@@ -8,7 +8,7 @@ open Print
 (* Uses deferred to structure backtracking search.  The
  * runtime queue represents the nodes that are waiting
  * to be visited.  Changing this behavior doesn't particularly
- * change behavior though because we demand all results.  *)
+ * change behavior though because we demand all results. *)
 (* Should generate IVars equal to the branching factor plus
  * the depth of the search space [nq], and there should
  * only ever be one callback waiting on the result of a leaf
@@ -26,8 +26,7 @@ let nqueens nq =
   let nql =
     (* not tail recursive *)
     let rec f = function
-      | n
-        when n = nq -> [ n ]
+      | n when n = nq -> [ n ]
       | n -> n :: f (n + 1)
     in
     f 1

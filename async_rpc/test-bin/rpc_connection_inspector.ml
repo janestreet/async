@@ -39,7 +39,7 @@ let copy conn_number desc reader writer =
             Sexp.List
               ((Sexp.Atom (sprintf "len=%d" len)
                 :: List.init disp_len ~f:(fun i ->
-                  let x = Char.to_int (buf.{(!pos_ref + i)}) in
+                  let x = Char.to_int buf.{!pos_ref + i} in
                   Sexp.Atom (sprintf "%02x" x)))
                @ if len > disp_len then [ Atom "..." ] else [])
           in

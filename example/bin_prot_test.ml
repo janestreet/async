@@ -11,7 +11,7 @@ type test =
   ; c : bool array
   ; d : (string * int64) list
   ; e : nativeint array
-  ; f : [`Foo | `Bar] array
+  ; f : [ `Foo | `Bar ] array
   ; g : float array
   }
 [@@deriving bin_io]
@@ -47,8 +47,7 @@ let start_reader fd =
     else
       (* Read another binary protocol message *)
       upon (Reader.read_bin_prot reader bin_reader_test) (function
-        | `Ok v
-          when v = test -> loop (n - 1)
+        | `Ok v when v = test -> loop (n - 1)
         | _ -> assert false)
   in
   loop n_msgs;

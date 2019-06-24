@@ -2,7 +2,8 @@ open! Async_kernel
 
 (** {2 Async_kernel} *)
 
-include (Async_kernel : module type of Async_kernel with module Deferred := Deferred)  (** @open *)
+include (Async_kernel : module type of Async_kernel with module Deferred := Deferred)
+(** @open *)
 
 module Deferred = struct
   include (Deferred : module type of Deferred with module Or_error := Deferred.Or_error)
@@ -15,7 +16,7 @@ end
 
 (** {2 Async_unix} *)
 
-include Async_unix  (** @open *)
+include Async_unix (** @open *)
 
 (** {2 Async_command} *)
 
@@ -27,7 +28,7 @@ end
 
 (** {2 Async_rpc} *)
 
-include Async_rpc  (** @open *)
+include Async_rpc (** @open *)
 
 (* We define [Quickcheck] using [struct include ... end] rather than as an alias so that
    we don't have to add [async_quickcheck] to downstream jbuild library imports. *)

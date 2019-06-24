@@ -22,12 +22,11 @@ module Writer : sig
   val of_writer : max_message_size:int -> Async_writer.t -> t
 end
 
-include
-  module type of struct
-    include Rpc_kernel.Transport
-  end
-  with module Reader := Rpc_kernel.Transport.Reader
-  with module Writer := Rpc_kernel.Transport.Writer
+include module type of struct
+  include Rpc_kernel.Transport
+end
+with module Reader := Rpc_kernel.Transport.Reader
+with module Writer := Rpc_kernel.Transport.Writer
 
 val of_reader_writer : max_message_size:int -> Async_reader.t -> Async_writer.t -> t
 

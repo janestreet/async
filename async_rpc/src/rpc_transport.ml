@@ -44,7 +44,7 @@ end = struct
       failwiths
         "Rpc_transport: message too small or too big"
         (`Message_size payload_len, `Max_message_size t.max_message_size)
-        [%sexp_of: [`Message_size of int] * [`Max_message_size of int]]
+        [%sexp_of: [ `Message_size of int ] * [ `Max_message_size of int ]]
   ;;
 end
 
@@ -147,7 +147,8 @@ module Unix_writer = struct
         (bin_writer : _ Bin_prot.Type_class.writer)
         x
         ~followup_len
-    : _ Send_result.t =
+    : _ Send_result.t
+    =
     if not (Writer.is_closed t.t)
     then (
       let data_len = bin_writer.size x in
@@ -178,7 +179,8 @@ module Unix_writer = struct
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t bin_writer x ~buf ~pos ~len
-    : _ Send_result.t =
+    : _ Send_result.t
+    =
     match send_bin_prot_internal t bin_writer x ~followup_len:len with
     | Sent () ->
       Writer.schedule_bigstring t.t buf ~pos ~len;

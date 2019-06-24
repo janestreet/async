@@ -24,6 +24,7 @@ module Connection : sig
     include Rpc_kernel.Connection
   end
 
+
   (** These functions are mostly the same as the ones with the same names in
       [Async_rpc_kernel.Rpc.Connection]; see [Connection_intf] in that library for
       documentation. The differences are that:
@@ -61,7 +62,7 @@ module Connection : sig
     -> Reader.t
     -> Writer.t
     -> dispatch_queries:(t -> 'a Deferred.t)
-    -> on_handshake_error:[`Raise | `Call of Exn.t -> 'a Deferred.t]
+    -> on_handshake_error:[ `Raise | `Call of Exn.t -> 'a Deferred.t ]
     -> 'a Deferred.t
 
   val server_with_close
@@ -72,7 +73,7 @@ module Connection : sig
     -> Writer.t
     -> implementations:'s Implementations.t
     -> connection_state:(t -> 's)
-    -> on_handshake_error:[`Raise | `Ignore | `Call of Exn.t -> unit Deferred.t]
+    -> on_handshake_error:[ `Raise | `Ignore | `Call of Exn.t -> unit Deferred.t ]
     -> unit Deferred.t
 
   (** A function creating a transport from a file descriptor. It is responsible for
@@ -92,7 +93,8 @@ module Connection : sig
   type on_handshake_error =
     [ `Raise
     | `Ignore
-    | `Call of Exn.t -> unit ]
+    | `Call of Exn.t -> unit
+    ]
 
   (** [serve implementations ~port ?on_handshake_error ()] starts a server with the given
       implementation on [port].  The optional auth function will be called on all incoming
@@ -113,7 +115,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?auth:('address -> bool) (** default is [`Ignore] *)
     -> ?on_handshake_error:on_handshake_error (** default is [`Ignore] *)
-    -> ?on_handler_error:[`Raise | `Ignore | `Call of 'address -> exn -> unit]
+    -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
 
@@ -155,6 +157,7 @@ module Connection : sig
     -> ?description:Info.t
     -> 'transport Tcp.Where_to_connect.t
     -> ('transport * t, Exn.t) Result.t Deferred.t
+
 
   (** [with_client where_to_connect f] connects to the server at [where_to_connect] and
       runs f until an exception is thrown or until the returned Deferred is fulfilled.

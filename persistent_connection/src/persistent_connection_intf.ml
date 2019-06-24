@@ -48,6 +48,7 @@ module type Persistent_connection = sig
       -> ?heartbeat_config:Rpc.Connection.Heartbeat_config.t
       -> (unit -> Host_and_port.t Or_error.t Deferred.t)
       -> t
+
   end
 
   module Versioned_rpc :

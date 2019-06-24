@@ -26,8 +26,8 @@ let direct_impl =
   Rpc.Pipe_rpc.implement_direct Rpc_intf.counter_values (fun () () writer ->
     incr query_counter;
     ignore
-      ( Rpc.Pipe_rpc.Direct_stream_writer.write_without_pushback writer 0
-        : [`Ok | `Closed] );
+      (Rpc.Pipe_rpc.Direct_stream_writer.write_without_pushback writer 0
+       : [ `Ok | `Closed ]);
     return (Ok ()))
 ;;
 

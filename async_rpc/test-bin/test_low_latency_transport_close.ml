@@ -143,7 +143,9 @@ let server_command =
          | _ ->
            raise_s
              [%message
-               "invalid closing mode selection" valid_closing_modes (closing_mode : string)]
+               "invalid closing mode selection"
+                 valid_closing_modes
+                 (closing_mode : string)]
        in
        run_server ~port ~closing_mode ~use_regular_transport)
 ;;

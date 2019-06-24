@@ -75,7 +75,7 @@ let in_async ?extract_exn param on_result =
       (never_returns (Scheduler.go ()) : unit))
 ;;
 
-type 'r staged = ([`Scheduler_started] -> 'r) Staged.t
+type 'r staged = ([ `Scheduler_started ] -> 'r) Staged.t
 
 module Staged = struct
   let async ?extract_exn ~summary ?readme param =

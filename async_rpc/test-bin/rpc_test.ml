@@ -284,7 +284,8 @@ end
 module Pipe_closing_test = struct
   type query =
     [ `Do_close
-    | `Dont_close ]
+    | `Dont_close
+    ]
   [@@deriving bin_io]
 
   let rpc =
@@ -401,7 +402,9 @@ module Pipe_iter_test = struct
            | Ok (Error nothing) -> Nothing.unreachable_code nothing
            | Ok (Ok id) -> id
          in
-         let next_expected : [`Update of int | `Closed_remotely] ref = ref (`Update 0) in
+         let next_expected : [ `Update of int | `Closed_remotely ] ref =
+           ref (`Update 0)
+         in
          let finished = Ivar.create () in
          dispatch_exn Time.Span.millisecond (function
            | Update n ->
@@ -434,8 +437,7 @@ module Pipe_iter_test = struct
          >>= fun () ->
          let finished = Ivar.create () in
          dispatch_exn Time.Span.second (function
-           | Update _
-           | Closed `By_remote_side -> assert false
+           | Update _ | Closed `By_remote_side -> assert false
            | Closed (`Error _) ->
              Ivar.fill finished ();
              Continue)
@@ -454,7 +456,7 @@ module Pipe_direct_test = struct
     Pipe_rpc.create
       ~name:"test-pipe-direct"
       ~version:1
-      ~bin_query:[%bin_type_class: [`Close | `Expect_auto_close of int]]
+      ~bin_query:[%bin_type_class: [ `Close | `Expect_auto_close of int ]]
       ~bin_response:Int.bin_t
       ~bin_error:Nothing.bin_t
       ()
@@ -782,12 +784,12 @@ module Rpc_expert_test = struct
         assert (!pos_ref - init_pos = len);
         let new_buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_response in
         ignore
-          ( Rpc.Expert.Responder.schedule
-              responder
-              new_buf
-              ~pos:0
-              ~len:(Bigstring.length new_buf)
-            : [`Connection_closed | `Flushed of unit Deferred.t] )
+          (Rpc.Expert.Responder.schedule
+             responder
+             new_buf
+             ~pos:0
+             ~len:(Bigstring.length new_buf)
+           : [ `Connection_closed | `Flushed of unit Deferred.t ])
       in
       let handle_unknown_raw () ~rpc_tag ~version responder buf ~pos ~len =
         Log.debug log "query: %s v%d" rpc_tag version;
@@ -848,21 +850,21 @@ module Rpc_expert_test = struct
            Log.debug log "sending %s query via Expert interface" (Rpc.name rpc);
            Deferred.create (fun i ->
              ignore
-               ( Rpc.Expert.schedule_dispatch
-                   conn
-                   ~rpc_tag:(Rpc.name rpc)
-                   ~version:(Rpc.version rpc)
-                   buf
-                   ~pos:0
-                   ~len:(Bigstring.length buf)
-                   ~handle_error:(fun e -> Ivar.fill i (Error e))
-                   ~handle_response:(fun buf ~pos ~len ->
-                     let pos_ref = ref pos in
-                     let response = String.bin_read_t buf ~pos_ref in
-                     assert (!pos_ref - pos = len);
-                     Ivar.fill i (Ok response);
-                     Deferred.unit)
-                 : [`Connection_closed | `Flushed of unit Deferred.t] ))
+               (Rpc.Expert.schedule_dispatch
+                  conn
+                  ~rpc_tag:(Rpc.name rpc)
+                  ~version:(Rpc.version rpc)
+                  buf
+                  ~pos:0
+                  ~len:(Bigstring.length buf)
+                  ~handle_error:(fun e -> Ivar.fill i (Error e))
+                  ~handle_response:(fun buf ~pos ~len ->
+                    let pos_ref = ref pos in
+                    let response = String.bin_read_t buf ~pos_ref in
+                    assert (!pos_ref - pos = len);
+                    Ivar.fill i (Ok response);
+                    Deferred.unit)
+                : [ `Connection_closed | `Flushed of unit Deferred.t ]))
            >>| fun response ->
            Log.debug log "got response";
            [%test_result: string Or_error.t] response ~expect:(Ok the_response))

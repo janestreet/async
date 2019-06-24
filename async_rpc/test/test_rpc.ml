@@ -29,7 +29,8 @@ let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
     Async_rpc_kernel.Rpc.Connection.with_close
       ?implementations:s2
       t2
-      ~dispatch_queries:(fun conn2 -> Ivar.read conn1_ivar >>= fun conn1 -> f conn1 conn2)
+      ~dispatch_queries:(fun conn2 ->
+        Ivar.read conn1_ivar >>= fun conn1 -> f conn1 conn2)
       ~connection_state:(fun _ -> state2)
       ~on_handshake_error:`Raise
   in
@@ -48,7 +49,7 @@ let test1 ~make_transport ~imp ~state ~f =
 ;;
 
 module Pipe_count_error = struct
-  type t = [`Argument_must_be_positive] [@@deriving bin_io]
+  type t = [ `Argument_must_be_positive ] [@@deriving bin_io]
 end
 
 let pipe_count_rpc =
@@ -110,8 +111,7 @@ let make_tests ~make_transport ~transport_name =
         Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1)
         >>= fun result ->
         match result with
-        | Ok (Ok _)
-        | Error _ -> assert false
+        | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
        test1 ~make_transport ~imp:[ pipe_wait_imp ivar ] ~state:() ~f:(fun conn1 conn2 ->
@@ -181,7 +181,7 @@ let%expect_test "[Connection.create] shouldn't raise" =
   Writer.write writer1 "failfail";
   let%bind () = Writer.flushed writer1 in
   let%bind result = result in
-  print_s [%message "" ~_:(result : [`Raised of Exn.t | `Returned of Exn.t])];
+  print_s [%message "" ~_:(result : [ `Raised of Exn.t | `Returned of Exn.t ])];
   [%expect
     {|
     (Returned

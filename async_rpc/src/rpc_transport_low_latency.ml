@@ -120,8 +120,7 @@ module Reader_internal = struct
     ; close_finished : unit Ivar.t
     ; mutable buf : (Bigstring.t[@sexp.opaque])
     ; mutable pos : int (* Start of unconsumed data. *)
-    ; mutable max : int
-    (* End   of unconsumed data. *)
+    ; mutable max : int (* End   of unconsumed data. *)
     }
   [@@deriving sexp_of, fields]
 
@@ -259,7 +258,7 @@ module Reader_internal = struct
       Ivar.fill t.interrupt ()
     ;;
 
-    let can_process_message t = not t.reader.closed && is_running t
+    let can_process_message t = (not t.reader.closed) && is_running t
 
     let rec process_received_messages t =
       if can_process_message t
@@ -269,7 +268,7 @@ module Reader_internal = struct
         then (
           let len = Message_len.value_exn len in
           let start = t.reader.pos + Header.length in
-          (t.reader).pos <- start + len;
+          t.reader.pos <- start + len;
           match t.on_message t.reader.buf ~pos:start ~len with
           | Stop x -> interrupt t (Stopped_by_user x)
           | Continue -> process_received_messages t
@@ -480,7 +479,7 @@ module Writer_internal = struct
 
   let dequeue_flushes t =
     while
-      not (Queue.is_empty t.flushes)
+      (not (Queue.is_empty t.flushes))
       && Int63.( <= ) (Queue.peek_exn t.flushes).pos t.bytes_written
     do
       Ivar.fill (Queue.dequeue_exn t.flushes).ivar ()
@@ -576,18 +575,18 @@ module Writer_internal = struct
         raise_s
           [%sexp
             "Rpc_transport_low_latency.Writer: fd changed"
-          , { t : t; ready_to_result = (result : [`Bad_fd | `Closed]) }])
+          , { t : t; ready_to_result = (result : [ `Bad_fd | `Closed ]) }])
   ;;
 
   let flush t =
-    if not t.writing && t.pos > 0
+    if (not t.writing) && t.pos > 0
     then (
       t.writing <- true;
       Scheduler.within ~monitor:t.monitor (fun () -> write_everything t))
   ;;
 
   let schedule_flush t =
-    if not t.writing && t.pos > 0
+    if (not t.writing) && t.pos > 0
     then (
       t.writing <- true;
       Scheduler.within ~monitor:t.monitor (fun () -> wait_and_write_everything t))
@@ -657,7 +656,8 @@ module Writer_internal = struct
         ~buf
         ~pos
         ~len
-    : _ Send_result.t =
+    : _ Send_result.t
+    =
     let payload_len = writer.size msg + len in
     let total_len = Header.length + payload_len in
     if Config.message_size_ok t.config ~payload_len
@@ -670,7 +670,8 @@ module Writer_internal = struct
       t.pos <- stop + len;
       Sent ())
     else
-      Message_too_big { size = payload_len; max_message_size = t.config.max_message_size }
+      Message_too_big
+        { size = payload_len; max_message_size = t.config.max_message_size }
   ;;
 
   let should_send_now t =
@@ -691,7 +692,8 @@ module Writer_internal = struct
         ~buf
         ~pos
         ~len
-    : _ Send_result.t =
+    : _ Send_result.t
+    =
     if is_closed t
     then Closed
     else (
@@ -800,7 +802,9 @@ type t = Kernel_transport.t =
 let close = Kernel_transport.close
 
 let create_internal fd config =
-  { reader = Reader.create_internal fd config; writer = Writer.create_internal fd config }
+  { reader = Reader.create_internal fd config
+  ; writer = Writer.create_internal fd config
+  }
 ;;
 
 let create = make_create create_internal

@@ -46,15 +46,15 @@ val async_spec_or_error : ('a, unit Deferred.Or_error.t) basic_spec_command with
     ]}
 *)
 
-type 'r staged = ([`Scheduler_started] -> 'r) Staged.t
+type 'r staged = ([ `Scheduler_started ] -> 'r) Staged.t
 
 module Staged : sig
   val async : unit Deferred.t staged basic_command with_options
   val async_spec : ('a, unit Deferred.t staged) basic_spec_command with_options
   val async_or_error : unit Deferred.Or_error.t staged basic_command with_options
 
-  val async_spec_or_error :
-    ('a, unit Deferred.Or_error.t staged) basic_spec_command with_options
+  val async_spec_or_error
+    : ('a, unit Deferred.Or_error.t staged) basic_spec_command with_options
 end
 
 (** To create an [Arg_type.t] that uses auto-completion and uses Async to compute the

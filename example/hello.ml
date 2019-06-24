@@ -25,11 +25,11 @@ let handler _ reader writer =
 
 let () =
   ignore
-    ( Tcp.Server.create
-        (Tcp.Where_to_listen.of_port 55_555)
-        ~on_handler_error:`Ignore
-        handler
-      : Tcp.Server.inet Deferred.t )
+    (Tcp.Server.create
+       (Tcp.Where_to_listen.of_port 55_555)
+       ~on_handler_error:`Ignore
+       handler
+     : Tcp.Server.inet Deferred.t)
 ;;
 
 let () = never_returns (Scheduler.go ())
