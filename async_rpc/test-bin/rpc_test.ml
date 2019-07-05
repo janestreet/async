@@ -753,6 +753,8 @@ module Rpc_expert_test = struct
   let unknown_raw_rpc = rpc ~name:"unknown-raw"
   let raw_rpc = rpc ~name:"raw"
   let normal_rpc = rpc ~name:"normal"
+  let custom_io_rpc_tag = "custom-io-rpc"
+  let custom_io_rpc_version = 0
 
   let raw_one_way_rpc =
     One_way.create ~name:"raw-one-way" ~version:0 ~bin_msg:String.bin_t
@@ -812,6 +814,12 @@ module Rpc_expert_test = struct
           ; Rpc.Expert.implement' raw_rpc (fun () responder buf ~pos ~len ->
               handle_raw responder buf ~pos ~len;
               Replied)
+          ; Rpc.Expert.implement_for_tag_and_version'
+              ~rpc_tag:custom_io_rpc_tag
+              ~version:custom_io_rpc_version
+              (fun () responder buf ~pos ~len ->
+                 handle_raw responder buf ~pos ~len;
+                 Replied)
           ; One_way.implement normal_one_way_rpc (fun () query ->
               Log.debug log "received one-way RPC message (normal implementation)";
               Log.debug log "message value = %S" query;
@@ -868,6 +876,29 @@ module Rpc_expert_test = struct
            >>| fun response ->
            Log.debug log "got response";
            [%test_result: string Or_error.t] response ~expect:(Ok the_response))
+         >>= fun () ->
+         (let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
+          Log.debug log "sending %s query via Expert interface" custom_io_rpc_tag;
+          Deferred.create (fun i ->
+            ignore
+              (Rpc.Expert.schedule_dispatch
+                 conn
+                 ~rpc_tag:custom_io_rpc_tag
+                 ~version:custom_io_rpc_version
+                 buf
+                 ~pos:0
+                 ~len:(Bigstring.length buf)
+                 ~handle_error:(fun e -> Ivar.fill i (Error e))
+                 ~handle_response:(fun buf ~pos ~len ->
+                   let pos_ref = ref pos in
+                   let response = String.bin_read_t buf ~pos_ref in
+                   assert (!pos_ref - pos = len);
+                   Ivar.fill i (Ok response);
+                   Deferred.unit)
+               : [ `Connection_closed | `Flushed of unit Deferred.t ]))
+          >>| fun response ->
+          Log.debug log "got response";
+          [%test_result: string Or_error.t] response ~expect:(Ok the_response))
          >>= fun () ->
          Deferred.List.iter [ raw_one_way_rpc; normal_one_way_rpc ] ~f:(fun rpc ->
            Log.debug log "sending %s query normally" (One_way.name rpc);
