@@ -1,6 +1,6 @@
 open! Core
 open! Async
-open Core_bench.Std
+open Core_bench
 module Ivar = Async_kernel_private.Ivar0
 
 let deep _n =
