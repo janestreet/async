@@ -68,9 +68,14 @@ module Nfs : sig
 end
 
 module Flock : sig
-  (** [Nfs] has analogues of functions in {{!Lock_file.Flock}[Lock_file.Flock]}; see there
-      for documentation. In addition to adding [Deferred]s, this module adds functions
-      that operate in the [Deferred.Or_error.t] monad. *)
+  (** [Flock] has async analogues of functions in
+      {{!Lock_file_blocking.Flock}[Lock_file_blocking.Flock]}; see there for
+      documentation.
+
+      Additionally, here we:
+
+      - catch unix exceptions, packaging them as [Deferred.Or_error.t]
+      - implement abortable waiting versions based on polling *)
   type t
 
   val lock_exn
@@ -96,6 +101,48 @@ module Flock : sig
   val wait_for_lock
     :  ?abort:unit Deferred.t
     -> lock_path:string
+    -> unit
+    -> t Deferred.Or_error.t
+end
+
+module Symlink : sig
+  (** [Symlink] has async analogues of functions in
+      {{!Lock_file_blocking.Symlink}[Lock_file_blocking.Symlink]}; see there for
+      documentation.
+
+      Additionally, here we:
+
+      - catch unix exceptions, packaging them as [Deferred.Or_error.t]
+      - implement abortable waiting versions based on polling *)
+  type t
+
+  val lock_exn
+    :  lock_path:string
+    -> metadata:string
+    -> [`Somebody_else_took_it of string Or_error.t | `We_took_it of t] Deferred.t
+
+  val lock
+    :  lock_path:string
+    -> metadata:string
+    -> [`Somebody_else_took_it of string Or_error.t | `We_took_it of t] Deferred.Or_error.t
+
+  val unlock_exn : t -> unit Deferred.t
+  val unlock : t -> unit Deferred.Or_error.t
+
+  (** [wait_for_lock_exn ?abort ~lock_path ()] Wait for the lock, giving up once [abort]
+      becomes determined *)
+  val wait_for_lock_exn
+    :  ?abort:unit Deferred.t (** default is [Deferred.never ()] *)
+    -> lock_path:string
+    -> metadata:string
+    -> unit
+    -> t Deferred.t
+
+  (** See [wait_for_lock_exn] *)
+  val wait_for_lock
+    :  ?abort:unit Deferred.t
+    -> lock_path:string
+    -> metadata:string
     -> unit
     -> t Deferred.Or_error.t
 end
