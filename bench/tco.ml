@@ -53,10 +53,10 @@ let upon_loop n =
 ;;
 
 let loop =
-  if Array.length Sys.argv < 2
+  if Array.length (Sys.get_argv ()) < 2
   then bind_loop
   else (
-    match Sys.argv.(1) with
+    match (Sys.get_argv ()).(1) with
     | "bind" -> bind_loop
     | "pure" -> pure_loop
     | "slow_upon" -> slow_upon_loop

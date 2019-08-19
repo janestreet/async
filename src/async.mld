@@ -1,4 +1,4 @@
-{1 Async}
+{0 Async}
 
 {b {{!Async} The full API is browsable here}}.
 
@@ -17,7 +17,7 @@ Read more in {{:
 https://dev.realworldocaml.org/concurrent-programming.html} Chapter
 18 of {e Real World OCaml}}.
 
-{2 Organization}
+{1 Organization}
 
 Async comprises four packages, [Async_command], [Async_kernel],
 [Async_rpc], and [Async_unix].

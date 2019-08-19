@@ -20,7 +20,7 @@ let lines file =
    Stream.to_list lines_stream >>| Array.of_list) *)
 
 let main () =
-  let file = Sys.argv.(1) in
+  let file = (Sys.get_argv ()).(1) in
   (*  Gc.set
       { (Gc.get ()) with Gc.Control.
       minor_heap_size = 8_388_608;

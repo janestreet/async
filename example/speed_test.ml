@@ -26,11 +26,11 @@ let run_test ~fill_before_upon ~no_ivars ~spawn_factor =
 ;;
 
 let () =
-  let no_ivars = int_of_string Sys.argv.(1) in
-  let spawn_factor = int_of_string Sys.argv.(2) in
+  let no_ivars = int_of_string (Sys.get_argv ()).(1) in
+  let spawn_factor = int_of_string (Sys.get_argv ()).(2) in
   if spawn_factor >= 20 then failwith "spawn_factor must be less than 20";
   let fill_before_upon =
-    match Sys.argv.(3) with
+    match (Sys.get_argv ()).(3) with
     | "fill" -> true
     | "upon" -> false
     | _ -> failwith "must specify either 'fill' or 'upon'"
