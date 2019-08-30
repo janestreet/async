@@ -254,7 +254,7 @@ module Command = struct
     ;;
 
     let params t =
-      let%map_open.Command.Let_syntax log_to_file = log_to_file_flag t
+      let%map_open.Command log_to_file = log_to_file_flag t
       and log_to_console = log_to_console_flag t
       and log_to_stdout = log_to_stdout_flag t
       and log_with_color = log_with_color_flag t
@@ -305,7 +305,7 @@ module Command = struct
         ~log_to_syslog:log_to_syslog_by_default
         ~log_to_file:log_to_file_by_default
     in
-    let%map.Command.Let_syntax params = Parameters.params default in
+    let%map.Command params = Parameters.params default in
     Log.Global.set_output (Parameters.outputs params);
     Log.Global.set_level (Parameters.log_level params)
   ;;
