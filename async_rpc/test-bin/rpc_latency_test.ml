@@ -20,34 +20,6 @@ Otherwise the async timing wheel won't be precise enough.
 module Spec = struct
   open Command.Spec
 
-  type transport =
-    | Standard
-    | Low_latency
-
-  let transport =
-    let typ =
-      Arg_type.of_alist_exn [ "standard", Standard; "low-latency", Low_latency ]
-    in
-    let transport_flag = optional_with_default Standard typ in
-    fun () ->
-      step (fun main transport config ->
-        let config = Low_latency_transport.Config.t_of_sexp (Sexp.of_string config) in
-        let make_transport =
-          match transport with
-          | Standard ->
-            fun fd ~max_message_size -> Transport.of_fd fd ~max_message_size
-          | Low_latency ->
-            fun fd ~max_message_size ->
-              Low_latency_transport.create fd ~config ~max_message_size
-        in
-        main ~make_transport)
-      +> flag "-transport" transport_flag ~doc:" RPC transport backend"
-      +> flag
-           "-config"
-           (optional_with_default "()" string)
-           ~doc:" Low-latency transport config"
-  ;;
-
   let port () =
     step (fun main port -> main ~port)
     +> flag "-port" (optional_with_default 12345 int) ~doc:" RPC server port"
@@ -178,11 +150,9 @@ module Client = struct
     >>> fun () -> loop ~connection ~stats ~record ~span_between_call ~payload
   ;;
 
-  let main msgs_per_sec msg_size ~host ~port ~make_transport () =
+  let main msgs_per_sec msg_size ~host ~port ~rpc_impl () =
     let payload = String.make msg_size '\000' in
-    Connection.client
-      ~make_transport
-      (Tcp.Where_to_connect.of_host_and_port { host; port })
+    Rpc_impl.make_client rpc_impl host port
     >>| Result.ok_exn
     >>= fun connection ->
     let stats = Stats.create () in
@@ -276,11 +246,9 @@ max    : %f us
       (Rstats.stdev stats)
   ;;
 
-  let main csv_prefix msg_size ~host ~port ~make_transport () =
+  let main csv_prefix msg_size ~host ~port ~rpc_impl () =
     let payload = String.make msg_size '\000' in
-    Connection.client
-      ~make_transport
-      (Tcp.Where_to_connect.of_host_and_port { host; port })
+    Rpc_impl.make_client rpc_impl host port
     >>| Result.ok_exn
     >>= fun connection ->
     let csv_oc = ksprintf Core.Out_channel.create "out-%s-%d.csv" csv_prefix msg_size in
@@ -336,25 +304,22 @@ module Server = struct
     ]
   ;;
 
-  let main ~port ~make_transport () =
+  let main ~port ~rpc_impl () =
     let implementations =
       Implementations.create_exn ~implementations ~on_unknown_rpc:`Raise
     in
-    Connection.serve
-      ~initial_connection_state:(fun _ _ -> ())
+    Rpc_impl.make_server
+      ~initial_connection_state:(fun _ -> ())
       ~implementations
-      ~where_to_listen:(Tcp.Where_to_listen.of_port port)
-      ~make_transport
-      ()
+      ~port
+      rpc_impl
     >>= fun _server -> Deferred.never ()
   ;;
 end
 
 module Quit = struct
-  let main ~host ~port ~make_transport () =
-    Connection.client
-      ~make_transport
-      (Tcp.Where_to_connect.of_host_and_port { host; port })
+  let main ~host ~port ~rpc_impl () =
+    Rpc_impl.make_client rpc_impl host port
     >>| Result.ok_exn
     >>= fun connection ->
     Rpc.dispatch_exn Protocol.Quit.rpc connection () >>| fun () -> shutdown 0
@@ -364,7 +329,7 @@ end
 let server_command =
   Command.async_spec
     ~summary:"test server"
-    Command.Spec.(empty ++ Spec.port () ++ Spec.transport ())
+    Command.Spec.(empty ++ Spec.port () ++ Rpc_impl.spec ())
     Server.main
 ;;
 
@@ -377,7 +342,7 @@ let client_command =
       +> flag "msg-size" (optional_with_default 0 int) ~doc:" message size"
       ++ Spec.host ()
       ++ Spec.port ()
-      ++ Spec.transport ())
+      ++ Rpc_impl.spec ())
     Client.main
 ;;
 
@@ -390,14 +355,14 @@ let client_long_command =
       +> flag "msg-size" (optional_with_default 0 int) ~doc:" message size"
       ++ Spec.host ()
       ++ Spec.port ()
-      ++ Spec.transport ())
+      ++ Rpc_impl.spec ())
     Client_long.main
 ;;
 
 let quit_command =
   Command.async_spec
     ~summary:"test quit"
-    Command.Spec.(empty ++ Spec.host () ++ Spec.port () ++ Spec.transport ())
+    Command.Spec.(empty ++ Spec.host () ++ Spec.port () ++ Rpc_impl.spec ())
     Quit.main
 ;;
 

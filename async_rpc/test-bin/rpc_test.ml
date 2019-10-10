@@ -4,19 +4,6 @@ open Async
 open Rpc
 module Limiter = Limiter_async.Token_bucket
 
-let transport_spec =
-  let open Command.Spec in
-  let standard fd ~max_message_size = Transport.of_fd fd ~max_message_size in
-  let low_latency fd ~max_message_size =
-    Low_latency_transport.create fd ~max_message_size
-  in
-  let typ = Arg_type.of_alist_exn [ "standard", standard; "low-latency", low_latency ] in
-  let transport_flag = optional_with_default standard typ in
-  fun () ->
-    step (fun main make_transport -> main ~make_transport)
-    +> flag "-transport" transport_flag ~doc:" RPC transport backend"
-;;
-
 let run_at_limit ~dispatch msgs_per_sec () =
   let limiter =
     let burst_size = Float.to_int (msgs_per_sec /. 1_000.) in
@@ -146,12 +133,10 @@ module Pipe_simple_test = struct
       String.length string = msg_size && String.for_all string ~f:(( = ) 'A')
     ;;
 
-    let main bytes msgs_per_sec host port ~make_transport () =
+    let main bytes msgs_per_sec host port ~rpc_impl () =
       Memory_consumption.init ();
       let query = Option.map msgs_per_sec ~f:(String_pipe.Query.create bytes) in
-      Connection.client
-        ~make_transport
-        (Tcp.Where_to_connect.of_host_and_port { host; port })
+      Rpc_impl.make_client rpc_impl host port
       >>| Result.ok_exn
       >>= fun connection ->
       Pipe_rpc.dispatch String_pipe.rpc connection query
@@ -181,7 +166,7 @@ module Pipe_simple_test = struct
           +> flag "msgs-per-sec" (optional int) ~doc:""
           +> flag "hostname" (required string) ~doc:""
           +> flag "port" (required int) ~doc:""
-          ++ transport_spec ())
+          ++ Rpc_impl.spec ())
         main
     ;;
   end
@@ -192,26 +177,25 @@ module Pipe_simple_test = struct
         return (Ok (String_pipe.Query.start query)))
     ;;
 
-    let main port ~make_transport () =
+    let main port ~rpc_impl () =
       Memory_consumption.init ();
       let implementations =
         Implementations.create_exn
           ~implementations:[ implementation ]
           ~on_unknown_rpc:`Raise
       in
-      Connection.serve
-        ~initial_connection_state:(fun _ _ -> ())
+      Rpc_impl.make_server
+        ~initial_connection_state:(fun _ -> ())
         ~implementations
-        ~where_to_listen:(Tcp.Where_to_listen.of_port port)
-        ~make_transport
-        ()
-      >>= fun (_ : (_, _) Tcp.Server.t) -> Deferred.never ()
+        ~port
+        rpc_impl
+      >>= fun (_ : Rpc_impl.Server.t) -> Deferred.never ()
     ;;
 
     let command =
       Command.async_spec
         ~summary:"test server"
-        Command.Spec.(empty +> flag "port" (required int) ~doc:"" ++ transport_spec ())
+        Command.Spec.(empty +> flag "port" (required int) ~doc:"" ++ Rpc_impl.spec ())
         main
     ;;
   end
@@ -252,7 +236,7 @@ module Heartbeat_pipe_test = struct
     >>= fun server ->
     let port = Tcp.Server.listening_on server in
     Connection.with_client
-      (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+      (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       ~heartbeat_config
       (fun conn ->
          let c1 = ref 0 in
@@ -319,7 +303,7 @@ module Pipe_closing_test = struct
     >>= fun server ->
     let port = Tcp.Server.listening_on server in
     Connection.with_client
-      (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+      (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       (fun conn ->
          Pipe_rpc.dispatch_exn rpc conn `Dont_close
          >>= fun (pipe, id) ->
@@ -393,7 +377,7 @@ module Pipe_iter_test = struct
     >>= fun server ->
     let port = Tcp.Server.listening_on server in
     Connection.with_client
-      (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+      (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       (fun conn ->
          let dispatch_exn query f =
            Pipe_rpc.dispatch_iter rpc conn query ~f
@@ -491,7 +475,7 @@ module Pipe_direct_test = struct
     >>= fun server ->
     let port = Tcp.Server.listening_on server in
     Connection.with_client
-      (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+      (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       (fun conn ->
          Pipe_rpc.dispatch_exn rpc conn `Close
          >>= fun (pipe, md) ->
@@ -561,10 +545,8 @@ module Pipe_rpc_performance_measurements = struct
   end
 
   module Client = struct
-    let main msgs_per_sec host port ~make_transport () =
-      Connection.client
-        ~make_transport
-        (Tcp.Where_to_connect.of_host_and_port { host; port })
+    let main msgs_per_sec host port ~rpc_impl () =
+      Rpc_impl.make_client rpc_impl host port
       >>| Result.ok_exn
       >>= fun connection ->
       Pipe_rpc.dispatch Protocol.rpc connection msgs_per_sec
@@ -633,27 +615,25 @@ module Rpc_performance_measurements = struct
 
   let rpc = Rpc.create ~name:"regular-rpc" ~version:1 ~bin_query ~bin_response
 
-  let run_client ~dispatch msgs_per_sec host port ~make_transport () =
-    Connection.client
-      ~make_transport
-      (Tcp.Where_to_connect.of_host_and_port { host; port })
+  let run_client ~dispatch msgs_per_sec host port ~rpc_impl () =
+    Rpc_impl.make_client rpc_impl host port
     >>| Result.ok_exn
     >>= fun connection -> run_at_limit ~dispatch:(dispatch connection) msgs_per_sec ()
   ;;
 
-  let one_way_client msgs_per_sec host port ~make_transport () =
+  let one_way_client msgs_per_sec host port ~rpc_impl () =
     run_client
       ~dispatch:(One_way.dispatch_exn one_way)
       msgs_per_sec
       host
       port
-      ~make_transport
+      ~rpc_impl
       ()
   ;;
 
-  let rpc_client msgs_per_sec host port ~make_transport () =
+  let rpc_client msgs_per_sec host port ~rpc_impl () =
     let dispatch connection () = don't_wait_for (Rpc.dispatch_exn rpc connection ()) in
-    run_client ~dispatch msgs_per_sec host port ~make_transport ()
+    run_client ~dispatch msgs_per_sec host port ~rpc_impl ()
   ;;
 
   module Server = struct
@@ -661,7 +641,7 @@ module Rpc_performance_measurements = struct
     let one_way_implementation = One_way.implement one_way (fun () () -> incr cnt)
     let rpc_implementation = Rpc.implement' rpc (fun () () -> incr cnt)
 
-    let main port ~make_transport () =
+    let main port ~rpc_impl () =
       let implementations =
         Implementations.create_exn
           ~implementations:
@@ -671,12 +651,11 @@ module Rpc_performance_measurements = struct
             ]
           ~on_unknown_rpc:`Raise
       in
-      Connection.serve
-        ~initial_connection_state:(fun _ _ -> ())
+      Rpc_impl.make_server
+        ~initial_connection_state:(fun _ -> ())
         ~implementations
-        ~where_to_listen:(Tcp.Where_to_listen.of_port port)
-        ~make_transport
-        ()
+        ~port
+        rpc_impl
       >>= fun _server ->
       let ratio_acc = ref 0. in
       let percentage_acc = ref 0. in
@@ -712,7 +691,7 @@ module Rpc_performance_measurements = struct
   let server_command =
     Command.async_spec
       ~summary:"test server for one-way and regular rpcs"
-      Command.Spec.(empty +> flag "port" (required int) ~doc:"" ++ transport_spec ())
+      Command.Spec.(empty +> flag "port" (required int) ~doc:"" ++ Rpc_impl.spec ())
       Server.main
   ;;
 
@@ -722,7 +701,7 @@ module Rpc_performance_measurements = struct
     +> flag "msg-per-sec" (required float) ~doc:""
     +> flag "hostname" (required string) ~doc:""
     +> flag "port" (required int) ~doc:""
-    ++ transport_spec ()
+    ++ Rpc_impl.spec ()
   ;;
 
   let client_command =
@@ -767,7 +746,7 @@ module Rpc_expert_test = struct
   let the_query = "flimflam"
   let the_response = String.rev the_query
 
-  let main debug ~make_transport () =
+  let main debug ~rpc_impl () =
     let level = if debug then `Debug else `Error in
     let log = Log.create ~level ~output:[ Log.Output.stdout () ] ~on_error:`Raise in
     let one_way_reader, one_way_writer = Pipe.create () in
@@ -836,101 +815,96 @@ module Rpc_expert_test = struct
           ]
         ~on_unknown_rpc:(`Expert handle_unknown_raw)
     in
-    Connection.serve
-      ()
+    Rpc_impl.make_server
       ~implementations
-      ~initial_connection_state:(fun _ _ -> ())
-      ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
-      ~make_transport
+      ~initial_connection_state:(fun _ -> ())
+      rpc_impl
     >>= fun server ->
-    let port = Tcp.Server.listening_on server in
-    Connection.with_client
-      ~make_transport
-      (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
-      (fun conn ->
-         Deferred.List.iter [ unknown_raw_rpc; raw_rpc; normal_rpc ] ~f:(fun rpc ->
-           Log.debug log "sending %s query normally" (Rpc.name rpc);
-           Rpc.dispatch_exn rpc conn the_query
-           >>= fun response ->
-           Log.debug log "got response";
-           [%test_result: string] response ~expect:the_response;
-           let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
-           Log.debug log "sending %s query via Expert interface" (Rpc.name rpc);
-           Deferred.create (fun i ->
-             ignore
-               (Rpc.Expert.schedule_dispatch
-                  conn
-                  ~rpc_tag:(Rpc.name rpc)
-                  ~version:(Rpc.version rpc)
-                  buf
-                  ~pos:0
-                  ~len:(Bigstring.length buf)
-                  ~handle_error:(fun e -> Ivar.fill i (Error e))
-                  ~handle_response:(fun buf ~pos ~len ->
-                    let pos_ref = ref pos in
-                    let response = String.bin_read_t buf ~pos_ref in
-                    assert (!pos_ref - pos = len);
-                    Ivar.fill i (Ok response);
-                    Deferred.unit)
-                : [ `Connection_closed | `Flushed of unit Deferred.t ]))
-           >>| fun response ->
-           Log.debug log "got response";
-           [%test_result: string Or_error.t] response ~expect:(Ok the_response))
-         >>= fun () ->
-         (let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
-          Log.debug log "sending %s query via Expert interface" custom_io_rpc_tag;
-          Deferred.create (fun i ->
-            ignore
-              (Rpc.Expert.schedule_dispatch
-                 conn
-                 ~rpc_tag:custom_io_rpc_tag
-                 ~version:custom_io_rpc_version
-                 buf
-                 ~pos:0
-                 ~len:(Bigstring.length buf)
-                 ~handle_error:(fun e -> Ivar.fill i (Error e))
-                 ~handle_response:(fun buf ~pos ~len ->
-                   let pos_ref = ref pos in
-                   let response = String.bin_read_t buf ~pos_ref in
-                   assert (!pos_ref - pos = len);
-                   Ivar.fill i (Ok response);
-                   Deferred.unit)
-               : [ `Connection_closed | `Flushed of unit Deferred.t ]))
-          >>| fun response ->
-          Log.debug log "got response";
-          [%test_result: string Or_error.t] response ~expect:(Ok the_response))
-         >>= fun () ->
-         Deferred.List.iter [ raw_one_way_rpc; normal_one_way_rpc ] ~f:(fun rpc ->
-           Log.debug log "sending %s query normally" (One_way.name rpc);
-           One_way.dispatch_exn rpc conn the_query;
-           assert_one_way_rpc_received ()
-           >>= fun () ->
-           Log.debug log "sending %s query via Expert.dispatch" (One_way.name rpc);
-           let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
-           let pos = 0 in
-           let len = Bigstring.length buf in
-           (match One_way.Expert.dispatch rpc conn buf ~pos ~len with
-            | `Ok -> ()
-            | `Connection_closed -> assert false);
-           assert_one_way_rpc_received ()
-           >>= fun () ->
-           Log.debug
-             log
-             "sending %s query via Expert.schedule_dispatch"
-             (One_way.name rpc);
-           (match One_way.Expert.schedule_dispatch rpc conn buf ~pos ~len with
-            | `Flushed f -> f
-            | `Connection_closed -> assert false)
-           >>= fun () -> assert_one_way_rpc_received ()))
+    let port = Rpc_impl.Server.bound_on server in
+    Rpc_impl.with_client rpc_impl "127.0.0.1" port (fun conn ->
+      Deferred.List.iter [ unknown_raw_rpc; raw_rpc; normal_rpc ] ~f:(fun rpc ->
+        Log.debug log "sending %s query normally" (Rpc.name rpc);
+        Rpc.dispatch_exn rpc conn the_query
+        >>= fun response ->
+        Log.debug log "got response";
+        [%test_result: string] response ~expect:the_response;
+        let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
+        Log.debug log "sending %s query via Expert interface" (Rpc.name rpc);
+        Deferred.create (fun i ->
+          ignore
+            (Rpc.Expert.schedule_dispatch
+               conn
+               ~rpc_tag:(Rpc.name rpc)
+               ~version:(Rpc.version rpc)
+               buf
+               ~pos:0
+               ~len:(Bigstring.length buf)
+               ~handle_error:(fun e -> Ivar.fill i (Error e))
+               ~handle_response:(fun buf ~pos ~len ->
+                 let pos_ref = ref pos in
+                 let response = String.bin_read_t buf ~pos_ref in
+                 assert (!pos_ref - pos = len);
+                 Ivar.fill i (Ok response);
+                 Deferred.unit)
+             : [ `Connection_closed | `Flushed of unit Deferred.t ]))
+        >>| fun response ->
+        Log.debug log "got response";
+        [%test_result: string Or_error.t] response ~expect:(Ok the_response))
+      >>= fun () ->
+      (let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
+       Log.debug log "sending %s query via Expert interface" custom_io_rpc_tag;
+       Deferred.create (fun i ->
+         ignore
+           (Rpc.Expert.schedule_dispatch
+              conn
+              ~rpc_tag:custom_io_rpc_tag
+              ~version:custom_io_rpc_version
+              buf
+              ~pos:0
+              ~len:(Bigstring.length buf)
+              ~handle_error:(fun e -> Ivar.fill i (Error e))
+              ~handle_response:(fun buf ~pos ~len ->
+                let pos_ref = ref pos in
+                let response = String.bin_read_t buf ~pos_ref in
+                assert (!pos_ref - pos = len);
+                Ivar.fill i (Ok response);
+                Deferred.unit)
+            : [ `Connection_closed | `Flushed of unit Deferred.t ]))
+       >>| fun response ->
+       Log.debug log "got response";
+       [%test_result: string Or_error.t] response ~expect:(Ok the_response))
+      >>= fun () ->
+      Deferred.List.iter [ raw_one_way_rpc; normal_one_way_rpc ] ~f:(fun rpc ->
+        Log.debug log "sending %s query normally" (One_way.name rpc);
+        One_way.dispatch_exn rpc conn the_query;
+        assert_one_way_rpc_received ()
+        >>= fun () ->
+        Log.debug log "sending %s query via Expert.dispatch" (One_way.name rpc);
+        let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
+        let pos = 0 in
+        let len = Bigstring.length buf in
+        (match One_way.Expert.dispatch rpc conn buf ~pos ~len with
+         | `Ok -> ()
+         | `Connection_closed -> assert false);
+        assert_one_way_rpc_received ()
+        >>= fun () ->
+        Log.debug
+          log
+          "sending %s query via Expert.schedule_dispatch"
+          (One_way.name rpc);
+        (match One_way.Expert.schedule_dispatch rpc conn buf ~pos ~len with
+         | `Flushed f -> f
+         | `Connection_closed -> assert false)
+        >>= fun () -> assert_one_way_rpc_received ()))
     >>= fun result ->
     Result.ok_exn result;
-    Tcp.Server.close server
+    Rpc_impl.Server.close server
   ;;
 
   let command =
     Command.async_spec
       ~summary:"connect basic and low-level clients"
-      Command.Spec.(empty +> flag "debug" no_arg ~doc:"" ++ transport_spec ())
+      Command.Spec.(empty +> flag "debug" no_arg ~doc:"" ++ Rpc_impl.spec ())
       main
   ;;
 end
@@ -967,7 +941,7 @@ module Connection_closing_test = struct
     let port = Tcp.Server.listening_on server in
     let connect () =
       Connection.client
-        (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+        (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       >>| Result.ok_exn
     in
     let dispatch_never_returns conn =
@@ -1029,8 +1003,8 @@ end
 let all_regression_tests =
   Command.async_spec
     ~summary:"run all regression tests"
-    Command.Spec.(empty +> flag "debug" no_arg ~doc:"" ++ transport_spec ())
-    (fun debug ~make_transport () ->
+    Command.Spec.(empty +> flag "debug" no_arg ~doc:"" ++ Rpc_impl.spec ())
+    (fun debug ~rpc_impl () ->
        Heartbeat_pipe_test.main ()
        >>= fun () ->
        Pipe_closing_test.main ()
@@ -1039,7 +1013,7 @@ let all_regression_tests =
        >>= fun () ->
        Pipe_direct_test.main ()
        >>= fun () ->
-       Rpc_expert_test.main debug ~make_transport ()
+       Rpc_expert_test.main debug ~rpc_impl ()
        >>= fun () -> Connection_closing_test.main ())
 ;;
 
