@@ -18,7 +18,7 @@ depends: [
   "core_kernel"
   "ppx_jane"
   "textutils"
-  "dune"             {build & >= "1.5.1"}
+  "dune"             {>= "1.5.1"}
 ]
 synopsis: "Monadic concurrency library"
 description: "
