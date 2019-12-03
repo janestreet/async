@@ -2,11 +2,11 @@ open! Async_kernel
 
 (** {2 Async_kernel} *)
 
-include (Async_kernel : module type of Async_kernel with module Deferred := Deferred)
+include Async_kernel
 (** @open *)
 
 module Deferred = struct
-  include (Deferred : module type of Deferred with module Or_error := Deferred.Or_error)
+  include Deferred
 
   module Or_error = struct
     include Async_kernel.Deferred.Or_error
