@@ -41,7 +41,7 @@ let%test "Async library initialization does not initialize the scheduler" =
 ;;
 
 module Expect_test_config :
-  Expect_test_config.S
+  Expect_test_config_types.S
   with type 'a IO_flush.t = 'a Deferred.t
   with type 'a IO_run.t = 'a Deferred.t = struct
   module IO_run = Deferred
