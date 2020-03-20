@@ -56,7 +56,11 @@ module Config = struct
     || t.start_batching_after_num_messages < 0
     || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
     then
-      failwiths "Rpc_transport_low_latency.Config.validate: invalid config" t sexp_of_t;
+      failwiths
+        ~here:[%here]
+        "Rpc_transport_low_latency.Config.validate: invalid config"
+        t
+        sexp_of_t;
     t
   ;;
 
