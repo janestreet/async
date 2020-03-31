@@ -50,6 +50,7 @@ module type Persistent_connection = sig
 
   module type S = S
   module type T = T
+  module type S_rpc = S_rpc
 
   module Make (Conn : T) : S with type conn = Conn.t and type address = Conn.Address.t
   module Rpc : S_rpc with type conn = Rpc.Connection.t
