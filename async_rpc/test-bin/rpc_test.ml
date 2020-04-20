@@ -159,10 +159,7 @@ module Pipe_simple_test = struct
         ~summary:"test client"
         Command.Spec.(
           empty
-          +> flag
-               "msg-size"
-               (required (Command.Arg_type.create Byte_units.of_string))
-               ~doc:""
+          +> flag "msg-size" (required Byte_units.arg_type) ~doc:""
           +> flag "msgs-per-sec" (optional int) ~doc:""
           +> flag "hostname" (required string) ~doc:""
           +> flag "port" (required int) ~doc:""
