@@ -157,7 +157,7 @@ module Reader_internal = struct
   let refill t =
     shift_unconsumed t;
     let result =
-      Bigstring.read_assume_fd_is_nonblocking
+      Bigstring_unix.read_assume_fd_is_nonblocking
         (Fd.file_descr_exn t.fd)
         t.buf
         ~pos:t.max
@@ -526,7 +526,7 @@ module Writer_internal = struct
 
   let single_write t : Single_write_result.t =
     match
-      Bigstring.write_assume_fd_is_nonblocking
+      Bigstring_unix.write_assume_fd_is_nonblocking
         (Fd.file_descr_exn t.fd)
         t.buf
         ~pos:0
