@@ -101,6 +101,7 @@ let%expect_test _ =
   let%bind () = Hello.dispatch_multi this_conn () |> Deferred.Or_error.ok_exn in
   let%bind () = [%expect {| server says hi |}] in
   let%bind () = Persistent_connection.Versioned_rpc.close versioned_conn in
-  let%bind () = [%expect {| Disconnected |}] in
+  let%bind () = [%expect {|
+    Disconnected |}] in
   return ()
 ;;
