@@ -140,16 +140,6 @@ module Connection : sig
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
-  val serve_with_transport
-    :  handshake_timeout:Time.Span.t option
-    -> heartbeat_config:Heartbeat_config.t option
-    -> implementations:'s Implementations.t
-    -> description:Info.t
-    -> connection_state:(t -> 's)
-    -> on_handshake_error:on_handshake_error
-    -> Transport.t
-    -> unit Deferred.t
-
   (** [client where_to_connect ()] connects to the server at [where_to_connect] and
       returns the connection or an Error if a connection could not be made. It is the
       responsibility of the caller to eventually call [close].
@@ -207,4 +197,16 @@ module Connection : sig
     -> 'transport Tcp.Where_to_connect.t
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t
+
+
+  val serve_with_transport
+    :  handshake_timeout:Time.Span.t option
+    -> heartbeat_config:Heartbeat_config.t option
+    -> implementations:'s Implementations.t
+    -> description:Info.t
+    -> connection_state:(t -> 's)
+    -> on_handshake_error:on_handshake_error
+    -> Transport.t
+    -> unit Deferred.t
+  [@@deprecated "[since 2020-06] use [Async_rpc_kernel.Rpc.Connection.create]"]
 end
