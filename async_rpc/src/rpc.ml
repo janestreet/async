@@ -15,13 +15,10 @@ module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
 module Connection = struct
   include Rpc_kernel.Connection
 
-  (* unfortunately, copied from reader0.ml *)
-  let default_max_message_size = 100 * 1024 * 1024
-
   let create
         ?implementations
         ~connection_state
-        ?(max_message_size = default_max_message_size)
+        ?max_message_size
         ?handshake_timeout
         ?heartbeat_config
         ?description
@@ -35,7 +32,7 @@ module Connection = struct
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
       ?description
-      (Transport.of_reader_writer reader writer ~max_message_size)
+      (Transport.of_reader_writer reader writer ?max_message_size)
   ;;
 
   let contains_magic_prefix reader =
@@ -48,7 +45,7 @@ module Connection = struct
 
   let with_close
         ?implementations
-        ?(max_message_size = default_max_message_size)
+        ?max_message_size
         ?handshake_timeout
         ?heartbeat_config
         ~connection_state
@@ -63,13 +60,13 @@ module Connection = struct
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
       ~connection_state
-      (Transport.of_reader_writer reader writer ~max_message_size)
+      (Transport.of_reader_writer reader writer ?max_message_size)
       ~dispatch_queries
       ~on_handshake_error
   ;;
 
   let server_with_close
-        ?(max_message_size = default_max_message_size)
+        ?max_message_size
         ?handshake_timeout
         ?heartbeat_config
         reader
@@ -82,7 +79,7 @@ module Connection = struct
       ?handshake_timeout:
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
-      (Transport.of_reader_writer reader writer ~max_message_size)
+      (Transport.of_reader_writer reader writer ?max_message_size)
       ~implementations
       ~connection_state
       ~on_handshake_error
@@ -105,8 +102,6 @@ module Connection = struct
     | `Ignore
     | `Call of Exn.t -> unit
     ]
-
-  let default_transport_maker fd ~max_message_size = Transport.of_fd fd ~max_message_size
 
   let serve_with_transport
         ~handshake_timeout
@@ -138,94 +133,84 @@ module Connection = struct
   ;;
 
   let make_serve_func
-        tcp_creator
+        serve_with_transport_handler
         ~implementations
         ~initial_connection_state
         ~where_to_listen
         ?max_connections
         ?backlog
-        ?(max_message_size = default_max_message_size)
-        ?(make_transport = default_transport_maker)
+        ?max_message_size
+        ?make_transport
         ?handshake_timeout
         ?heartbeat_config
-        ?(auth = fun _ -> true)
+        ?auth
         ?(on_handshake_error = `Ignore)
-        ?(on_handler_error = `Ignore)
+        ?on_handler_error
         ()
     =
-    tcp_creator
+    serve_with_transport_handler
+      ~where_to_listen
       ?max_connections
-      ?max_accepts_per_batch:None
       ?backlog
-      ?socket:None
-      ~on_handler_error
-      where_to_listen
-      (fun inet socket ->
-         match (Socket.getpeername socket :> Socket.Address.t) with
-         | exception _could_raise_if_the_socket_disconnects_quickly -> Deferred.unit
-         | client_addr ->
-           if not (auth inet)
-           then Deferred.unit
-           else (
-             let description =
-               let server_addr = (Socket.getsockname socket :> Socket.Address.t) in
-               Info.create_s
-                 [%message
-                   "TCP server"
-                     (server_addr : Socket.Address.t)
-                     (client_addr : Socket.Address.t)]
-             in
-             let connection_state = initial_connection_state inet in
-             serve_with_transport
-               ~handshake_timeout
-               ~heartbeat_config
-               ~implementations
-               ~description
-               ~connection_state
-               ~on_handshake_error
-               (make_transport ~max_message_size (Socket.fd socket))))
+      ?max_message_size
+      ?make_transport
+      ?auth
+      ?on_handler_error
+      (fun ~client_addr ~server_addr transport ->
+         let description =
+           let server_addr = (server_addr :> Socket.Address.t) in
+           let client_addr = (client_addr :> Socket.Address.t) in
+           Info.create_s
+             [%message
+               "TCP server"
+                 (server_addr : Socket.Address.t)
+                 (client_addr : Socket.Address.t)]
+         in
+         serve_with_transport
+           ~handshake_timeout
+           ~heartbeat_config
+           ~implementations
+           ~description
+           ~connection_state:(fun conn -> initial_connection_state client_addr conn)
+           ~on_handshake_error
+           transport)
   ;;
 
-  let serve ~implementations ~initial_connection_state ~where_to_listen =
-    make_serve_func
-      Tcp.Server.create_sock
-      ~implementations
-      ~initial_connection_state
-      ~where_to_listen
+  (* eta-expand [implementations] to avoid value restriction. *)
+  let serve ~implementations = make_serve_func Rpc_transport.Tcp.serve ~implementations
+
+  (* eta-expand [implementations] to avoid value restriction. *)
+  let serve_inet ~implementations =
+    make_serve_func Rpc_transport.Tcp.serve_inet ~implementations
   ;;
 
-  let serve_inet ~implementations ~initial_connection_state ~where_to_listen =
-    make_serve_func
-      Tcp.Server.create_sock_inet
-      ~implementations
-      ~initial_connection_state
-      ~where_to_listen
+  let default_handshake_timeout_float =
+    Time_ns.Span.to_span_float_round_nearest
+      Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout
   ;;
 
   let client'
         ?implementations
-        ?(max_message_size = default_max_message_size)
-        ?(make_transport = default_transport_maker)
-        ?(handshake_timeout =
-          Time_ns.Span.to_span_float_round_nearest
-            Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout)
+        ?max_message_size
+        ?make_transport
+        ?handshake_timeout:(handshake_timeout_float = default_handshake_timeout_float)
         ?heartbeat_config
         ?description
         where_to_connect
     =
-    let finish_handshake_by =
-      Time_ns.add
-        (Time_ns.now ())
-        (Time_ns.Span.of_span_float_round_nearest handshake_timeout)
+    let handshake_timeout =
+      Time_ns.Span.of_span_float_round_nearest handshake_timeout_float
     in
-    Monitor.try_with (fun () ->
-      Tcp.connect_sock ~timeout:handshake_timeout where_to_connect)
-    >>=? fun sock ->
-    match Socket.getpeername sock with
-    | exception exn_could_be_raised_if_the_socket_is_diconnected_now ->
-      Socket.shutdown sock `Both;
-      Deferred.Result.fail exn_could_be_raised_if_the_socket_is_diconnected_now
-    | sock_peername ->
+    let finish_handshake_by = Time_ns.add (Time_ns.now ()) handshake_timeout in
+    match%bind
+      Rpc_transport.Tcp.connect
+        ?max_message_size
+        ?make_transport
+        ~tcp_connect_timeout:handshake_timeout
+        where_to_connect
+    with
+    | Error _ as error -> return error
+    | Ok (transport, sock_peername) ->
       let description =
         match description with
         | None ->
@@ -241,30 +226,33 @@ module Connection = struct
             [%sexp_of: _ Tcp.Where_to_connect.t]
       in
       let handshake_timeout = Time_ns.diff finish_handshake_by (Time_ns.now ()) in
-      let transport = make_transport (Socket.fd sock) ~max_message_size in
-      (match implementations with
-       | None ->
-         let { Client_implementations.connection_state; implementations } =
-           Client_implementations.null ()
-         in
-         Rpc_kernel.Connection.create
-           transport
-           ~handshake_timeout
-           ?heartbeat_config
-           ~implementations
-           ~description
-           ~connection_state
-       | Some { Client_implementations.connection_state; implementations } ->
-         Rpc_kernel.Connection.create
-           transport
-           ~handshake_timeout
-           ?heartbeat_config
-           ~implementations
-           ~description
-           ~connection_state)
-      >>= (function
-        | Ok t -> return (Ok (sock_peername, t))
-        | Error _ as error -> Transport.close transport >>= fun () -> return error)
+      let%bind rpc_connection =
+        match implementations with
+        | None ->
+          let { Client_implementations.connection_state; implementations } =
+            Client_implementations.null ()
+          in
+          Rpc_kernel.Connection.create
+            transport
+            ~handshake_timeout
+            ?heartbeat_config
+            ~implementations
+            ~description
+            ~connection_state
+        | Some { Client_implementations.connection_state; implementations } ->
+          Rpc_kernel.Connection.create
+            transport
+            ~handshake_timeout
+            ?heartbeat_config
+            ~implementations
+            ~description
+            ~connection_state
+      in
+      (match rpc_connection with
+       | Ok t -> return (Ok (sock_peername, t))
+       | Error _ as error ->
+         let%bind () = Transport.close transport in
+         return error)
   ;;
 
   let client

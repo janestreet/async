@@ -145,8 +145,7 @@ module Connection : sig
       responsibility of the caller to eventually call [close].
 
       In [client] and [with_client], the [handshake_timeout] encompasses both the TCP
-      connection timeout and the timeout for this module's own handshake.
-  *)
+      connection timeout and the timeout for this module's own handshake. *)
   val client
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
@@ -166,16 +165,15 @@ module Connection : sig
     -> ?handshake_timeout:Time.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
-    -> 'transport Tcp.Where_to_connect.t
-    -> ('transport * t, Exn.t) Result.t Deferred.t
+    -> 'address Tcp.Where_to_connect.t
+    -> ('address * t, Exn.t) Result.t Deferred.t
 
 
   (** [with_client where_to_connect f] connects to the server at [where_to_connect] and
       runs f until an exception is thrown or until the returned Deferred is fulfilled.
 
       NOTE:  As with [with_close], you should be careful when using this with [Pipe_rpc].
-      See [with_close] for more information.
-  *)
+      See [with_close] for more information. *)
   val with_client
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
