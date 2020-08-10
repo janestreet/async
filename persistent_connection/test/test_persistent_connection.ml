@@ -63,8 +63,7 @@ let%expect_test _ =
   let%bind () = [%expect {| Attempting_to_connect |}] in
   let%bind this_conn = Persistent_connection.Rpc.connected unversioned_conn in
   let%bind () =
-    [%expect
-      {|
+    [%expect {|
         (Obtained_address <elided>)
         (Connected <opaque>)
       |}]
@@ -92,8 +91,7 @@ let%expect_test _ =
   let%bind () = [%expect {| Attempting_to_connect |}] in
   let%bind this_conn = Persistent_connection.Versioned_rpc.connected versioned_conn in
   let%bind () =
-    [%expect
-      {|
+    [%expect {|
         (Obtained_address <elided>)
         (Connected <opaque>)
       |}]

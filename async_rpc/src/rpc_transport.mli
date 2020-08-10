@@ -69,10 +69,8 @@ module Tcp : sig
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?auth:(Socket.Address.Inet.t -> bool)
-    -> ?on_handler_error:[ `Raise
-                         | `Ignore
-                         | `Call of Socket.Address.Inet.t -> exn -> unit
-                         ]
+    -> ?on_handler_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> (client_addr:Socket.Address.Inet.t
         -> server_addr:Socket.Address.Inet.t
         -> Rpc_kernel.Transport.t

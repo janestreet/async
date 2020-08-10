@@ -123,9 +123,7 @@ module Protocol = struct
     type query = unit [@@deriving bin_io]
     type response = unit [@@deriving bin_io]
 
-    let rpc =
-      Rpc.create ~name:"test-rpc-latency-quit" ~version:1 ~bin_query ~bin_response
-    ;;
+    let rpc = Rpc.create ~name:"test-rpc-latency-quit" ~version:1 ~bin_query ~bin_response
   end
 end
 

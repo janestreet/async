@@ -341,9 +341,7 @@ let%test_module _ =
               then return (`Finished ())
               else (
                 let pieces = break_into_pieces data ~of_size in
-                Pipe.transfer_in_without_pushback
-                  input
-                  ~from:(Queue.of_list pieces);
+                Pipe.transfer_in_without_pushback input ~from:(Queue.of_list pieces);
                 Pipe.read_exactly output ~num_values:(List.length values)
                 >>| function
                 | `Eof | `Fewer _ -> assert false

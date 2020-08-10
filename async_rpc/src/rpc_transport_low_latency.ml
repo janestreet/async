@@ -174,13 +174,8 @@ module Reader_internal = struct
     else (
       match Unix.Syscall_result.Int.error_exn result with
       | EAGAIN | EWOULDBLOCK | EINTR -> `Nothing_available
-      | EPIPE
-      | ECONNRESET
-      | EHOSTUNREACH
-      | ENETDOWN
-      | ENETRESET
-      | ENETUNREACH
-      | ETIMEDOUT -> `Eof
+      | EPIPE | ECONNRESET | EHOSTUNREACH | ENETDOWN | ENETRESET | ENETUNREACH | ETIMEDOUT
+        -> `Eof
       | error -> raise (Unix.Unix_error (error, "read", "")))
   ;;
 
@@ -674,8 +669,7 @@ module Writer_internal = struct
       t.pos <- stop + len;
       Sent ())
     else
-      Message_too_big
-        { size = payload_len; max_message_size = t.config.max_message_size }
+      Message_too_big { size = payload_len; max_message_size = t.config.max_message_size }
   ;;
 
   let should_send_now t =
@@ -806,9 +800,7 @@ type t = Kernel_transport.t =
 let close = Kernel_transport.close
 
 let create_internal fd config =
-  { reader = Reader.create_internal fd config
-  ; writer = Writer.create_internal fd config
-  }
+  { reader = Reader.create_internal fd config; writer = Writer.create_internal fd config }
 ;;
 
 let create = make_create create_internal

@@ -48,6 +48,7 @@ module Connection = struct
         ?max_message_size
         ?handshake_timeout
         ?heartbeat_config
+        ?description
         ~connection_state
         reader
         writer
@@ -59,6 +60,7 @@ module Connection = struct
       ?handshake_timeout:
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
+      ?description
       ~connection_state
       (Transport.of_reader_writer reader writer ?max_message_size)
       ~dispatch_queries
@@ -69,6 +71,7 @@ module Connection = struct
         ?max_message_size
         ?handshake_timeout
         ?heartbeat_config
+        ?description
         reader
         writer
         ~implementations
@@ -79,6 +82,7 @@ module Connection = struct
       ?handshake_timeout:
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
+      ?description
       (Transport.of_reader_writer reader writer ?max_message_size)
       ~implementations
       ~connection_state
@@ -281,6 +285,7 @@ module Connection = struct
         ?make_transport
         ?handshake_timeout
         ?heartbeat_config
+        ?description
         where_to_connect
         f
     =
@@ -290,6 +295,7 @@ module Connection = struct
       ?make_transport
       ?handshake_timeout
       ?heartbeat_config
+      ?description
       where_to_connect
     >>=? fun (remote_server, t) ->
     try_with (fun () -> f ~remote_server t)

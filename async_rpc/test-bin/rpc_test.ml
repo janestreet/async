@@ -383,9 +383,7 @@ module Pipe_iter_test = struct
            | Ok (Error nothing) -> Nothing.unreachable_code nothing
            | Ok (Ok id) -> id
          in
-         let next_expected : [ `Update of int | `Closed_remotely ] ref =
-           ref (`Update 0)
-         in
+         let next_expected : [ `Update of int | `Closed_remotely ] ref = ref (`Update 0) in
          let finished = Ivar.create () in
          dispatch_exn Time.Span.millisecond (function
            | Update n ->
@@ -566,10 +564,7 @@ module Pipe_rpc_performance_measurements = struct
                Shutdown.shutdown 1);
              if !sample_to_collect_and_exit = 10
              then (
-               Print.printf
-                 "%f (cpu: %f)\n"
-                 (!ratio_acc /. 10.)
-                 (!percentage_acc /. 10.);
+               Print.printf "%f (cpu: %f)\n" (!ratio_acc /. 10.) (!percentage_acc /. 10.);
                Shutdown.shutdown 0)
              else if !sample_to_collect_and_exit >= 0
              then
@@ -705,10 +700,8 @@ module Rpc_performance_measurements = struct
     Command.group
       ~summary:"Clients"
       [ ( "one-way"
-        , Command.async_spec
-            ~summary:"client for one-way rpc"
-            client_flags
-            one_way_client )
+        , Command.async_spec ~summary:"client for one-way rpc" client_flags one_way_client
+        )
       ; ( "rpc"
         , Command.async_spec ~summary:"client for regular rpc" client_flags rpc_client )
       ; ( "pipe"
@@ -812,10 +805,7 @@ module Rpc_expert_test = struct
           ]
         ~on_unknown_rpc:(`Expert handle_unknown_raw)
     in
-    Rpc_impl.make_server
-      ~implementations
-      ~initial_connection_state:(fun _ -> ())
-      rpc_impl
+    Rpc_impl.make_server ~implementations ~initial_connection_state:(fun _ -> ()) rpc_impl
     >>= fun server ->
     let port = Rpc_impl.Server.bound_on server in
     Rpc_impl.with_client rpc_impl "127.0.0.1" port (fun conn ->
@@ -912,11 +902,7 @@ module Connection_closing_test = struct
   ;;
 
   let never_returns =
-    Rpc.create
-      ~name:"never-returns"
-      ~version:1
-      ~bin_query:bin_unit
-      ~bin_response:bin_unit
+    Rpc.create ~name:"never-returns" ~version:1 ~bin_query:bin_unit ~bin_response:bin_unit
   ;;
 
   let never_returns_impl = Rpc.implement never_returns (fun () () -> Deferred.never ())

@@ -59,3 +59,6 @@ module Expect_test_config :
 end
 
 module Expect_test_config_with_unit_expect = Expect_test_config_with_unit_expect
+
+module Expect_test_config_with_unit_expect_or_error =
+  Expect_test_config_with_unit_expect_or_error

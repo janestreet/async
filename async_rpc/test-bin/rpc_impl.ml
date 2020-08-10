@@ -96,11 +96,7 @@ let spec =
     | Some network -> network
     | None ->
       let network = Netkit_sockets.create ~ifname () in
-      Netkit.Network.add_exn
-        Netkit_sockets.kind
-        ~name:ifname
-        (module Netkit_sockets)
-        network;
+      Netkit.Network.add_exn ~name:ifname (module Netkit_sockets) network;
       Netkit.Network.find_exn ~name:ifname
   in
   let netkit netkit_ifname = Netkit (network netkit_ifname) in

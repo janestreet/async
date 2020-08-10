@@ -29,8 +29,7 @@ let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
     Async_rpc_kernel.Rpc.Connection.with_close
       ?implementations:s2
       t2
-      ~dispatch_queries:(fun conn2 ->
-        Ivar.read conn1_ivar >>= fun conn1 -> f conn1 conn2)
+      ~dispatch_queries:(fun conn2 -> Ivar.read conn1_ivar >>= fun conn1 -> f conn1 conn2)
       ~connection_state:(fun _ -> state2)
       ~on_handshake_error:`Raise
   in

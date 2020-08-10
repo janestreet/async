@@ -58,6 +58,7 @@ module Connection : sig
     -> ?max_message_size:int
     -> ?handshake_timeout:Time.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
+    -> ?description:Info.t
     -> connection_state:(t -> 's)
     -> Reader.t
     -> Writer.t
@@ -69,6 +70,7 @@ module Connection : sig
     :  ?max_message_size:int
     -> ?handshake_timeout:Time.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
+    -> ?description:Info.t
     -> Reader.t
     -> Writer.t
     -> implementations:'s Implementations.t
@@ -133,10 +135,8 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?auth:(Socket.Address.Inet.t -> bool) (** default is [`Ignore] *)
     -> ?on_handshake_error:on_handshake_error (** default is [`Ignore] *)
-    -> ?on_handler_error:[ `Raise
-                         | `Ignore
-                         | `Call of Socket.Address.Inet.t -> exn -> unit
-                         ]
+    -> ?on_handler_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
@@ -192,6 +192,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
+    -> ?description:Info.t
     -> 'transport Tcp.Where_to_connect.t
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t

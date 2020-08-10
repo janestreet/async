@@ -143,11 +143,7 @@ module Unix_writer = struct
     pos + Header.length
   ;;
 
-  let send_bin_prot_internal
-        t
-        (bin_writer : _ Bin_prot.Type_class.writer)
-        x
-        ~followup_len
+  let send_bin_prot_internal t (bin_writer : _ Bin_prot.Type_class.writer) x ~followup_len
     : _ Send_result.t
     =
     if not (Writer.is_closed t.t)
@@ -167,9 +163,7 @@ module Unix_writer = struct
     else Closed
   ;;
 
-  let send_bin_prot t bin_writer x =
-    send_bin_prot_internal t bin_writer x ~followup_len:0
-  ;;
+  let send_bin_prot t bin_writer x = send_bin_prot_internal t bin_writer x ~followup_len:0
 
   let send_bin_prot_and_bigstring t bin_writer x ~buf ~pos ~len : _ Send_result.t =
     match send_bin_prot_internal t bin_writer x ~followup_len:len with
