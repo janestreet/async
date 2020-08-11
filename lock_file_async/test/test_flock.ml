@@ -25,15 +25,13 @@ let%expect_test "Flock" =
       let%map () = Lock_file_async.Flock.unlock_exn flock in
       print_endline "waiting thread released lock"
     in
-    let%bind () =
-      [%expect
-        {|
+    [%expect
+      {|
       original thread took lock
       waiting thread started
       original thread releasing lock
       waiting thread took lock
-      waiting thread released lock |}]
-    in
+      waiting thread released lock |}];
     return ())
 ;;
 
@@ -74,14 +72,12 @@ let%expect_test "Symlink" =
       let%map () = Lock_file_async.Symlink.unlock_exn flock in
       print_endline "waiting thread released lock"
     in
-    let%bind () =
-      [%expect
-        {|
+    [%expect
+      {|
       original thread took lock
       (waiting_thread_sees (lock_taken_by (Ok original-thread)))
       original thread releasing lock
       waiting thread took lock
-      waiting thread released lock |}]
-    in
+      waiting thread released lock |}];
     return ())
 ;;

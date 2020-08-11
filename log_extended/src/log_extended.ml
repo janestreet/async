@@ -237,20 +237,19 @@ module Command = struct
         Async.printf !"%{sexp:string Or_error.t}\n" result
       in
       print ~log_to_console:false ~log_with_color:false ~log_to_stdout:false;
-      let%bind () = [%expect {| (Ok No) |}] in
+      [%expect {| (Ok No) |}];
       print ~log_to_console:false ~log_with_color:true ~log_to_stdout:true;
-      let%bind () = [%expect {|
+      [%expect {|
         (Error
-         ((Failure "-log-with-color and -log-to-stdout require -log-to-console") "")) |}]
-      in
+         ((Failure "-log-with-color and -log-to-stdout require -log-to-console") "")) |}];
       print ~log_to_console:true ~log_with_color:true ~log_to_stdout:false;
-      let%bind () = [%expect {| (Ok "(Stderr Color)") |}] in
+      [%expect {| (Ok "(Stderr Color)") |}];
       print ~log_to_console:true ~log_with_color:false ~log_to_stdout:false;
-      let%bind () = [%expect {| (Ok "(Stderr Plain)") |}] in
+      [%expect {| (Ok "(Stderr Plain)") |}];
       print ~log_to_console:true ~log_with_color:true ~log_to_stdout:true;
-      let%bind () = [%expect {| (Ok "(Stdout Color)") |}] in
+      [%expect {| (Ok "(Stdout Color)") |}];
       print ~log_to_console:true ~log_with_color:false ~log_to_stdout:true;
-      let%bind () = [%expect {| (Ok "(Stdout Plain)") |}] in
+      [%expect {| (Ok "(Stdout Plain)") |}];
       Deferred.unit
     ;;
 

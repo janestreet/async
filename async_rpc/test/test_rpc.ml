@@ -157,7 +157,8 @@ let%expect_test _ =
     rpc-std-2
     rpc-low-latency-0
     rpc-low-latency-1
-    rpc-low-latency-2 |}]
+    rpc-low-latency-2 |}];
+  return ()
 ;;
 
 let%expect_test "[Connection.create] shouldn't raise" =
@@ -189,7 +190,8 @@ let%expect_test "[Connection.create] shouldn't raise" =
         (monitor.ml.Error
          (Failure "unsafe_read_int64: value cannot be represented unboxed!")
          ("<backtrace elided in test>")))
-       <created-directly>))) |}]
+       <created-directly>))) |}];
+  return ()
 ;;
 
 open! Rpc

@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-module Expect_test_config = Expect_test_config_with_unit_expect
 
 (* [Rpc.Transport.Tcp] is well exercised by the fact that it is used to implement
    [Rpc.Connection.client] and [Rpc.Connection.serve], and they have extensive tests (not
