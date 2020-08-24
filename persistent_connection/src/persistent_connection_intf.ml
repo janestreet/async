@@ -13,7 +13,10 @@ module type S = sig
         [server_name], which should be the name of the server we are connecting to. *)
     -> ?on_event:(Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time.Span.t)
-    -> ?random_state:Random.State.t
+    -> ?random_state:[ `Non_random | `State of Random.State.t ]
+    (** If a [~random_state] is supplied, randomization is applied to the result of
+        [retry_delay] after each call; if not, no randomization will be applied. The
+        default is [`State Random.State.default]. *)
     -> ?time_source:Time_source.t
     -> connect:(address -> conn Or_error.t Deferred.t)
     -> (unit -> address Or_error.t Deferred.t)
