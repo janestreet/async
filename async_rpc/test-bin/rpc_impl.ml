@@ -102,6 +102,7 @@ let spec =
   let netkit netkit_ifname = Netkit (network netkit_ifname) in
   let typ =
     Arg_type.of_alist_exn
+      ~list_values_in_help:false
       [ "standard", standard; "low-latency", low_latency; "netkit", netkit ]
   in
   let transport_flag = optional_with_default standard typ in
