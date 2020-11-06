@@ -232,6 +232,7 @@ module Tcp = struct
         ~where_to_listen
         ?max_connections
         ?backlog
+        ?time_source
         ?(max_message_size = default_max_message_size)
         ?(make_transport = default_transport_maker)
         ?(auth = fun _ -> true)
@@ -243,6 +244,7 @@ module Tcp = struct
       ?max_accepts_per_batch:None
       ?backlog
       ?socket:None
+      ?time_source
       ~on_handler_error
       where_to_listen
       (fun client_addr socket ->
@@ -251,11 +253,15 @@ module Tcp = struct
          | true ->
            let transport = make_transport ~max_message_size (Socket.fd socket) in
            let%bind result =
-             Monitor.try_with ~rest:`Raise (fun () ->
-               handle_transport
-                 ~client_addr
-                 ~server_addr:(Socket.getsockname socket)
-                 transport)
+             Monitor.try_with
+               ~run:
+                 `Schedule
+               ~rest:`Raise
+               (fun () ->
+                  handle_transport
+                    ~client_addr
+                    ~server_addr:(Socket.getsockname socket)
+                    transport)
            in
            let%bind () = close transport in
            (match result with
@@ -279,10 +285,14 @@ module Tcp = struct
         where_to_connect
     =
     let%bind sock =
-      Monitor.try_with (fun () ->
-        Tcp.connect_sock
-          ~timeout:(Time_ns.Span.to_span_float_round_nearest tcp_connect_timeout)
-          where_to_connect)
+      Monitor.try_with
+        ~run:
+          `Schedule
+        ~rest:`Log
+        (fun () ->
+           Tcp.connect_sock
+             ~timeout:(Time_ns.Span.to_span_float_round_nearest tcp_connect_timeout)
+             where_to_connect)
     in
     match sock with
     | Error _ as error -> return error

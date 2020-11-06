@@ -166,11 +166,15 @@ let%expect_test "[Connection.create] shouldn't raise" =
   let%bind `Reader _, `Writer w2 = Unix.pipe (Info.of_string "rpc_test 2") in
   let result =
     Deferred.create (fun ivar ->
-      Monitor.try_with (fun () ->
-        Rpc.Connection.create
-          ~connection_state:(Fn.const ())
-          (Reader.create r1)
-          (Writer.create w2))
+      Monitor.try_with
+        ~run:
+          `Schedule
+        ~rest:`Log
+        (fun () ->
+           Rpc.Connection.create
+             ~connection_state:(Fn.const ())
+             (Reader.create r1)
+             (Writer.create w2))
       >>> function
       | Error exn -> Ivar.fill ivar (`Raised exn)
       | Ok (Ok (_ : Rpc.Connection.t)) -> assert false

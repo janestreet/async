@@ -111,6 +111,7 @@ module Connection : sig
     -> where_to_listen:('address, 'listening_on) Tcp.Where_to_listen.t
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time.Span.t
@@ -129,6 +130,7 @@ module Connection : sig
     -> where_to_listen:Tcp.Where_to_listen.inet
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time.Span.t
@@ -196,16 +198,4 @@ module Connection : sig
     -> 'transport Tcp.Where_to_connect.t
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t
-
-
-  val serve_with_transport
-    :  handshake_timeout:Time.Span.t option
-    -> heartbeat_config:Heartbeat_config.t option
-    -> implementations:'s Implementations.t
-    -> description:Info.t
-    -> connection_state:(t -> 's)
-    -> on_handshake_error:on_handshake_error
-    -> Transport.t
-    -> unit Deferred.t
-  [@@deprecated "[since 2020-06] use [Async_rpc_kernel.Rpc.Connection.create]"]
 end

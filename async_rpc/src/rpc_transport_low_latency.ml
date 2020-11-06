@@ -352,6 +352,9 @@ module Reader_internal = struct
     if t.reading then failwith "Rpc_transport_low_latency.Reader: already reading";
     t.reading <- true;
     Monitor.protect
+      ~run:
+        `Schedule
+      ~rest:`Log
       ~here:[%here]
       ~name:"Rpc_transport_low_latency.Reader_internal.read_forever"
       ~finally:(fun () ->

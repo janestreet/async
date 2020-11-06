@@ -36,8 +36,11 @@ module Connection = struct
   ;;
 
   let contains_magic_prefix reader =
-    Deferred.Or_error.try_with (fun () ->
-      Reader.peek_bin_prot reader contains_magic_prefix)
+    Deferred.Or_error.try_with
+      ~run:
+        `Schedule
+      ~rest:`Log
+      (fun () -> Reader.peek_bin_prot reader contains_magic_prefix)
     >>| function
     | Error _ | Ok `Eof -> false
     | Ok (`Ok b) -> b
@@ -95,7 +98,14 @@ module Connection = struct
     ignore (Monitor.detach_and_get_error_stream monitor);
     choose
       [ choice (Monitor.get_next_error monitor) (fun e -> Error e)
-      ; choice (try_with ~name:"Rpc.Connection.collect_errors" f) Fn.id
+      ; choice
+          (Monitor.try_with
+             ~run:
+               `Schedule
+             ~rest:`Log
+             ~name:"Rpc.Connection.collect_errors"
+             f)
+          Fn.id
       ]
   ;;
 
@@ -143,6 +153,7 @@ module Connection = struct
         ~where_to_listen
         ?max_connections
         ?backlog
+        ?time_source
         ?max_message_size
         ?make_transport
         ?handshake_timeout
@@ -156,6 +167,7 @@ module Connection = struct
       ~where_to_listen
       ?max_connections
       ?backlog
+      ?time_source
       ?max_message_size
       ?make_transport
       ?auth
@@ -298,7 +310,11 @@ module Connection = struct
       ?description
       where_to_connect
     >>=? fun (remote_server, t) ->
-    try_with (fun () -> f ~remote_server t)
+    Monitor.try_with
+      ~run:
+        `Schedule
+      ~rest:`Log
+      (fun () -> f ~remote_server t)
     >>= fun result ->
     close t ~reason:(Info.of_string "Rpc.Connection.with_client finished")
     >>| fun () -> result

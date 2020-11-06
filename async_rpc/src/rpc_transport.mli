@@ -48,6 +48,7 @@ module Tcp : sig
     :  where_to_listen:('address, 'listening_on) Tcp.Where_to_listen.t
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
@@ -66,6 +67,7 @@ module Tcp : sig
     :  where_to_listen:(Socket.Address.Inet.t, int) Tcp.Where_to_listen.t
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?auth:(Socket.Address.Inet.t -> bool)
