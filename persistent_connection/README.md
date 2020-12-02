@@ -1,4 +1,7 @@
-# Persistent_connection
+---
+title: "Persistent_connection"
+uuid: 463ce8db-4d8c-3563-fa17-457b325400d8
+---
 
 A persistent connection is an actively maintained connection to some
 service that eagerly and repeatedly attempts to reconnect whenever the
