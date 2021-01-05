@@ -111,6 +111,7 @@ module Connection : sig
     -> where_to_listen:('address, 'listening_on) Tcp.Where_to_listen.t
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
@@ -130,6 +131,7 @@ module Connection : sig
     -> where_to_listen:Tcp.Where_to_listen.inet
     -> ?max_connections:int
     -> ?backlog:int
+    -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker

@@ -153,6 +153,7 @@ module Connection = struct
         ~where_to_listen
         ?max_connections
         ?backlog
+        ?drop_incoming_connections
         ?time_source
         ?max_message_size
         ?make_transport
@@ -167,6 +168,7 @@ module Connection = struct
       ~where_to_listen
       ?max_connections
       ?backlog
+      ?drop_incoming_connections
       ?time_source
       ?max_message_size
       ?make_transport

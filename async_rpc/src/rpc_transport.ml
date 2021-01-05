@@ -232,6 +232,7 @@ module Tcp = struct
         ~where_to_listen
         ?max_connections
         ?backlog
+        ?drop_incoming_connections
         ?time_source
         ?(max_message_size = default_max_message_size)
         ?(make_transport = default_transport_maker)
@@ -243,6 +244,7 @@ module Tcp = struct
       ?max_connections
       ?max_accepts_per_batch:None
       ?backlog
+      ?drop_incoming_connections
       ?socket:None
       ?time_source
       ~on_handler_error
