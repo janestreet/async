@@ -259,7 +259,7 @@ module Reader_internal = struct
 
     let can_process_message t = (not t.reader.closed) && is_running t
 
-    let rec process_received_messages t =
+    let rec process_received_messages t ~read_or_peek =
       if can_process_message t
       then (
         let len = get_payload_length_of_next_available_message t.reader in
@@ -267,24 +267,28 @@ module Reader_internal = struct
         then (
           let len = Message_len.value_exn len in
           let start = t.reader.pos + Header.length in
-          t.reader.pos <- start + len;
+          let () =
+            match read_or_peek with
+            | `Read -> t.reader.pos <- start + len
+            | `Peek -> ()
+          in
           match t.on_message t.reader.buf ~pos:start ~len with
           | Stop x -> interrupt t (Stopped_by_user x)
-          | Continue -> process_received_messages t
+          | Continue -> process_received_messages t ~read_or_peek
           | Wait d ->
             if Deferred.is_determined d
-            then process_received_messages t
+            then process_received_messages t ~read_or_peek
             else interrupt t (Waiting_for_handler d))
         else t.on_end_of_batch ())
     ;;
 
-    let process_incoming t =
+    let process_incoming t ~read_or_peek =
       if can_process_message t
       then (
         match refill t.reader with
         | `Eof -> interrupt t Eof_reached
         | `Nothing_available -> ()
-        | `Read_some -> process_received_messages t)
+        | `Read_some -> process_received_messages t ~read_or_peek)
     ;;
 
     (* We want to stop reading/dispatching as soon as we get an error *)
@@ -296,7 +300,7 @@ module Reader_internal = struct
         Monitor.send_exn parent exn)
     ;;
 
-    let rec run reader ~on_message ~on_end_of_batch =
+    let rec run reader ~on_message ~on_end_of_batch ~read_or_peek =
       let t =
         { reader
         ; interrupt = Ivar.create ()
@@ -317,11 +321,16 @@ module Reader_internal = struct
         (* This will fill [t.interrupt] if [on_message] returns [Wait _]. However, we
            expect [on_message] to almost never return [Wait _] with this transport, since
            even the "non-copying" writes return [Deferred.unit]. *)
-        process_received_messages t;
+        process_received_messages t ~read_or_peek;
         let interrupt =
           Deferred.any [ Ivar.read t.interrupt; close_finished t.reader ]
         in
-        Fd.interruptible_every_ready_to ~interrupt t.reader.fd `Read process_incoming t)
+        Fd.interruptible_every_ready_to
+          ~interrupt
+          t.reader.fd
+          `Read
+          (process_incoming ~read_or_peek)
+          t)
       >>= function
       | `Bad_fd | `Unsupported ->
         failwith
@@ -343,7 +352,7 @@ module Reader_internal = struct
            >>= fun () ->
            if reader.closed
            then return (Error `Closed)
-           else run reader ~on_message ~on_end_of_batch)
+           else run reader ~on_message ~on_end_of_batch ~read_or_peek)
     ;;
   end
 
@@ -360,7 +369,46 @@ module Reader_internal = struct
       ~finally:(fun () ->
         t.reading <- false;
         Deferred.unit)
-      (fun () -> Dispatcher.run t ~on_message ~on_end_of_batch)
+      (fun () -> Dispatcher.run t ~on_message ~on_end_of_batch ~read_or_peek:`Read)
+  ;;
+
+  let peek_bin_prot t (bin_reader : _ Bin_prot.Type_class.reader) =
+    let on_message buf ~pos ~len =
+      let pos_ref = ref pos in
+      let x = bin_reader.read buf ~pos_ref in
+      if !pos_ref <> pos + len
+      then
+        failwithf
+          "message length (%d) did not match expected length (%d)"
+          (!pos_ref - pos)
+          len
+          ()
+      else Handler_result.Stop x
+    in
+    if t.closed
+    then
+      failwiths
+        ~here:[%here]
+        "Rpc_transport_low_latency.Reader: reader closed"
+        ""
+        [%sexp_of: string];
+    if t.reading
+    then
+      failwiths
+        ~here:[%here]
+        "Rpc_transport_low_latency.Reader: already reading"
+        ""
+        [%sexp_of: string];
+    t.reading <- true;
+    Monitor.protect
+      ~run:`Now
+      ~rest:`Raise
+      ~here:[%here]
+      ~name:"Rpc_transport_low_latency.Reader_internal.peek_bin_prot"
+      ~finally:(fun () ->
+        t.reading <- false;
+        Deferred.unit)
+      (fun () -> Dispatcher.run t ~on_message ~on_end_of_batch:ignore ~read_or_peek:`Peek)
   ;;
 
   let close t =
@@ -777,11 +825,32 @@ let make_create f ?(config = Config.default) ~max_message_size fd =
 module Reader = struct
   include Kernel_transport.Reader
 
-  let create_internal fd config =
-    pack (module Reader_internal) (Reader_internal.create fd config)
-  ;;
+  module With_internal_reader = struct
+    type t =
+      { internal_reader : Reader_internal.t
+      ; reader : Kernel_transport.Reader.t
+      }
 
-  let create = make_create create_internal
+    let create_internal fd config =
+      let internal_reader = Reader_internal.create fd config in
+      let reader = pack (module Reader_internal) internal_reader in
+      { internal_reader; reader }
+    ;;
+
+    let create = make_create create_internal
+    let transport_reader t = t.reader
+
+    let peek_bin_prot t bin_reader =
+      Reader_internal.peek_bin_prot t.internal_reader bin_reader
+    ;;
+  end
+
+  let create ?config ~max_message_size fd =
+    let internal =
+      make_create With_internal_reader.create_internal ?config ~max_message_size fd
+    in
+    internal.reader
+  ;;
 end
 
 module Writer = struct
@@ -800,10 +869,26 @@ type t = Kernel_transport.t =
   }
 [@@deriving sexp_of]
 
+module With_internal_reader = struct
+  type t =
+    { reader_with_internal_reader : Reader.With_internal_reader.t
+    ; writer : Writer.t
+    }
+
+  let create_internal fd config =
+    { reader_with_internal_reader = Reader.With_internal_reader.create_internal fd config
+    ; writer = Writer.create_internal fd config
+    }
+  ;;
+
+  let create = make_create create_internal
+end
+
 let close = Kernel_transport.close
 
-let create_internal fd config =
-  { reader = Reader.create_internal fd config; writer = Writer.create_internal fd config }
+let create ?config ~max_message_size fd =
+  let internal =
+    make_create With_internal_reader.create_internal ?config ~max_message_size fd
+  in
+  { reader = internal.reader_with_internal_reader.reader; writer = internal.writer }
 ;;
-
-let create = make_create create_internal

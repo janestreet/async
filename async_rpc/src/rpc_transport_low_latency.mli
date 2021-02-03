@@ -53,7 +53,21 @@ module Reader : sig
     include Rpc_kernel.Transport.Reader
   end
 
+  type transport_reader := t
+
   val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+
+  module With_internal_reader : sig
+    type t
+
+    val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+    val transport_reader : t -> transport_reader
+
+    val peek_bin_prot
+      :  t
+      -> 'a Bin_prot.Type_class.reader
+      -> ('a, [ `Closed | `Eof ]) Result.t Deferred.t
+  end
 end
 
 module Writer : sig
@@ -71,3 +85,12 @@ with module Reader := Rpc_kernel.Transport.Reader
 with module Writer := Rpc_kernel.Transport.Writer
 
 val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+
+module With_internal_reader : sig
+  type t =
+    { reader_with_internal_reader : Reader.With_internal_reader.t
+    ; writer : Writer.t
+    }
+
+  val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+end
