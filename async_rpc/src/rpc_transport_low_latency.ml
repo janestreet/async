@@ -48,13 +48,14 @@ module Config = struct
   [@@deriving sexp]
 
   let validate t =
-    if t.initial_buffer_size <= 0
-    || t.max_message_size <= 0
-    || t.initial_buffer_size > t.max_buffer_size
-    || t.max_message_size > t.max_buffer_size
-    || t.buffering_threshold_in_bytes < 0
-    || t.start_batching_after_num_messages < 0
-    || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
+    if
+      t.initial_buffer_size <= 0
+      || t.max_message_size <= 0
+      || t.initial_buffer_size > t.max_buffer_size
+      || t.max_message_size > t.max_buffer_size
+      || t.buffering_threshold_in_bytes < 0
+      || t.start_batching_after_num_messages < 0
+      || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
     then
       failwiths
         ~here:[%here]
