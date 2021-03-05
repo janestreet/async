@@ -61,7 +61,9 @@ module Unix_reader = struct
   let all_unit_then_return l ret_val =
     match l with
     | [] -> return ret_val (* avoid deferred operations in the common case *)
-    | _ -> Deferred.all_unit l >>| fun () -> ret_val
+    | _ ->
+      let%map () = Deferred.all_unit l in
+      ret_val
   ;;
 
   let read_forever t ~on_message ~on_end_of_batch =
@@ -109,8 +111,7 @@ module Unix_reader = struct
     let handle_chunk buf ~pos ~len =
       loop buf ~pos ~len ~consumed:0 ~wait_before_reading:[]
     in
-    Reader.read_one_chunk_at_a_time t.t ~handle_chunk
-    >>| function
+    match%map Reader.read_one_chunk_at_a_time t.t ~handle_chunk with
     | `Eof | `Eof_with_unconsumed_data _ -> Error `Eof
     | `Stopped x -> Ok x
   ;;

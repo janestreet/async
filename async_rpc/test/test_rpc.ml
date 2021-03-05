@@ -7,10 +7,8 @@ module Debug = Async_kernel_private.Debug
 let max_message_size = 1_000_000
 
 let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
-  Unix.pipe (Info.of_string "rpc_test 1")
-  >>= fun (`Reader r1, `Writer w2) ->
-  Unix.pipe (Info.of_string "rpc_test 2")
-  >>= fun (`Reader r2, `Writer w1) ->
+  let%bind `Reader r1, `Writer w2 = Unix.pipe (Info.of_string "rpc_test 1") in
+  let%bind `Reader r2, `Writer w1 = Unix.pipe (Info.of_string "rpc_test 2") in
   let t1 = make_transport (r1, w1) in
   let t2 = make_transport (r2, w2) in
   let s imp =
@@ -29,7 +27,9 @@ let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
     Async_rpc_kernel.Rpc.Connection.with_close
       ?implementations:s2
       t2
-      ~dispatch_queries:(fun conn2 -> Ivar.read conn1_ivar >>= fun conn1 -> f conn1 conn2)
+      ~dispatch_queries:(fun conn2 ->
+        let%bind conn1 = Ivar.read conn1_ivar in
+        f conn1 conn2)
       ~connection_state:(fun _ -> state2)
       ~on_handshake_error:`Raise
   in
@@ -98,32 +98,28 @@ let make_tests ~make_transport ~transport_name =
     ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
     [ test1 ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
         let n = 3 in
-        Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n
-        >>= fun (pipe_r, _id) ->
-        Pipe.fold_without_pushback pipe_r ~init:0 ~f:(fun x i ->
-          assert (x = i);
-          i + 1)
-        >>= fun x ->
+        let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n in
+        let%bind x =
+          Pipe.fold_without_pushback pipe_r ~init:0 ~f:(fun x i ->
+            assert (x = i);
+            i + 1)
+        in
         [%test_result: int] ~expect:n x;
         Deferred.unit)
     ; test1 ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
-        Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1)
-        >>= fun result ->
+        let%bind result = Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1) in
         match result with
         | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
        test1 ~make_transport ~imp:[ pipe_wait_imp ivar ] ~state:() ~f:(fun conn1 conn2 ->
          (* Test that the pipe is flushed when the connection is closed. *)
-         Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 ()
-         >>= fun (pipe_r, _id) ->
-         Pipe.read pipe_r
-         >>= fun res ->
+         let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 () in
+         let%bind res = Pipe.read pipe_r in
          assert (res = `Ok ());
          don't_wait_for (Rpc.Connection.close conn1);
          Ivar.fill ivar ();
-         Pipe.read pipe_r
-         >>= fun res ->
+         let%bind res = Pipe.read pipe_r in
          assert (res = `Ok ());
          Deferred.unit))
     ]
@@ -224,14 +220,14 @@ let%test_unit "Open dispatches see connection closed error" =
         ()
     in
     let client ~port =
-      Connection.client
-        (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
-      >>| Result.ok_exn
-      >>= fun connection ->
+      let%bind connection =
+        Connection.client
+          (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+        >>| Result.ok_exn
+      in
       let res = Rpc.dispatch rpc connection () in
       don't_wait_for (Connection.close connection);
-      res
-      >>| function
+      match%map res with
       | Ok () -> failwith "Dispatch should have failed"
       | Error err ->
         [%test_eq: string]
@@ -242,8 +238,8 @@ let%test_unit "Open dispatches see connection closed error" =
              port)
           (Error.to_string_hum err)
     in
-    serve ()
-    >>= fun server ->
+    let%bind server = serve () in
     let port = Tcp.Server.listening_on server in
-    client ~port >>= fun () -> Tcp.Server.close server)
+    let%bind () = client ~port in
+    Tcp.Server.close server)
 ;;

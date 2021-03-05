@@ -84,14 +84,11 @@ let pipe_dispatch rpc { host; port } arg f =
          let n = 1_000 in
          for _ = 0 to n - 1 do
            don't_wait_for
-             (Rpc.Pipe_rpc.dispatch_iter rpc conn arg ~f
-              >>| ok_exn
-              >>| function
+             (match%map Rpc.Pipe_rpc.dispatch_iter rpc conn arg ~f >>| ok_exn with
               | Error () -> assert false
               | Ok id -> Queue.enqueue pipes id)
          done;
-         Clock.after (sec 5.)
-         >>| fun () ->
+         let%map () = Clock.after (sec 5.) in
          printf "\n%d words/rpc, %d words/pipe\n%!" (rpc_words () / n) (pipe_words () / n)
        in
        Deferred.forever () start;

@@ -36,12 +36,13 @@ module Connection = struct
   ;;
 
   let contains_magic_prefix reader =
-    Deferred.Or_error.try_with
-      ~run:
-        `Schedule
-      ~rest:`Log
-      (fun () -> Reader.peek_bin_prot reader contains_magic_prefix)
-    >>| function
+    match%map
+      Deferred.Or_error.try_with
+        ~run:
+          `Schedule
+        ~rest:`Log
+        (fun () -> Reader.peek_bin_prot reader contains_magic_prefix)
+    with
     | Error _ | Ok `Eof -> false
     | Ok (`Ok b) -> b
   ;;
@@ -126,24 +127,28 @@ module Connection = struct
         ~on_handshake_error
         transport
     =
-    collect_errors transport ~f:(fun () ->
-      Rpc_kernel.Connection.create
-        ?handshake_timeout:
-          (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
-        ?heartbeat_config
-        ~implementations
-        ~description
-        ~connection_state
-        transport
-      >>= function
-      | Ok t -> close_finished t
-      | Error handshake_error ->
-        (match on_handshake_error with
-         | `Call f -> f handshake_error
-         | `Raise -> raise handshake_error
-         | `Ignore -> ());
-        Deferred.unit)
-    >>= fun res -> Transport.close transport >>| fun () -> Result.ok_exn res
+    let%bind res =
+      collect_errors transport ~f:(fun () ->
+        match%bind
+          Rpc_kernel.Connection.create
+            ?handshake_timeout:
+              (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
+            ?heartbeat_config
+            ~implementations
+            ~description
+            ~connection_state
+            transport
+        with
+        | Ok t -> close_finished t
+        | Error handshake_error ->
+          (match on_handshake_error with
+           | `Call f -> f handshake_error
+           | `Raise -> raise handshake_error
+           | `Ignore -> ());
+          Deferred.unit)
+    in
+    let%map () = Transport.close transport in
+    Result.ok_exn res
   ;;
 
   let make_serve_func
@@ -312,14 +317,15 @@ module Connection = struct
       ?description
       where_to_connect
     >>=? fun (remote_server, t) ->
-    Monitor.try_with
-      ~run:
-        `Schedule
-      ~rest:`Log
-      (fun () -> f ~remote_server t)
-    >>= fun result ->
-    close t ~reason:(Info.of_string "Rpc.Connection.with_client finished")
-    >>| fun () -> result
+    let%bind result =
+      Monitor.try_with
+        ~run:
+          `Schedule
+        ~rest:`Log
+        (fun () -> f ~remote_server t)
+    in
+    let%map () = close t ~reason:(Info.of_string "Rpc.Connection.with_client finished") in
+    result
   ;;
 
   let with_client

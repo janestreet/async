@@ -60,14 +60,16 @@ let make_server ?heartbeat_config ?port ~implementations ~initial_connection_sta
       | None -> Tcp.Where_to_listen.of_port_chosen_by_os
       | Some port -> Tcp.Where_to_listen.of_port port
     in
-    Connection.serve
-      ?heartbeat_config
-      ~implementations
-      ~initial_connection_state:(fun _ x -> initial_connection_state x)
-      ~make_transport
-      ~where_to_listen
-      ()
-    >>| fun s -> Server.Tcp s
+    let%map s =
+      Connection.serve
+        ?heartbeat_config
+        ~implementations
+        ~initial_connection_state:(fun _ x -> initial_connection_state x)
+        ~make_transport
+        ~where_to_listen
+        ()
+    in
+    Server.Tcp s
   | Netkit network ->
     let sockaddr =
       Sockaddr.create ~addr:Sockaddr.Addr.any ~port:(Option.value ~default:0 port)

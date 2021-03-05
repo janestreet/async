@@ -317,22 +317,23 @@ module Reader_internal = struct
           ()
       in
       stop_watching_on_error t ~monitor;
-      Scheduler.within' ~monitor (fun () ->
-        (* Process messages currently in the buffer. *)
-        (* This will fill [t.interrupt] if [on_message] returns [Wait _]. However, we
-           expect [on_message] to almost never return [Wait _] with this transport, since
-           even the "non-copying" writes return [Deferred.unit]. *)
-        process_received_messages t ~read_or_peek;
-        let interrupt =
-          Deferred.any [ Ivar.read t.interrupt; close_finished t.reader ]
-        in
-        Fd.interruptible_every_ready_to
-          ~interrupt
-          t.reader.fd
-          `Read
-          (process_incoming ~read_or_peek)
-          t)
-      >>= function
+      match%bind
+        Scheduler.within' ~monitor (fun () ->
+          (* Process messages currently in the buffer. *)
+          (* This will fill [t.interrupt] if [on_message] returns [Wait _]. However, we
+             expect [on_message] to almost never return [Wait _] with this transport, since
+             even the "non-copying" writes return [Deferred.unit]. *)
+          process_received_messages t ~read_or_peek;
+          let interrupt =
+            Deferred.any [ Ivar.read t.interrupt; close_finished t.reader ]
+          in
+          Fd.interruptible_every_ready_to
+            ~interrupt
+            t.reader.fd
+            `Read
+            (process_incoming ~read_or_peek)
+            t)
+      with
       | `Bad_fd | `Unsupported ->
         failwith
           "Rpc_transport_low_latency.Reader.read_forever: file descriptor doesn't \
@@ -349,8 +350,7 @@ module Reader_internal = struct
            Deferred.never ()
          | Stopped Eof_reached -> return (Error `Eof)
          | Stopped (Waiting_for_handler d) ->
-           d
-           >>= fun () ->
+           let%bind () = d in
            if reader.closed
            then return (Error `Closed)
            else run reader ~on_message ~on_end_of_batch ~read_or_peek)
