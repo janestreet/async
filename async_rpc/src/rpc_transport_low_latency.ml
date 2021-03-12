@@ -380,7 +380,7 @@ module Reader_internal = struct
       if !pos_ref <> pos + len
       then
         failwithf
-          "message length (%d) did not match expected length (%d)"
+          "peek_bin_prot: message length (%d) did not match expected length (%d)"
           (!pos_ref - pos)
           len
           ()
