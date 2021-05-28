@@ -104,7 +104,7 @@ let bench_connect_d =
 ;;
 
 let () =
-  Command.run
+  Command_unix.run
     (Bench.make_command
        [ Bench.Test.create ~name:"create" bench_create
        ; Bench.Test.create ~name:"1handler" bench_1handler

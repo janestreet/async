@@ -38,6 +38,8 @@ module type S_rpc = sig
     -> ?log:Log.t
     -> ?on_event:(Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time.Span.t)
+    -> ?random_state:[ `Non_random | `State of Random.State.t ]
+    -> ?time_source:Time_source.t
     -> ?bind_to_address:Unix.Inet_addr.t
     -> ?implementations:_ Rpc.Connection.Client_implementations.t
     -> ?max_message_size:int

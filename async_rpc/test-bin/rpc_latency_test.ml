@@ -361,7 +361,7 @@ let quit_command =
 ;;
 
 let () =
-  Command.run
+  Command_unix.run
     (Command.group
        ~summary:"Async RPC latency test"
        [ "server", server_command

@@ -4,6 +4,7 @@ open! Async
 open! Import
 module Debug = Async_kernel_private.Debug
 
+let () = Backtrace.elide := true
 let max_message_size = 1_000_000
 
 let test ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =

@@ -6,7 +6,7 @@ module Handler_result = Kernel_transport.Handler_result
 module Send_result = Kernel_transport.Send_result
 
 external writev2
-  :  Core.Unix.File_descr.t
+  :  Core_unix.File_descr.t
   -> buf1:Bigstring.t
   -> pos1:int
   -> len1:int

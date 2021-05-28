@@ -119,7 +119,7 @@ let client_cmd =
 ;;
 
 let () =
-  Command.run
+  Command_unix.run
     (Command.group
        ~summary:"profiling async rpc"
        [ "server", server_cmd; "client", client_cmd ])

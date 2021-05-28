@@ -78,7 +78,7 @@ let counter_values_cmd =
 ;;
 
 let () =
-  Command.run
+  Command_unix.run
     (Command.group
        ~summary:"Client for trivial Async-RPC server"
        [ "get-unique-id", get_unique_id_cmd

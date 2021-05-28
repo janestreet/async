@@ -1,5 +1,6 @@
 open! Core
 open! Async
+module Thread = Core_thread
 
 module Rpcs = struct
   module From_server = struct
@@ -164,4 +165,4 @@ let command =
   Command.group ~summary:"" [ "server", server_command; "client", client_command ]
 ;;
 
-let () = Command.run command
+let () = Command_unix.run command

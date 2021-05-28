@@ -50,6 +50,8 @@ let create_convenience_wrapper
       ?log
       ?on_event
       ?retry_delay
+      ?random_state
+      ?time_source
       ?bind_to_address
       ?implementations
       ?max_message_size
@@ -77,8 +79,8 @@ let create_convenience_wrapper
     ?log
     ?on_event
     ?retry_delay
-    ?random_state:None
-    ?time_source:None
+    ?random_state
+    ?time_source
     ~connect
     get_address
 ;;

@@ -4,7 +4,7 @@ open! Import
 
 let%expect_test "peeking a message shouldn't result in read offset to change" =
   let max_message_size = 1024 * 1024 in
-  let pipe_r, pipe_w = Core.Unix.pipe () in
+  let pipe_r, pipe_w = Core_unix.pipe () in
   let writer_fd = Fd.create Fifo pipe_w (Info.of_string "low-latency-transport-writer") in
   let reader_fd = Fd.create Fifo pipe_r (Info.of_string "low-latency-transport-reader") in
   let writer_transport = Rpc.Low_latency_transport.create ~max_message_size writer_fd in

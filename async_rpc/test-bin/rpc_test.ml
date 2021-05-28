@@ -975,7 +975,7 @@ let all_regression_tests =
 ;;
 
 let () =
-  Command.run
+  Command_unix.run
     (Command.group
        ~summary:"Various tests for rpcs"
        [ ( "performance"

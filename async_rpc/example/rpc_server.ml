@@ -56,5 +56,5 @@ let () =
     Command.Spec.(
       empty +> flag "-port" ~doc:" Port to listen on" (optional_with_default 8080 int))
     (fun port () -> main ~port)
-  |> Command.run
+  |> Command_unix.run
 ;;

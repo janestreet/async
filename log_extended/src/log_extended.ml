@@ -133,7 +133,7 @@ module Command = struct
     let log_to_file_flag t =
       let default = Option.value t.log_to_file ~default:"<NONE>" in
       let doc = sprintf "FILENAME Log to a file (default: %s)" default in
-      Command.Param.(flag Flag_name.log_to_file (optional Filename.arg_type) ~doc)
+      Command.Param.(flag Flag_name.log_to_file (optional Filename_unix.arg_type) ~doc)
     ;;
 
     let log_to_console_flag t =
