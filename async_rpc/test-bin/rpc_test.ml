@@ -206,21 +206,13 @@ end
 
 module Heartbeat_pipe_test = struct
   let main () =
-    let rpc =
-      Rpc.create
-        ~name:"Heartbeat_pipe_test"
-        ~version:1
-        ~bin_query:[%bin_type_class: unit]
-        ~bin_response:[%bin_type_class: unit]
-    in
     let implementations =
-      let implementations = [ Rpc.implement rpc (fun () () -> Deferred.unit) ] in
-      Implementations.create_exn ~implementations ~on_unknown_rpc:`Raise
+      Implementations.create_exn ~implementations:[] ~on_unknown_rpc:`Raise
     in
     let heartbeat_config =
       Connection.Heartbeat_config.create
         ~timeout:(Time_ns.Span.of_day 1.)
-        ~send_every:(Time_ns.Span.of_day 1.)
+        ~send_every:(Time_ns.Span.of_ms 1.)
         ()
     in
     let%bind server =
@@ -236,17 +228,20 @@ module Heartbeat_pipe_test = struct
       (Tcp.Where_to_connect.of_host_and_port { host = "127.0.0.1"; port })
       ~heartbeat_config
       (fun conn ->
-         let c1 = ref 0 in
+         let counter = ref 0 in
          let%bind () = Clock.after (sec 1.) in
-         Connection.add_heartbeat_callback conn (fun () -> incr c1);
-         [%test_eq: int] 0 !c1;
-         let%bind () = Clock_ns.after (Time_ns.Span.of_sec 1.) in
-         let%bind () = Rpc.dispatch_exn rpc conn () in
-         [%test_eq: int] 1 !c1;
+         Connection.add_heartbeat_callback conn (fun () -> incr counter);
+         [%test_eq: int] 0 !counter;
+         let%bind () = Clock_ns.after (Time_ns.Span.of_ms 100.) in
+         let c1 = !counter in
+         [%test_pred: int] (fun c1 -> c1 > 0) c1;
+         let%bind () = Clock_ns.after (Time_ns.Span.of_ms 100.) in
+         let c2 = !counter in
+         [%test_pred: int] (fun c2 -> c2 > c1) c2;
          let%bind () = Tcp.Server.close server in
          (* No more heartbeats now that the server is closed *)
          Connection.add_heartbeat_callback conn (fun () -> assert false);
-         let%bind () = Clock_ns.after (Time_ns.Span.of_ms 10.) in
+         let%bind () = Clock_ns.after (Time_ns.Span.of_ms 100.) in
          Deferred.unit)
     >>| Result.ok_exn
   ;;

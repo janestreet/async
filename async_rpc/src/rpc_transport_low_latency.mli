@@ -67,6 +67,20 @@ module Reader : sig
       :  t
       -> 'a Bin_prot.Type_class.reader
       -> ('a, [ `Closed | `Eof ]) Result.t Deferred.t
+
+    (** [peek_once_without_buffering_from_socket] peeks [len] from [t]'s underlying
+        fd. The fd *must* be a socket. It doesn't pull in any bytes, from the socket,
+        into the transport's internal buffer. After
+        [peek_available_without_buffering_from_socket] is complete, any other code that
+        reads from the socket will see the bytes that were peeked here.
+
+        It doesn't wait for [len] number of bytes to appear; hence [_once_] in the name.
+        As soon as there's any data available on the socket, it tries to peek [len] bytes.
+        If the available bytes is less than [len] then it returns [`Not_enough_data]. *)
+    val peek_once_without_buffering_from_socket
+      :  t
+      -> len:int
+      -> (Bigstring.t, [ `Closed | `Not_enough_data ]) Result.t Deferred.t
   end
 end
 

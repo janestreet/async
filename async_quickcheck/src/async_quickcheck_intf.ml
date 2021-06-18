@@ -1,4 +1,4 @@
-open! Core_kernel
+open! Core
 open! Async_kernel
 
 module type Quickcheck_async_configured = sig
