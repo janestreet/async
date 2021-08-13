@@ -8,7 +8,7 @@ open! Import
 (** [create ?message path] tries to create a file at [path] containing the text [message],
     pid if none provided.  It returns true on success, false on failure.  Note: there is
     no way to release the lock or the fd created inside!  It will only be released when
-    the process dies.*)
+    the process dies. *)
 val create
   :  ?message        : string
   -> ?close_on_exec  : bool    (** default is [true] *)
