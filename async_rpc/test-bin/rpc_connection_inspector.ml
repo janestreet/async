@@ -37,11 +37,10 @@ let copy conn_number desc reader writer =
             let len = (len : Bin_prot.Nat0.t :> int) in
             let disp_len = min 16 len in
             Sexp.List
-              (Sexp.Atom (sprintf "len=%d" len)
-               ::
-               List.init disp_len ~f:(fun i ->
-                 let x = Char.to_int buf.{!pos_ref + i} in
-                 Sexp.Atom (sprintf "%02x" x))
+              ((Sexp.Atom (sprintf "len=%d" len)
+                :: List.init disp_len ~f:(fun i ->
+                  let x = Char.to_int buf.{!pos_ref + i} in
+                  Sexp.Atom (sprintf "%02x" x)))
                @ if len > disp_len then [ Atom "..." ] else [])
           in
           [%sexp (msg : data P.Message.t)])

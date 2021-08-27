@@ -2,8 +2,7 @@ open! Async_kernel
 
 (** {2 Async_kernel} *)
 
-include Async_kernel
-(** @open *)
+include Async_kernel (** @open *)
 
 module Deferred = struct
   include Deferred
@@ -44,3 +43,5 @@ module Expect_test_config = Expect_test_config_with_unit_expect
 
 module Expect_test_config_with_unit_expect_or_error =
   Expect_test_config_with_unit_expect_or_error
+
+module Ppx_log_syntax = Ppx_log_syntax

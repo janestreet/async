@@ -185,13 +185,19 @@ module Unix_writer = struct
   ;;
 end
 
-(* unfortunately, copied from reader0.ml *)
-let default_max_message_size = 100 * 1024 * 1024
+let default_max_message_size =
+  Lazy.from_fun (fun () ->
+    match Sys.getenv "ASYNC_RPC_MAX_MESSAGE_SIZE" with
+    | None ->
+      (* unfortunately, copied from reader0.ml *)
+      100 * 1024 * 1024
+    | Some max_message_size -> Int.of_string max_message_size)
+;;
 
 module Reader = struct
   include Kernel_transport.Reader
 
-  let of_reader ?(max_message_size = default_max_message_size) reader =
+  let of_reader ?(max_message_size = force default_max_message_size) reader =
     pack (module Unix_reader) (Unix_reader.create ~reader ~max_message_size)
   ;;
 end
@@ -199,7 +205,7 @@ end
 module Writer = struct
   include Kernel_transport.Writer
 
-  let of_writer ?(max_message_size = default_max_message_size) writer =
+  let of_writer ?(max_message_size = force default_max_message_size) writer =
     pack (module Unix_writer) (Unix_writer.create ~writer ~max_message_size)
   ;;
 end
@@ -235,7 +241,7 @@ module Tcp = struct
         ?backlog
         ?drop_incoming_connections
         ?time_source
-        ?(max_message_size = default_max_message_size)
+        ?(max_message_size = force default_max_message_size)
         ?(make_transport = default_transport_maker)
         ?(auth = fun _ -> true)
         ?(on_handler_error = `Ignore)
@@ -281,7 +287,7 @@ module Tcp = struct
   ;;
 
   let connect
-        ?(max_message_size = default_max_message_size)
+        ?(max_message_size = force default_max_message_size)
         ?(make_transport = default_transport_maker)
         ?(tcp_connect_timeout =
           Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout)
