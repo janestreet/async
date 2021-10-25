@@ -2,3 +2,5 @@
  (libraries async_command async_kernel async_quickcheck async_rpc async_unix
   core_kernel.core ppx_log.types)
  (preprocess (pps ppx_jane)))
+
+(documentation)

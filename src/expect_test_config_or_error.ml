@@ -2,14 +2,14 @@ open Core
 open! Async_kernel
 open! Async_unix
 module IO_run = Deferred.Or_error
+module Expect_test_config = Expect_test_config
 
 module IO_flush = struct
-  include Core.Expect_test_config.IO_flush
+  include Expect_test_config.IO_flush
 
   let to_run t = Deferred.Or_error.return t
 end
 
-let flush () = ()
 let run f = Thread_safe.block_on_async_exn f |> Or_error.ok_exn
 let sanitize s = s
 let flushed () = true

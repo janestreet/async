@@ -39,9 +39,6 @@ let%test "Async library initialization does not initialize the scheduler" =
   Scheduler.is_ready_to_initialize ()
 ;;
 
-module Expect_test_config = Expect_test_config_with_unit_expect
-
-module Expect_test_config_with_unit_expect_or_error =
-  Expect_test_config_with_unit_expect_or_error
-
+module Expect_test_config = Expect_test_config
+module Expect_test_config_or_error = Expect_test_config_or_error
 module Ppx_log_syntax = Ppx_log_syntax
