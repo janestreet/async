@@ -1,7 +1,5 @@
 open Core
 open Import
-module Async_reader = Reader
-module Async_writer = Writer
 module Kernel_transport = Rpc_kernel.Transport
 module Header = Kernel_transport.Header
 module Handler_result = Kernel_transport.Handler_result

@@ -2,7 +2,6 @@ open! Core
 open Poly
 open! Async
 open! Import
-module Debug = Async_kernel_private.Debug
 
 let make_tests ~make_transport ~transport_name =
   List.mapi
@@ -145,7 +144,7 @@ let%test_unit "Open dispatches see connection closed error" =
           (sprintf
              "((rpc_error (Connection_closed (Rpc.Connection.close)))\n\
              \ (connection_description (\"Client connected via TCP\" (localhost %d)))\n\
-             \ (rpc_tag __TEST_Async_rpc.Rpc) (rpc_version 1))"
+             \ (rpc_name __TEST_Async_rpc.Rpc) (rpc_version 1))"
              port)
           (Error.to_string_hum err)
     in
