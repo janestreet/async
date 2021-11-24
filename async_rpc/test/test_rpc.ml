@@ -153,3 +153,179 @@ let%test_unit "Open dispatches see connection closed error" =
     let%bind () = client ~port in
     Tcp.Server.close server)
 ;;
+
+let%test_module "Exception handling" =
+  (module struct
+    let test_exception_handling
+          ?client_received_response
+          ~expect_close_connection
+          ~implementation
+          ~dispatch
+          ~ok_is_expected
+          ~check_error
+          ()
+      =
+      let connection_closed_by_server = Ivar.create () in
+      let serve ~implementation =
+        let implementations =
+          Implementations.create_exn
+            ~implementations:[ implementation ]
+            ~on_unknown_rpc:`Raise
+        in
+        Connection.serve
+          ~initial_connection_state:(fun _ connection ->
+            don't_wait_for
+              (let%map () = Connection.close_finished connection in
+               Ivar.fill connection_closed_by_server ()))
+          ~implementations
+          ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
+          ()
+      in
+      let client ~port =
+        let%bind connection =
+          Connection.client
+            (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+          >>| Result.ok_exn
+        in
+        let res = dispatch connection () in
+        let%bind () = Scheduler.yield_until_no_jobs_remain () in
+        let%bind res = res in
+        Option.iter client_received_response ~f:(Fn.flip Ivar.fill ());
+        if not expect_close_connection
+        then (
+          [%test_pred: unit Ivar.t] Ivar.is_empty connection_closed_by_server;
+          [%test_pred: Connection.t] (Fn.non Connection.is_closed) connection;
+          don't_wait_for (Connection.close connection));
+        (match res with
+         | Ok _ -> assert ok_is_expected
+         | Error err -> check_error err);
+        Connection.close_finished connection
+      in
+      let%bind server = serve ~implementation in
+      Monitor.protect
+        ~finally:(fun () -> Tcp.Server.close server)
+        (fun () ->
+           let port = Tcp.Server.listening_on server in
+           client ~port)
+    ;;
+
+    let location_field_in_error_msg err ~expected =
+      err
+      |> Error.to_string_mach
+      |> Sexp.of_string
+      |> Sexp_select.select "location"
+      |> List.hd
+      |> Option.value ~default:(Error.to_string_hum err |> Sexp.of_string)
+      |> Sexp.to_string_mach
+      |> [%test_eq: string] expected
+    ;;
+
+    let bin_t = Bin_prot.Type_class.bin_unit
+
+    let%expect_test "Regular rpc does not close the connection but returns the error" =
+      let rpc =
+        Rpc.create
+          ~version:1
+          ~name:"__TEST_Async_rpc.Rpc"
+          ~bin_query:bin_t
+          ~bin_response:bin_t
+      in
+      let implementation = Rpc.implement rpc (fun () () -> failwith "Exception") in
+      let dispatch connection () = Rpc.dispatch rpc connection () in
+      let%bind () =
+        test_exception_handling
+          ~expect_close_connection:false
+          ~implementation
+          ~dispatch
+          ~ok_is_expected:false
+          ~check_error:
+            (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
+          ()
+      in
+      [%expect {| |}];
+      Deferred.unit
+    ;;
+
+    let%expect_test "One way rpc closes the connection because it can't return the error" =
+      let rpc =
+        One_way.create ~version:1 ~name:"__TEST_Async_rpc.One_way" ~bin_msg:bin_t
+      in
+      let implementation = One_way.implement rpc (fun () () -> failwith "Exception") in
+      let dispatch connection () =
+        Deferred.Or_error.return (One_way.dispatch rpc connection ())
+      in
+      let%bind () =
+        test_exception_handling
+          ~expect_close_connection:true
+          ~implementation
+          ~dispatch
+          ~ok_is_expected:true
+          ~check_error:(Fn.const ())
+          ()
+      in
+      [%expect {| |}];
+      Deferred.unit
+    ;;
+
+    let%expect_test "Pipe/State rpc does not close the connection, but returns the error" =
+      let rpc =
+        Pipe_rpc.create
+          ~version:1
+          ~name:"__TEST_Async_rpc.Pipe_rpc"
+          ~bin_query:bin_t
+          ~bin_response:bin_t
+          ~bin_error:bin_t
+          ()
+      in
+      let implementation = Pipe_rpc.implement rpc (fun () () -> failwith "Exception") in
+      let dispatch connection () = Pipe_rpc.dispatch rpc connection () in
+      let%bind () =
+        test_exception_handling
+          ~expect_close_connection:false
+          ~implementation
+          ~dispatch
+          ~ok_is_expected:false
+          ~check_error:
+            (location_field_in_error_msg ~expected:{|"server-side pipe_rpc computation"|})
+          ()
+      in
+      [%expect {| |}];
+      Deferred.unit
+    ;;
+
+    let%expect_test "Pipe/State rpc may swallow asynchronous errors and merely log them" =
+      let client_received_response = Ivar.create () in
+      let rpc =
+        Pipe_rpc.create
+          ~version:1
+          ~name:"__TEST_Async_rpc.Pipe_rpc"
+          ~bin_query:bin_t
+          ~bin_response:bin_t
+          ~bin_error:bin_t
+          ()
+      in
+      let implementation =
+        Pipe_rpc.implement rpc (fun () () ->
+          upon (Ivar.read client_received_response) (fun () ->
+            failwith "Asynchronous failure");
+          failwith "Exception")
+      in
+      let dispatch connection () = Pipe_rpc.dispatch rpc connection () in
+      let%bind () =
+        test_exception_handling
+          ~client_received_response
+          ~expect_close_connection:false
+          ~implementation
+          ~dispatch
+          ~ok_is_expected:false
+          ~check_error:
+            (location_field_in_error_msg ~expected:{|"server-side pipe_rpc computation"|})
+          ()
+      in
+      let%bind () = Scheduler.yield_until_no_jobs_remain () in
+      [%expect
+        {| 1969-12-31 19:00:00.000000-05:00 Error ("Exception raised to [Monitor.try_with] that already returned.""This error was captured by a default handler in [Async.Log]."(exn(monitor.ml.Error(Failure"Asynchronous failure")("<backtrace elided in test>")))) |}];
+      Deferred.unit
+    ;;
+  end)
+;;
