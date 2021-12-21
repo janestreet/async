@@ -78,21 +78,29 @@ module Flock : sig
       - implement abortable waiting versions based on polling *)
   type t
 
+  (** [lock_exn ?lock_owner_uid ~lock_path ()] Attempt to take the lock at [lock_path]. It
+      optionally also sets the owner id to [lock_owner_uid]. *)
   val lock_exn
-    :  lock_path:string
+    :  ?lock_owner_uid:int
+    -> lock_path:string
+    -> unit
     -> [`Somebody_else_took_it | `We_took_it of t] Deferred.t
 
   val lock
-    :  lock_path:string
+    :  ?lock_owner_uid:int
+    -> lock_path:string
+    -> unit
     -> [`Somebody_else_took_it | `We_took_it of t] Deferred.Or_error.t
 
   val unlock_exn : t -> unit Deferred.t
   val unlock : t -> unit Deferred.Or_error.t
 
-  (** [wait_for_lock_exn ?abort ~lock_path ()] Wait for the lock, giving up once [abort]
-      becomes determined *)
+  (** [wait_for_lock_exn ?abort ?lock_owner_uid ~lock_path ()] Wait for the lock, giving
+      up once [abort] becomes determined. It optionally also sets the owner id to
+      [lock_owner_uid]. *)
   val wait_for_lock_exn
     :  ?abort:unit Deferred.t (** default is [Deferred.never ()] *)
+    -> ?lock_owner_uid:int
     -> lock_path:string
     -> unit
     -> t Deferred.t
@@ -100,6 +108,7 @@ module Flock : sig
   (** See [wait_for_lock_exn] *)
   val wait_for_lock
     :  ?abort:unit Deferred.t
+    -> ?lock_owner_uid:int
     -> lock_path:string
     -> unit
     -> t Deferred.Or_error.t

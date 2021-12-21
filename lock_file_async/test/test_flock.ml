@@ -6,7 +6,7 @@ let%expect_test "Flock" =
     let lock_path = tempdir ^/ "lock-file" in
     let second_thread_started = Ivar.create () in
     let%bind flock =
-      match%map Lock_file_async.Flock.lock_exn ~lock_path with
+      match%map Lock_file_async.Flock.lock_exn () ~lock_path with
       | `Somebody_else_took_it -> assert false
       | `We_took_it flock ->
         print_endline "original thread took lock";
