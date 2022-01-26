@@ -158,6 +158,7 @@ let%test_module "Exception handling" =
   (module struct
     let test_exception_handling
           ?client_received_response
+          ?use_on_exception
           ~expect_close_connection
           ~implementation
           ~dispatch
@@ -165,11 +166,15 @@ let%test_module "Exception handling" =
           ~check_error
           ()
       =
+      let callback_triggered = Ivar.create () in
       let connection_closed_by_server = Ivar.create () in
-      let serve ~implementation =
+      let serve
+            (on_exception : Async_rpc_kernel.Rpc.On_exception.t option)
+            ~implementation
+        =
         let implementations =
           Implementations.create_exn
-            ~implementations:[ implementation ]
+            ~implementations:[ implementation on_exception ]
             ~on_unknown_rpc:`Raise
         in
         Connection.serve
@@ -188,9 +193,15 @@ let%test_module "Exception handling" =
           >>| Result.ok_exn
         in
         let res = dispatch connection () in
+        let%bind () =
+          if Option.is_none use_on_exception
+          then Deferred.unit
+          else Ivar.read callback_triggered
+        in
         let%bind () = Scheduler.yield_until_no_jobs_remain () in
         let%bind res = res in
         Option.iter client_received_response ~f:(Fn.flip Ivar.fill ());
+        let%bind () = Scheduler.yield_until_no_jobs_remain () in
         if not expect_close_connection
         then (
           [%test_pred: unit Ivar.t] Ivar.is_empty connection_closed_by_server;
@@ -201,7 +212,14 @@ let%test_module "Exception handling" =
          | Error err -> check_error err);
         Connection.close_finished connection
       in
-      let%bind server = serve ~implementation in
+      let on_exception =
+        Option.map use_on_exception ~f:(fun () ->
+          { Async_rpc_kernel.Rpc.On_exception.callback =
+              Some (fun (_ : exn) -> Ivar.fill callback_triggered ())
+          ; close_connection_if_no_return_value = expect_close_connection
+          })
+      in
+      let%bind server = serve on_exception ~implementation in
       Monitor.protect
         ~finally:(fun () -> Tcp.Server.close server)
         (fun () ->
@@ -222,110 +240,262 @@ let%test_module "Exception handling" =
 
     let bin_t = Bin_prot.Type_class.bin_unit
 
-    let%expect_test "Regular rpc does not close the connection but returns the error" =
-      let rpc =
-        Rpc.create
-          ~version:1
-          ~name:"__TEST_Async_rpc.Rpc"
-          ~bin_query:bin_t
-          ~bin_response:bin_t
-      in
-      let implementation = Rpc.implement rpc (fun () () -> failwith "Exception") in
-      let dispatch connection () = Rpc.dispatch rpc connection () in
-      let%bind () =
-        test_exception_handling
-          ~expect_close_connection:false
+    let test_exception_handling_using_on_exception
+          ?client_received_response
           ~implementation
           ~dispatch
-          ~ok_is_expected:false
-          ~check_error:
-            (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
+          ~ok_is_expected
+          ~check_error
+          ()
+      =
+      let f ~expect_close_connection =
+        test_exception_handling
+          ?client_received_response
+          ~use_on_exception:()
+          ~expect_close_connection
+          ~implementation
+          ~dispatch
+          ~ok_is_expected
+          ~check_error
           ()
       in
-      [%expect {| |}];
-      Deferred.unit
+      let%bind () = f ~expect_close_connection:false in
+      f ~expect_close_connection:true
     ;;
 
-    let%expect_test "One way rpc closes the connection because it can't return the error" =
-      let rpc =
-        One_way.create ~version:1 ~name:"__TEST_Async_rpc.One_way" ~bin_msg:bin_t
-      in
-      let implementation = One_way.implement rpc (fun () () -> failwith "Exception") in
-      let dispatch connection () =
-        Deferred.Or_error.return (One_way.dispatch rpc connection ())
-      in
-      let%bind () =
-        test_exception_handling
-          ~expect_close_connection:true
-          ~implementation
-          ~dispatch
-          ~ok_is_expected:true
-          ~check_error:(Fn.const ())
-          ()
-      in
-      [%expect {| |}];
-      Deferred.unit
+    let%test_module "RPC" =
+      (module struct
+        let rpc =
+          Rpc.create
+            ~version:1
+            ~name:"__TEST_Async_rpc.Rpc"
+            ~bin_query:bin_t
+            ~bin_response:bin_t
+        ;;
+
+        let implementation on_exception =
+          Rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
+        ;;
+
+        let dispatch connection () = Rpc.dispatch rpc connection ()
+
+        let%expect_test "Regular rpc does not close the connection but returns the error" =
+          let%bind () =
+            test_exception_handling
+              ~expect_close_connection:false
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:false
+              ~check_error:
+                (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "Regular rpc honors On_exception.t" =
+          let%bind () =
+            test_exception_handling_using_on_exception
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:false
+              ~check_error:
+                (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+      end)
     ;;
 
-    let%expect_test "Pipe/State rpc does not close the connection, but returns the error" =
-      let rpc =
-        Pipe_rpc.create
-          ~version:1
-          ~name:"__TEST_Async_rpc.Pipe_rpc"
-          ~bin_query:bin_t
-          ~bin_response:bin_t
-          ~bin_error:bin_t
-          ()
-      in
-      let implementation = Pipe_rpc.implement rpc (fun () () -> failwith "Exception") in
-      let dispatch connection () = Pipe_rpc.dispatch rpc connection () in
-      let%bind () =
-        test_exception_handling
-          ~expect_close_connection:false
-          ~implementation
-          ~dispatch
-          ~ok_is_expected:false
-          ~check_error:
-            (location_field_in_error_msg ~expected:{|"server-side pipe_rpc computation"|})
-          ()
-      in
-      [%expect {| |}];
-      Deferred.unit
+    let%test_module "ONE-WAY" =
+      (module struct
+        let rpc =
+          One_way.create ~version:1 ~name:"__TEST_Async_rpc.One_way" ~bin_msg:bin_t
+        ;;
+
+        let implementation on_exception =
+          One_way.implement ?on_exception rpc (fun () () -> failwith "Exception")
+        ;;
+
+        let dispatch connection () =
+          Deferred.Or_error.return (One_way.dispatch rpc connection ())
+        ;;
+
+        let%expect_test "One way rpc closes the connection because it can't return the \
+                         error"
+          =
+          let%bind () =
+            test_exception_handling
+              ~expect_close_connection:true
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:true
+              ~check_error:(Fn.const ())
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "One way rpc honors On_exception.t" =
+          let%bind () =
+            test_exception_handling_using_on_exception
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:true
+              ~check_error:(Fn.const ())
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+      end)
     ;;
 
-    let%expect_test "Pipe/State rpc may swallow asynchronous errors and merely log them" =
-      let client_received_response = Ivar.create () in
-      let rpc =
-        Pipe_rpc.create
-          ~version:1
-          ~name:"__TEST_Async_rpc.Pipe_rpc"
-          ~bin_query:bin_t
-          ~bin_response:bin_t
-          ~bin_error:bin_t
-          ()
-      in
-      let implementation =
-        Pipe_rpc.implement rpc (fun () () ->
-          upon (Ivar.read client_received_response) (fun () ->
-            failwith "Asynchronous failure");
-          failwith "Exception")
-      in
-      let dispatch connection () = Pipe_rpc.dispatch rpc connection () in
-      let%bind () =
-        test_exception_handling
-          ~client_received_response
-          ~expect_close_connection:false
-          ~implementation
-          ~dispatch
-          ~ok_is_expected:false
-          ~check_error:
-            (location_field_in_error_msg ~expected:{|"server-side pipe_rpc computation"|})
-          ()
-      in
-      let%bind () = Scheduler.yield_until_no_jobs_remain () in
-      [%expect
-        {| 1969-12-31 19:00:00.000000-05:00 Error ("Exception raised to [Monitor.try_with] that already returned.""This error was captured by a default handler in [Async.Log]."(exn(monitor.ml.Error(Failure"Asynchronous failure")("<backtrace elided in test>")))) |}];
-      Deferred.unit
+    let%test_module "PIPE/STATE" =
+      (module struct
+        let rpc =
+          Pipe_rpc.create
+            ~version:1
+            ~name:"__TEST_Async_rpc.Pipe_rpc"
+            ~bin_query:bin_t
+            ~bin_response:bin_t
+            ~bin_error:bin_t
+            ()
+        ;;
+
+        let implementation on_exception =
+          Pipe_rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
+        ;;
+
+        let dispatch connection () = Pipe_rpc.dispatch rpc connection ()
+
+        let%expect_test "Pipe/State rpc does not close the connection, but returns the \
+                         error"
+          =
+          let%bind () =
+            test_exception_handling
+              ~expect_close_connection:false
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:false
+              ~check_error:
+                (location_field_in_error_msg
+                   ~expected:{|"server-side pipe_rpc computation"|})
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "Pipe/State rpc honors On_exception.t when it raises immediately" =
+          Thread_safe.block_on_async_exn (fun () ->
+            test_exception_handling_using_on_exception
+              ~implementation
+              ~dispatch
+              ~ok_is_expected:false
+              ~check_error:
+                (location_field_in_error_msg
+                   ~expected:{|"server-side pipe_rpc computation"|})
+              ());
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let rpc =
+          Pipe_rpc.create
+            ~version:1
+            ~name:"__TEST_Async_rpc.Pipe_rpc"
+            ~bin_query:bin_t
+            ~bin_response:bin_t
+            ~bin_error:bin_t
+            ()
+        ;;
+
+        let implementation client_received_response on_exception =
+          Pipe_rpc.implement ?on_exception rpc (fun () () ->
+            upon (Ivar.read client_received_response) (fun () ->
+              failwith "Asynchronous failure");
+            failwith "Exception")
+        ;;
+
+        let dispatch connection () = Pipe_rpc.dispatch rpc connection ()
+
+        let%expect_test "Pipe/State rpc may swallow asynchronous errors and merely log \
+                         them"
+          =
+          let%bind () =
+            let client_received_response = Ivar.create () in
+            let%bind () =
+              test_exception_handling
+                ~client_received_response
+                ~expect_close_connection:false
+                ~implementation:(implementation client_received_response)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side pipe_rpc computation"|})
+                ()
+            in
+            Scheduler.yield_until_no_jobs_remain ()
+          in
+          [%expect
+            {| 1969-12-31 19:00:00.000000-05:00 Error ("Exception raised to [Monitor.try_with] that already returned.""This error was captured by a default handler in [Async.Log]."(exn(monitor.ml.Error(Failure"Asynchronous failure")("<backtrace elided in test>")))) |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "Pipe/State rpc honors On_exception.t for async errors: don't \
+                         close connection"
+          =
+          let%bind () =
+            let client_received_response = Ivar.create () in
+            let%bind () =
+              test_exception_handling
+                ~use_on_exception:()
+                ~client_received_response
+                ~expect_close_connection:false
+                ~implementation:(implementation client_received_response)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side pipe_rpc computation"|})
+                ()
+            in
+            Scheduler.yield_until_no_jobs_remain ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "Pipe/State rpc honors On_exception.t for async errors: close \
+                         connection"
+          =
+          let%bind () =
+            let client_received_response = Ivar.create () in
+            let%bind () =
+              test_exception_handling
+                ~use_on_exception:()
+                ~client_received_response
+                ~expect_close_connection:true
+                ~implementation:(implementation client_received_response)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side pipe_rpc computation"|})
+                ()
+            in
+            Scheduler.yield_until_no_jobs_remain ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+      end)
     ;;
   end)
 ;;

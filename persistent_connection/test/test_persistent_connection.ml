@@ -45,13 +45,14 @@ let%expect_test _ =
     Host_and_port.create ~host:"localhost" ~port:(Tcp.Server.listening_on server)
   in
   (* test Persistent_connection.Rpc *)
-  let on_unversioned_event : Persistent_connection.Rpc.Event.t -> unit Deferred.t
+  let on_unversioned_event
+    : Host_and_port.t Persistent_connection.Rpc.Event.t -> unit Deferred.t
     = function
       | Obtained_address _ ->
         printf "(Obtained_address <elided>)\n";
         return ()
       | event ->
-        print_s [%sexp (event : Persistent_connection.Rpc.Event.t)];
+        print_s [%sexp (event : Host_and_port.t Persistent_connection.Rpc.Event.t)];
         return ()
   in
   let unversioned_conn =
@@ -71,13 +72,15 @@ let%expect_test _ =
   let%bind () = Persistent_connection.Rpc.close unversioned_conn in
   [%expect {| Disconnected |}];
   (* test Persistent_connection.Versioned_rpc *)
-  let on_versioned_event : Persistent_connection.Versioned_rpc.Event.t -> unit Deferred.t
+  let on_versioned_event
+    : Host_and_port.t Persistent_connection.Versioned_rpc.Event.t -> unit Deferred.t
     = function
       | Obtained_address _ ->
         printf "(Obtained_address <elided>)\n";
         return ()
       | event ->
-        print_s [%sexp (event : Persistent_connection.Versioned_rpc.Event.t)];
+        print_s
+          [%sexp (event : Host_and_port.t Persistent_connection.Versioned_rpc.Event.t)];
         return ()
   in
   let versioned_conn =

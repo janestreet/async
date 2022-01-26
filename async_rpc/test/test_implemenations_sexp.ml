@@ -17,7 +17,8 @@ let%expect_test "implementation sexp is useful" =
     ((tag rpc) (version 1) (f rpc)
      (shapes
       ((query 86ba5df747eec837f0b391dd49f33f9e)
-       (response 698cfa4093fe5e51523842d37b92aeac))))|}];
+       (response 698cfa4093fe5e51523842d37b92aeac)))
+     (on_exception ((close_connection_if_no_return_value false))))|}];
   let rpc =
     Rpc.State_rpc.create
       ~version:1
@@ -37,7 +38,8 @@ let%expect_test "implementation sexp is useful" =
       ((query 86ba5df747eec837f0b391dd49f33f9e)
        (initial-response 698cfa4093fe5e51523842d37b92aeac)
        (update-response d9a8da25d5656b016fb4dbdc2e4197fb)
-       (error 86ba5df747eec837f0b391dd49f33f9e))))|}];
+       (error 86ba5df747eec837f0b391dd49f33f9e)))
+     (on_exception ((close_connection_if_no_return_value false))))|}];
   let rpc =
     Rpc.One_way.create ~version:1 ~name:"one-way" ~bin_msg:Bin_prot.Type_class.bin_unit
   in
@@ -46,6 +48,7 @@ let%expect_test "implementation sexp is useful" =
   [%expect
     {|
     ((tag one-way) (version 1) (f one-way)
-     (shapes ((msg 86ba5df747eec837f0b391dd49f33f9e))))|}];
+     (shapes ((msg 86ba5df747eec837f0b391dd49f33f9e)))
+     (on_exception ((close_connection_if_no_return_value true))))|}];
   Deferred.unit
 ;;

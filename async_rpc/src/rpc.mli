@@ -11,6 +11,7 @@ module Transport = Rpc_transport
 module Low_latency_transport = Rpc_transport_low_latency
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
+module On_exception = Rpc_kernel.On_exception
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
 module One_way = Rpc_kernel.One_way
