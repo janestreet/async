@@ -37,7 +37,7 @@ module Connection : sig
     :  ?implementations:'s Implementations.t
     -> connection_state:(t -> 's)
     -> ?max_message_size:int
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> Reader.t
@@ -57,7 +57,7 @@ module Connection : sig
   val with_close
     :  ?implementations:'s Implementations.t
     -> ?max_message_size:int
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> connection_state:(t -> 's)
@@ -69,7 +69,7 @@ module Connection : sig
 
   val server_with_close
     :  ?max_message_size:int
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> Reader.t
@@ -93,12 +93,6 @@ module Connection : sig
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
 
-  type on_handshake_error =
-    [ `Raise
-    | `Ignore
-    | `Call of Exn.t -> unit
-    ]
-
   (** [serve implementations ~port ?on_handshake_error ()] starts a server with the given
       implementation on [port].  The optional auth function will be called on all incoming
       connections with the address info of the client and will disconnect the client
@@ -116,10 +110,11 @@ module Connection : sig
     -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?auth:('address -> bool) (** default is [`Ignore] *)
-    -> ?on_handshake_error:on_handshake_error (** default is [`Ignore] *)
+    -> ?on_handshake_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
+    (** default is [`Ignore] *)
     -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
@@ -136,10 +131,12 @@ module Connection : sig
     -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?auth:(Socket.Address.Inet.t -> bool) (** default is [`Ignore] *)
-    -> ?on_handshake_error:on_handshake_error (** default is [`Ignore] *)
+    -> ?on_handshake_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
+    (** default is [`Ignore] *)
     -> ?on_handler_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> unit
@@ -155,7 +152,7 @@ module Connection : sig
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> _ Tcp.Where_to_connect.t
@@ -167,7 +164,7 @@ module Connection : sig
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> 'address Tcp.Where_to_connect.t
@@ -183,7 +180,7 @@ module Connection : sig
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> _ Tcp.Where_to_connect.t
     -> (t -> 'a Deferred.t)
@@ -195,7 +192,7 @@ module Connection : sig
     :  ?implementations:_ Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
     -> 'transport Tcp.Where_to_connect.t

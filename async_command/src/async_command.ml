@@ -2,7 +2,8 @@ open Core
 open Import
 include Core.Command
 
-type 'a with_options = ?extract_exn:bool -> 'a
+
+type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> 'a
 
 let shutdown_with_error e =
   Caml.at_exit (fun () ->
@@ -42,8 +43,9 @@ let maybe_print_error_and_shutdown = function
    These two behavior changes seem fine for servers as well (where stdout/stderr should
    contain almost nothing, or even be /dev/null), so we make them all the time.
 *)
-let in_async ?extract_exn param on_result =
+let in_async ?(behave_nicely_in_pipeline = false) ?extract_exn param on_result =
   Param.map param ~f:(fun staged_main () ->
+    if behave_nicely_in_pipeline then Writer.behave_nicely_in_pipeline ();
     let main = Or_error.try_with (fun () -> unstage (staged_main ())) in
     match main with
     | Error e ->
@@ -71,10 +73,8 @@ let in_async ?extract_exn param on_result =
              [ prev (); (before_shutdown () >>= fun () -> after (sec 1.)) ]);
       upon
         (Deferred.Or_error.try_with
-           ~run:
-             `Schedule
-           ~rest:
-             `Log
+           ~run:`Schedule
+           ~rest:`Log
            ?extract_exn
            (fun () -> main `Scheduler_started))
         on_result;
@@ -84,39 +84,78 @@ let in_async ?extract_exn param on_result =
 type 'r staged = ([ `Scheduler_started ] -> 'r) Staged.t
 
 module Staged = struct
-  let async ?extract_exn ~summary ?readme param =
+  let async ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme param =
     let on_result = maybe_print_error_and_shutdown in
-    basic ~summary ?readme (in_async ?extract_exn param on_result)
+    basic
+      ~summary
+      ?readme
+      (in_async ?behave_nicely_in_pipeline ?extract_exn param on_result)
   ;;
 
-  let async_spec ?extract_exn ~summary ?readme spec main =
-    async ?extract_exn ~summary ?readme (Spec.to_param spec main)
+  let async_spec ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme spec main =
+    async
+      ?behave_nicely_in_pipeline
+      ?extract_exn
+      ~summary
+      ?readme
+      (Spec.to_param spec main)
   ;;
 
-  let async_or_error ?extract_exn ~summary ?readme param =
+  let async_or_error ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme param =
     let on_result res = maybe_print_error_and_shutdown (Or_error.join res) in
-    basic ~summary ?readme (in_async ?extract_exn param on_result)
+    basic
+      ~summary
+      ?readme
+      (in_async ?behave_nicely_in_pipeline ?extract_exn param on_result)
   ;;
 
-  let async_spec_or_error ?extract_exn ~summary ?readme spec main =
-    async_or_error ?extract_exn ~summary ?readme (Spec.to_param spec main)
+  let async_spec_or_error
+        ?behave_nicely_in_pipeline
+        ?extract_exn
+        ~summary
+        ?readme
+        spec
+        main
+    =
+    async_or_error
+      ?behave_nicely_in_pipeline
+      ?extract_exn
+      ~summary
+      ?readme
+      (Spec.to_param spec main)
   ;;
 end
 
 let stage_param = Param.map ~f:(fun main () -> stage (fun `Scheduler_started -> main ()))
 
-let async ?extract_exn ~summary ?readme param =
-  Staged.async ?extract_exn ~summary ?readme (stage_param param)
+let async ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme param =
+  Staged.async
+    ?behave_nicely_in_pipeline
+    ?extract_exn
+    ~summary
+    ?readme
+    (stage_param param)
 ;;
 
-let async_or_error ?extract_exn ~summary ?readme param =
-  Staged.async_or_error ?extract_exn ~summary ?readme (stage_param param)
+let async_or_error ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme param =
+  Staged.async_or_error
+    ?behave_nicely_in_pipeline
+    ?extract_exn
+    ~summary
+    ?readme
+    (stage_param param)
 ;;
 
-let async_spec ?extract_exn ~summary ?readme spec main =
-  async ?extract_exn ~summary ?readme (Spec.to_param spec main)
+let async_spec ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme spec main =
+  async ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme (Spec.to_param spec main)
 ;;
 
-let async_spec_or_error ?extract_exn ~summary ?readme spec main =
-  async_or_error ?extract_exn ~summary ?readme (Spec.to_param spec main)
+let async_spec_or_error ?behave_nicely_in_pipeline ?extract_exn ~summary ?readme spec main
+  =
+  async_or_error
+    ?behave_nicely_in_pipeline
+    ?extract_exn
+    ~summary
+    ?readme
+    (Spec.to_param spec main)
 ;;

@@ -63,6 +63,14 @@ module Reader : sig
     val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
     val transport_reader : t -> transport_reader
 
+    (** This function is like [Rpc_kernel.Transport.Reader.read_one_message_bin_prot]
+        but does not to read more bytes than the single bin prot message from the
+        underlying fd. *)
+    val read_one_message_bin_prot_without_buffering
+      :  t
+      -> 'a Bin_prot.Type_class.reader
+      -> ('a, [ `Closed | `Eof ]) Result.t Deferred.t
+
     val peek_bin_prot
       :  t
       -> 'a Bin_prot.Type_class.reader

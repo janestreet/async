@@ -35,10 +35,12 @@ let () =
     | "upon" -> false
     | _ -> failwith "must specify either 'fill' or 'upon'"
   in
-  let start = Time.now () in
+  let start = Time_float.now () in
   upon (run_test ~fill_before_upon ~no_ivars ~spawn_factor) (fun () ->
-    let stop = Time.now () in
-    Core.Printf.printf "elapsed time: %s\n" (Time.Span.to_string (Time.diff stop start));
+    let stop = Time_float.now () in
+    Core.Printf.printf
+      "elapsed time: %s\n"
+      (Time_float.Span.to_string (Time_float.diff stop start));
     Shutdown.shutdown 0);
   never_returns (Scheduler.go ())
 ;;

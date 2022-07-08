@@ -22,8 +22,7 @@ module Configure (Config : Quickcheck.Quickcheck_config) = struct
       | Some sexp_of_arg ->
         fun x ->
           Deferred.Or_error.try_with
-            ~run:
-              `Schedule
+            ~run:`Schedule
             ~rest:`Log
             ~extract_exn:true
             (fun () -> f x)

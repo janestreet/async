@@ -27,10 +27,10 @@ let run_test () =
 ;;
 
 let () =
-  let start = Time.now () in
+  let start = Time_float.now () in
   upon (run_test ()) (fun () ->
-    let stop = Time.now () in
-    printf "elapsed time: %s\n" (Time.Span.to_string (Time.diff stop start));
+    let stop = Time_float.now () in
+    printf "elapsed time: %s\n" (Time_float.Span.to_string (Time_float.diff stop start));
     Shutdown.shutdown 0);
   never_returns (Scheduler.go ())
 ;;

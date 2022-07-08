@@ -8,7 +8,7 @@ include module type of struct
   include Core.Command
 end
 
-type 'a with_options = ?extract_exn:bool -> 'a
+type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> 'a
 
 (** [async] is like [Core.Command.basic], except that the main function it expects returns
     [unit Deferred.t], instead of [unit].  [async] will also start the Async scheduler
@@ -17,7 +17,10 @@ type 'a with_options = ?extract_exn:bool -> 'a
     [async] also handles top-level exceptions by wrapping the user-supplied function in a
     [Monitor.try_with]. If an exception is raised, it will print it to stderr and call
     [shutdown 1]. The [extract_exn] argument is passed along to [Monitor.try_with]; by
-    default it is [false]. *)
+    default it is [false].
+
+    If [behave_nicely_in_pipeline] is true, then [Writer.behave_nicely_in_pipeline ()]
+    is called when the command starts. Its default is [false]. *)
 val async : unit Deferred.t basic_command with_options
 
 val async_spec : ('a, unit Deferred.t) basic_spec_command with_options

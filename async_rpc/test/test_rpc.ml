@@ -22,16 +22,20 @@ let make_tests ~make_transport ~transport_name =
         | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
-       test1 ~make_transport ~imp:[ pipe_wait_imp ivar ] ~state:() ~f:(fun conn1 conn2 ->
-         (* Test that the pipe is flushed when the connection is closed. *)
-         let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 () in
-         let%bind res = Pipe.read pipe_r in
-         assert (res = `Ok ());
-         don't_wait_for (Rpc.Connection.close conn1);
-         Ivar.fill ivar ();
-         let%bind res = Pipe.read pipe_r in
-         assert (res = `Ok ());
-         Deferred.unit))
+       test1
+         ~make_transport
+         ~imp:[ pipe_wait_imp ivar ]
+         ~state:()
+         ~f:(fun conn1 conn2 ->
+           (* Test that the pipe is flushed when the connection is closed. *)
+           let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 () in
+           let%bind res = Pipe.read pipe_r in
+           assert (res = `Ok ());
+           don't_wait_for (Rpc.Connection.close conn1);
+           Ivar.fill ivar ();
+           let%bind res = Pipe.read pipe_r in
+           assert (res = `Ok ());
+           Deferred.unit))
     ]
 ;;
 
@@ -73,8 +77,7 @@ let%expect_test "[Connection.create] shouldn't raise" =
   let result =
     Deferred.create (fun ivar ->
       Monitor.try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         (fun () ->
            Rpc.Connection.create

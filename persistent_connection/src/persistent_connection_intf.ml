@@ -15,7 +15,7 @@ module type S = sig
         written there as well, with a "persistent-connection-to" tag value of
         [server_name], which should be the name of the server we are connecting to. *)
     -> ?on_event:('address Event.t -> unit Deferred.t)
-    -> ?retry_delay:(unit -> Time.Span.t)
+    -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
     (** If a [~random_state] is supplied, randomization is applied to the result of
         [retry_delay] after each call; if not, no randomization will be applied. The
@@ -39,14 +39,14 @@ module type S_rpc = sig
     :  server_name:string
     -> ?log:Log.t
     -> ?on_event:(Host_and_port.t Event.t -> unit Deferred.t)
-    -> ?retry_delay:(unit -> Time.Span.t)
+    -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
     -> ?time_source:Time_source.t
     -> ?bind_to_address:Unix.Inet_addr.t
     -> ?implementations:_ Rpc.Connection.Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:Rpc.Connection.transport_maker
-    -> ?handshake_timeout:Time.Span.t
+    -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Rpc.Connection.Heartbeat_config.t
     -> (unit -> Host_and_port.t Or_error.t Deferred.t)
     -> t

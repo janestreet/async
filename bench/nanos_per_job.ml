@@ -6,16 +6,16 @@ let () =
     Gc.compact ();
     Deferred.create (fun finished ->
       let num_jobs = ref 0 in
-      let start = Time.now () in
+      let start = Time_float.now () in
       upon
         (after (sec 5.))
         (fun () ->
-           let elapsed = Time.diff (Time.now ()) start in
+           let elapsed = Time_float.diff (Time_float.now ()) start in
            Core.eprintf
              "num_live_jobs: %7d  nanos per job: %d\n%!"
              num_live_jobs
              (Float.iround_nearest_exn
-                (Time.Span.to_ns elapsed /. Float.of_int !num_jobs));
+                (Time_float.Span.to_ns elapsed /. Float.of_int !num_jobs));
            Ivar.fill finished ());
       for _ = 1 to num_live_jobs do
         let rec loop () =

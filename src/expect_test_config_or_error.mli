@@ -15,8 +15,4 @@
     terminate with [return ()]. *)
 
 open! Async_kernel
-
-include
-  Expect_test_config_types.S
-  with type 'a IO_flush.t = 'a
-  with type 'a IO_run.t = 'a Deferred.Or_error.t
+include Expect_test_config_types.S with type 'a IO.t = 'a Deferred.Or_error.t

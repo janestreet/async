@@ -144,41 +144,6 @@ module Reader_internal = struct
   let is_closed t = t.closed
   let close_finished t = Ivar.read t.close_finished
 
-  (* Shift remaining unconsumed data to the beginning of the buffer *)
-  let shift_unconsumed t =
-    if t.pos > 0
-    then (
-      let len = t.max - t.pos in
-      if len > 0 then Bigstring.blit ~src:t.buf ~dst:t.buf ~src_pos:t.pos ~dst_pos:0 ~len;
-      t.pos <- 0;
-      t.max <- len)
-  ;;
-
-  let refill t =
-    shift_unconsumed t;
-    let result =
-      Bigstring_unix.read_assume_fd_is_nonblocking
-        (Fd.file_descr_exn t.fd)
-        t.buf
-        ~pos:t.max
-        ~len:(Bigstring.length t.buf - t.max)
-    in
-    if Unix.Syscall_result.Int.is_ok result
-    then (
-      match Unix.Syscall_result.Int.ok_exn result with
-      | 0 -> `Eof
-      | n ->
-        assert (n > 0);
-        t.max <- t.max + n;
-        `Read_some)
-    else (
-      match Unix.Syscall_result.Int.error_exn result with
-      | EAGAIN | EWOULDBLOCK | EINTR -> `Nothing_available
-      | EPIPE | ECONNRESET | EHOSTUNREACH | ENETDOWN | ENETRESET | ENETUNREACH | ETIMEDOUT
-        -> `Eof
-      | error -> raise (Unix.Unix_error (error, "read", "")))
-  ;;
-
   (* To avoid allocating options in a relatively safe way. *)
   module Message_len : sig
     type t = private int
@@ -222,9 +187,75 @@ module Reader_internal = struct
     else Message_len.none
   ;;
 
+  let get_minimal_length_to_read_for_single_message t =
+    let pos = t.pos in
+    let available = t.max - pos in
+    if available < Header.length
+    then Header.length - available
+    else (
+      let payload_len = Header.unsafe_get_payload_length t.buf ~pos in
+      let total_len = payload_len + Header.length in
+      if available < total_len
+      then total_len - available
+      else
+        (* This will never happen because we only call this function from [refill] which
+           is only called from [process_incoming]. [process_received_messages], which is
+           always called before calling [process_incoming], either consumes all the
+           messages that are in the buffer or interrupts the reader. *)
+        raise_s
+          [%message
+            "BUG: Rpc.Low_latency_transport's reader has buffered messages that are \
+             unprocessed."])
+  ;;
+
+  (* Shift remaining unconsumed data to the beginning of the buffer *)
+  let shift_unconsumed t =
+    if t.pos > 0
+    then (
+      let len = t.max - t.pos in
+      if len > 0 then Bigstring.blit ~src:t.buf ~dst:t.buf ~src_pos:t.pos ~dst_pos:0 ~len;
+      t.pos <- 0;
+      t.max <- len)
+  ;;
+
+  let refill t ~allow_buffering =
+    shift_unconsumed t;
+    let available_buffer_capacity = Bigstring.length t.buf - t.max in
+    let len =
+      if allow_buffering
+      then available_buffer_capacity
+      else
+        Int.min
+          (get_minimal_length_to_read_for_single_message t)
+          available_buffer_capacity
+    in
+    let result =
+      Bigstring_unix.read_assume_fd_is_nonblocking
+        (Fd.file_descr_exn t.fd)
+        t.buf
+        ~pos:t.max
+        ~len
+    in
+    if Unix.Syscall_result.Int.is_ok result
+    then (
+      match Unix.Syscall_result.Int.ok_exn result with
+      | 0 -> `Eof
+      | n ->
+        assert (n > 0);
+        t.max <- t.max + n;
+        `Read_some)
+    else (
+      match Unix.Syscall_result.Int.error_exn result with
+      | EAGAIN | EWOULDBLOCK | EINTR -> `Nothing_available
+      | EPIPE | ECONNRESET | EHOSTUNREACH | ENETDOWN | ENETRESET | ENETUNREACH | ETIMEDOUT
+        -> `Eof
+      | error -> raise (Unix.Unix_error (error, "read", "")))
+  ;;
+
   module Dispatcher : sig
     val run
       :  t
+      -> allow_buffering:bool
       -> on_message:(Bigstring.t -> pos:int -> len:int -> 'a Handler_result.t)
       -> on_end_of_batch:(unit -> unit)
       -> read_or_peek:[ `Peek | `Read ]
@@ -295,10 +326,10 @@ module Reader_internal = struct
         else t.on_end_of_batch ())
     ;;
 
-    let process_incoming t ~read_or_peek =
+    let process_incoming t ~allow_buffering ~read_or_peek =
       if can_process_message t
       then (
-        match refill t.reader with
+        match refill t.reader ~allow_buffering with
         | `Eof -> interrupt t Eof_reached
         | `Nothing_available -> ()
         | `Read_some -> process_received_messages t ~read_or_peek)
@@ -313,7 +344,7 @@ module Reader_internal = struct
         Monitor.send_exn parent exn)
     ;;
 
-    let rec run reader ~on_message ~on_end_of_batch ~read_or_peek =
+    let rec run reader ~allow_buffering ~on_message ~on_end_of_batch ~read_or_peek =
       let t =
         { reader
         ; interrupt = Ivar.create ()
@@ -343,7 +374,7 @@ module Reader_internal = struct
             ~interrupt
             t.reader.fd
             `Read
-            (process_incoming ~read_or_peek)
+            (process_incoming ~allow_buffering ~read_or_peek)
             t)
       with
       | `Bad_fd | `Unsupported ->
@@ -365,7 +396,7 @@ module Reader_internal = struct
            let%bind () = d in
            if reader.closed
            then return (Error `Closed)
-           else run reader ~on_message ~on_end_of_batch ~read_or_peek)
+           else run reader ~allow_buffering ~on_message ~on_end_of_batch ~read_or_peek)
     ;;
 
     let peek_once_without_buffering_from_socket reader ~on_message ~len =
@@ -466,12 +497,35 @@ module Reader_internal = struct
       (fun () -> dispatcher_impl ())
   ;;
 
-  let read_forever t ~on_message ~on_end_of_batch =
+  let read_forever' t ~allow_buffering ~on_message ~on_end_of_batch =
     read_or_peek_dispatcher
       t
       ~dispatcher_impl:(fun () ->
-        Dispatcher.run t ~on_message ~on_end_of_batch ~read_or_peek:`Read)
+        Dispatcher.run t ~allow_buffering ~on_message ~on_end_of_batch ~read_or_peek:`Read)
       ~caller_name:"Rpc_transport_low_latency.Reader_internal.read_forever"
+  ;;
+
+  let read_forever = read_forever' ~allow_buffering:true
+
+  let read_one_message_bin_prot_without_buffering
+        t
+        (bin_reader : _ Bin_prot.Type_class.reader)
+    =
+    read_forever'
+      t
+      ~allow_buffering:false
+      ~on_message:(fun buf ~pos ~len ->
+        let pos_ref = ref pos in
+        let x = bin_reader.read buf ~pos_ref in
+        if !pos_ref <> pos + len
+        then
+          failwithf
+            "message length (%d) did not match expected length (%d)"
+            (!pos_ref - pos)
+            len
+            ()
+        else Stop x)
+      ~on_end_of_batch:ignore
   ;;
 
   let peek_bin_prot t (bin_reader : _ Bin_prot.Type_class.reader) =
@@ -490,7 +544,12 @@ module Reader_internal = struct
     read_or_peek_dispatcher
       t
       ~dispatcher_impl:(fun () ->
-        Dispatcher.run t ~on_message ~on_end_of_batch:ignore ~read_or_peek:`Peek)
+        Dispatcher.run
+          t
+          ~allow_buffering:true
+          ~on_message
+          ~on_end_of_batch:ignore
+          ~read_or_peek:`Peek)
       ~caller_name:"Rpc_transport_low_latency.Reader_internal.peek_bin_prot"
   ;;
 
@@ -932,6 +991,12 @@ module Reader = struct
 
     let create = make_create create_internal
     let transport_reader t = t.reader
+
+    let read_one_message_bin_prot_without_buffering t bin_reader =
+      Reader_internal.read_one_message_bin_prot_without_buffering
+        t.internal_reader
+        bin_reader
+    ;;
 
     let peek_bin_prot t bin_reader =
       Reader_internal.peek_bin_prot t.internal_reader bin_reader

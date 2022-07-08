@@ -9,7 +9,7 @@ let main () =
       `Sexp
       ~basename:"/tmp/log_test/messages"
       (Rotation.create
-         ~time:(Time.Ofday.create ~hr:13 ~min:47 ())
+         ~time:(Time_float.Ofday.create ~hr:13 ~min:47 ())
          ~keep:(`At_least 3)
          ~naming_scheme:`Numbered
          ())

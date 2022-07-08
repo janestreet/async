@@ -55,7 +55,7 @@ let server_cmd =
                   ~on_handshake_error:`Ignore)
          in
          ignore (server : (_, _) Tcp.Server.t Deferred.t);
-         Clock.every (Time.Span.of_sec 5.) (fun () ->
+         Clock.every (Time_float.Span.of_sec 5.) (fun () ->
            let num_queries = !query_counter in
            if num_queries = 0
            then print_endline "(no queries)"

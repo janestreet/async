@@ -4,7 +4,7 @@ open! Async
 open Rpc
 
 let () =
-  if Time.Span.( > ) (Scheduler.event_precision ()) (Time.Span.of_us 1.)
+  if Time_float.Span.( > ) (Scheduler.event_precision ()) (Time_float.Span.of_us 1.)
   then (
     Core.eprintf
       {|%s: you need to run this program with:

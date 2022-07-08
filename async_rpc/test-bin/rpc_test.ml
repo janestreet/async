@@ -59,18 +59,18 @@ module Pipe_simple_test = struct
         in
         let reader, writer = Pipe.create () in
         let total_msgs = ref 0 in
-        let start = Time.now () in
+        let start = Time_float.now () in
         Pipe.set_size_budget reader 1000;
         let string = String.init bytes ~f:(fun _ -> 'A') in
         let stop = Pipe.closed writer in
-        Clock.every ~stop (Time.Span.of_sec 1.) (fun () ->
+        Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
           Log.Global.printf "Queue size: %d" (Pipe.length reader));
-        Clock.every ~stop (Time.Span.of_sec 1.) (fun () ->
+        Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
           Log.Global.printf
             "Messages per sec: %f"
             (Float.of_int !total_msgs
-             /. Time.Span.to_sec (Time.diff (Time.now ()) start)));
-        let prev = ref (Time.now ()) in
+             /. Time_float.Span.to_sec (Time_float.diff (Time_float.now ()) start)));
+        let prev = ref (Time_float.now ()) in
         let () =
           match t with
           | None ->
@@ -82,10 +82,10 @@ module Pipe_simple_test = struct
             in
             loop ()
           | Some t ->
-            Clock.every' ~stop (Time.Span.of_sec 1.) (fun () ->
+            Clock.every' ~stop (Time_float.Span.of_sec 1.) (fun () ->
               let msgs =
-                let new_time = Time.now () in
-                let diff = Time.Span.to_sec (Time.diff new_time !prev) in
+                let new_time = Time_float.now () in
+                let diff = Time_float.Span.to_sec (Time_float.diff new_time !prev) in
                 Log.Global.printf "The diff is %f\n" diff;
                 prev := new_time;
                 Int.of_float (diff *. Int.to_float t.msgs_per_sec)
@@ -122,7 +122,7 @@ module Pipe_simple_test = struct
     let init () =
       let major_cycles = ref 0 in
       ignore (Gc.Alarm.create (fun () -> incr major_cycles));
-      Clock.every (Time.Span.of_sec 5.) (fun () ->
+      Clock.every (Time_float.Span.of_sec 5.) (fun () ->
         Log.Global.printf "%d major cycles" !major_cycles)
     ;;
   end
@@ -142,11 +142,11 @@ module Pipe_simple_test = struct
       | Error t -> Nothing.unreachable_code t
       | Ok (pipe, _) ->
         let msgs = ref 0 in
-        let start = Time.now () in
+        let start = Time_float.now () in
         let _msg_size = Byte_units.bytes_int_exn bytes in
-        Clock.every (Time.Span.of_sec 1.) (fun () ->
-          let now = Time.now () in
-          let secs = Time.Span.to_sec (Time.diff now start) in
+        Clock.every (Time_float.Span.of_sec 1.) (fun () ->
+          let now = Time_float.now () in
+          let secs = Time_float.Span.to_sec (Time_float.diff now start) in
           Log.Global.printf "%f msgs per sec" (Float.of_int !msgs /. secs));
         Pipe.iter_without_pushback pipe ~f:(fun _string -> incr msgs)
     ;;
@@ -326,7 +326,7 @@ module Pipe_iter_test = struct
       ()
       ~name:"dispatch-iter-test"
       ~version:1
-      ~bin_query:Time.Span.bin_t
+      ~bin_query:Time_float.Span.bin_t
       ~bin_response:Int.bin_t
       ~bin_error:Nothing.bin_t
   ;;
@@ -371,7 +371,7 @@ module Pipe_iter_test = struct
          let next_expected : [ `Update of int | `Closed_remotely ] ref = ref (`Update 0) in
          let finished = Ivar.create () in
          let%bind (_ : Pipe_rpc.Id.t) =
-           dispatch_exn Time.Span.millisecond (function
+           dispatch_exn Time_float.Span.millisecond (function
              | Update n ->
                (match !next_expected with
                 | `Update n' ->
@@ -390,7 +390,7 @@ module Pipe_iter_test = struct
          let%bind () = Ivar.read finished in
          let finished = Ivar.create () in
          let%bind id =
-           dispatch_exn Time.Span.second (function
+           dispatch_exn Time_float.Span.second (function
              | Update _ -> assert false
              | Closed `By_remote_side ->
                Ivar.fill finished ();
@@ -401,7 +401,7 @@ module Pipe_iter_test = struct
          let%bind () = Ivar.read finished in
          let finished = Ivar.create () in
          let%bind (_ : Pipe_rpc.Id.t) =
-           dispatch_exn Time.Span.second (function
+           dispatch_exn Time_float.Span.second (function
              | Update _ | Closed `By_remote_side -> assert false
              | Closed (`Error _) ->
                Ivar.fill finished ();
@@ -441,7 +441,8 @@ module Pipe_direct_test = struct
          | `Close -> Pipe_rpc.Direct_stream_writer.close writer
          | `Expect_auto_close n ->
            let ivar = auto_close_was_ok.(n) in
-           upon (Clock.after Time.Span.second) (fun () -> Ivar.fill_if_empty ivar false);
+           upon (Clock.after Time_float.Span.second) (fun () ->
+             Ivar.fill_if_empty ivar false);
            upon (Pipe_rpc.Direct_stream_writer.closed writer) (fun () ->
              Ivar.fill_if_empty ivar true));
         return (Ok ()))
@@ -911,19 +912,21 @@ module Connection_closing_test = struct
     in
     let dispatch_never_returns conn =
       let response = Rpc.dispatch never_returns conn () in
-      let%bind () = Clock.after Time.Span.second in
+      let%bind () = Clock.after Time_float.Span.second in
       assert (not (Deferred.is_determined response));
       return response
     in
     let check_response_is_error here conn response_deferred =
-      match%bind Clock.with_timeout Time.Span.second (Connection.close_finished conn) with
+      match%bind
+        Clock.with_timeout Time_float.Span.second (Connection.close_finished conn)
+      with
       | `Timeout ->
         failwithf
           !"%{Source_code_position} timed out waiting for connection to close"
           here
           ()
       | `Result () ->
-        (match%map Clock.with_timeout Time.Span.second response_deferred with
+        (match%map Clock.with_timeout Time_float.Span.second response_deferred with
          | `Timeout ->
            failwithf
              !"%{Source_code_position} timed out waiting for response to be determined"

@@ -49,20 +49,16 @@ let send_a_lot_of_messages rpc conn =
 ;;
 
 let print_connection_status ~side conn =
-  upon
-    (Rpc.Connection.close_reason ~on_close:`started conn)
-    (fun info ->
-       Core.printf
-         !"%s rpc connection close started because of %{sexp:Info.t}\n%!"
-         side
-         info);
-  upon
-    (Rpc.Connection.close_reason ~on_close:`finished conn)
-    (fun info ->
-       Core.printf
-         !"%s rpc connection close finished because of %{sexp:Info.t}\n%!"
-         side
-         info);
+  upon (Rpc.Connection.close_reason ~on_close:`started conn) (fun info ->
+    Core.printf
+      !"%s rpc connection close started because of %{sexp:Info.t}\n%!"
+      side
+      info);
+  upon (Rpc.Connection.close_reason ~on_close:`finished conn) (fun info ->
+    Core.printf
+      !"%s rpc connection close finished because of %{sexp:Info.t}\n%!"
+      side
+      info);
   Clock.every (sec 1.) (fun () ->
     Core.printf
       "%s rpc connection is_closed = %b\n%!"

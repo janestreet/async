@@ -72,16 +72,15 @@ module Syslog = struct
 
   let output ?id ?options ?facility () =
     let ready =
-      let d = Ivar.create () in
-      (* openlog () shouldn't block by default, but In_thread.run's a
-         cheap cure for paranoia *)
-      upon (In_thread.run (openlog ?id ?options ?facility)) (fun () -> Ivar.fill d ());
-      Ivar.read d
+      Lazy_deferred.create (fun () ->
+        (* openlog () shouldn't block by default, but In_thread.run's a
+           cheap cure for paranoia *)
+        In_thread.run (openlog ?id ?options ?facility))
     in
     Log.Output.create
       ~flush:(fun () -> return ())
       (fun msgs ->
-         ready >>= fun () ->
+         Lazy_deferred.force_exn ready >>= fun () ->
          In_thread.run (fun () ->
            Queue.iter msgs ~f:(fun msg ->
              let syslog_level = to_level msg in

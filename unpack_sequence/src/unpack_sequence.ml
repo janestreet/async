@@ -99,8 +99,7 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
       (* In rare situations, a reader can asynchronously raise.  We'd rather not raise
          here, since we have a natural place to report the error. *)
       try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         (fun () ->
            Reader.read_one_chunk_at_a_time input ~handle_chunk:(fun buf ~pos ~len ->
@@ -276,7 +275,7 @@ let%test_module _ =
       >>| (function
         | `Timeout ->
           failwithf
-            !"unpack_sequence.ml: Deferred took more than %{Time.Span}"
+            !"unpack_sequence.ml: Deferred took more than %{Time_float.Span}"
             timeout
             ()
         | `Result result -> result)

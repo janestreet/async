@@ -11,8 +11,7 @@ let get_unique_id =
 
 let set_id_counter =
   Rpc.Rpc.create
-    ~name:
-      "set-id-counter"
+    ~name:"set-id-counter"
     (* Note that the version number is 1, because there is an older v0 query defined below
        around. *)
     ~version:1

@@ -261,8 +261,7 @@ module Tcp = struct
            let transport = make_transport ~max_message_size (Socket.fd socket) in
            let%bind result =
              Monitor.try_with
-               ~run:
-                 `Schedule
+               ~run:`Schedule
                ~rest:`Raise
                (fun () ->
                   handle_transport
@@ -293,8 +292,7 @@ module Tcp = struct
     =
     let%bind sock =
       Monitor.try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         (fun () ->
            Tcp.connect_sock

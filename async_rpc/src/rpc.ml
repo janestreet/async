@@ -39,8 +39,7 @@ module Connection = struct
   let contains_magic_prefix reader =
     match%map
       Deferred.Or_error.try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         (fun () -> Reader.peek_bin_prot reader contains_magic_prefix)
     with
@@ -102,8 +101,7 @@ module Connection = struct
       [ choice (Monitor.get_next_error monitor) (fun e -> Error e)
       ; choice
           (Monitor.try_with
-             ~run:
-               `Schedule
+             ~run:`Schedule
              ~rest:`Log
              ~name:"Rpc.Connection.collect_errors"
              f)
@@ -113,12 +111,6 @@ module Connection = struct
 
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
-  type on_handshake_error =
-    [ `Raise
-    | `Ignore
-    | `Call of Exn.t -> unit
-    ]
-
   let serve_with_transport
         ~handshake_timeout
         ~heartbeat_config
@@ -126,6 +118,7 @@ module Connection = struct
         ~description
         ~connection_state
         ~on_handshake_error
+        ~client_addr
         transport
     =
     let%bind res =
@@ -143,7 +136,7 @@ module Connection = struct
         | Ok t -> close_finished t
         | Error handshake_error ->
           (match on_handshake_error with
-           | `Call f -> f handshake_error
+           | `Call f -> f client_addr handshake_error
            | `Raise -> raise handshake_error
            | `Ignore -> ());
           Deferred.unit)
@@ -197,6 +190,7 @@ module Connection = struct
            ~description
            ~connection_state:(fun conn -> initial_connection_state client_addr conn)
            ~on_handshake_error
+           ~client_addr
            transport)
   ;;
 
@@ -320,8 +314,7 @@ module Connection = struct
     >>=? fun (remote_server, t) ->
     let%bind result =
       Monitor.try_with
-        ~run:
-          `Schedule
+        ~run:`Schedule
         ~rest:`Log
         (fun () -> f ~remote_server t)
     in

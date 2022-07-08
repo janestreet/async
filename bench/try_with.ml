@@ -14,8 +14,7 @@ let () =
   for _ = 1 to num_iters do
     ignore
       (try_with
-         ~run:
-           `Schedule
+         ~run:`Schedule
          ~rest:`Log
          (fun () ->
             let i = Ivar.create () in

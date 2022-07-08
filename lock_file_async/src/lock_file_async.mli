@@ -82,12 +82,16 @@ module Flock : sig
       optionally also sets the owner id to [lock_owner_uid]. *)
   val lock_exn
     :  ?lock_owner_uid:int
+    -> ?exclusive:bool
+    -> ?close_on_exec:bool
     -> lock_path:string
     -> unit
     -> [`Somebody_else_took_it | `We_took_it of t] Deferred.t
 
   val lock
     :  ?lock_owner_uid:int
+    -> ?exclusive:bool
+    -> ?close_on_exec:bool
     -> lock_path:string
     -> unit
     -> [`Somebody_else_took_it | `We_took_it of t] Deferred.Or_error.t
@@ -101,6 +105,8 @@ module Flock : sig
   val wait_for_lock_exn
     :  ?abort:unit Deferred.t (** default is [Deferred.never ()] *)
     -> ?lock_owner_uid:int
+    -> ?exclusive:bool
+    -> ?close_on_exec:bool
     -> lock_path:string
     -> unit
     -> t Deferred.t
@@ -109,6 +115,8 @@ module Flock : sig
   val wait_for_lock
     :  ?abort:unit Deferred.t
     -> ?lock_owner_uid:int
+    -> ?exclusive:bool
+    -> ?close_on_exec:bool
     -> lock_path:string
     -> unit
     -> t Deferred.Or_error.t
