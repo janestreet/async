@@ -1,5 +1,5 @@
 (executables
- (names exec newlog)
+ (names exec)
  (libraries
   async_dynamic_log
   core
