@@ -1,0 +1,6 @@
+profile = janestreet
+break-cases = fit
+margin = 77
+parse-docstrings = true
+wrap-comments = true
+line-endings = lf

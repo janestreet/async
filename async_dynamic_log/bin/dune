@@ -1,0 +1,10 @@
+(executables
+ (names exec newlog)
+ (libraries
+  async_dynamic_log
+  core
+  async_kernel
+  async.async_command
+  core_unix.command_unix)
+ (preprocess
+  (pps ppx_jane)))

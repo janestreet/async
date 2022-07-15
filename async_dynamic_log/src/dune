@@ -1,0 +1,5 @@
+(library
+ (name async_dynamic_log)
+ (preprocess
+  (pps ppx_jane))
+ (libraries async_kernel async_unix core async async_inotify))
