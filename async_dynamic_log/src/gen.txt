@@ -1,0 +1,2 @@
+async/async_dynamic_log/bin/testing_individual_statements.ml : 23 | true
+async/async_dynamic_log/bin/testing_individual_statements.ml : 24 | true

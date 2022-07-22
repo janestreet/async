@@ -20,6 +20,7 @@ val debug_s
   -> ?tags:(string * string) list
   -> t
   -> Sexp.t
+  -> Lexing.position
   -> unit
 
 val info_s
@@ -27,6 +28,7 @@ val info_s
   -> ?tags:(string * string) list
   -> t
   -> Sexp.t
+  -> Lexing.position
   -> unit
 
 val error_s
@@ -34,7 +36,10 @@ val error_s
   -> ?tags:(string * string) list
   -> t
   -> Sexp.t
+  -> Lexing.position
   -> unit
+
+val set_control_file : string -> unit Deferred.t
 
 module Global_dynamic_log : sig
   include Async_unix.Log.Global_intf
