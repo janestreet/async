@@ -8,3 +8,5 @@ type t =
 
 val create : string -> int -> t
 val create_t : Lexing.position -> t
+
+module Map : Map.S

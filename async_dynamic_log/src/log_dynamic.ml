@@ -1,3 +1,11 @@
+include Async_unix.Log
+open! Async_inotify
+open! Async
+open! Core
+
+type t = 
+  {log: Log.t; map: Position.t Async_dynamic_log.Position.Map.t}
+
 let levels_to_string level =
   match level with `Info -> "Info" | `Debug -> "Debug" | `Error -> "Error"
 ;;
@@ -9,12 +17,6 @@ let string_to_levels str =
   | "Error" -> `Error
   | _ -> failwith "invalid type"
 ;;
-
-include Async_unix.Log
-open! Async_inotify
-open! Async
-open! Core
-open! Position
 
 let master = Hashtbl.create (module Position)
 let file = "/home/ubuntu/async-logging/async/async_dynamic_log/src/gen.txt"
@@ -43,7 +45,9 @@ let error_s ?time ?tags t the_sexp (lexing : Lexing.position) =
   (match Hashtbl.find master (Position.create_t lexing) with
   | None -> sexp ~level:`Error ?time ?tags t the_sexp
   | Some print -> if print then sexp ~level:`Error ?time ?tags t the_sexp);
-  don't_wait_for (add_to_hashtbl file lexing)
+  don't_wait_for (add_to_hashtbl file lexing);
+  let m = Position.Map.empty in 
+  let m = Map.add 
 ;;
 
 let debug_s ?time ?tags t the_sexp (lexing : Lexing.position) =
