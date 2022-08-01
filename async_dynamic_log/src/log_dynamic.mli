@@ -18,25 +18,25 @@ module Make_global_dynamic () : Async_unix.Log.Global_intf
 val debug_s
   :  ?time:Core.Time_float.t
   -> ?tags:(string * string) list
+  -> Lexing.position
   -> t
   -> Sexp.t
-  -> Lexing.position
   -> unit
 
 val info_s
   :  ?time:Core.Time_float.t
   -> ?tags:(string * string) list
+  -> Lexing.position
   -> t
   -> Sexp.t
-  -> Lexing.position
   -> unit
 
 val error_s
   :  ?time:Core.Time_float.t
   -> ?tags:(string * string) list
+  -> Lexing.position
   -> t
   -> Sexp.t
-  -> Lexing.position
   -> unit
 
 val set_control_file : string -> unit Deferred.t

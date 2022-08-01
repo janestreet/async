@@ -20,8 +20,8 @@ let test () =
        "/home/ubuntu/async-logging/async/async_dynamic_log/src/gen.txt")
     (fun () ->
       Clock_ns.every (Time_ns.Span.create ~sec:1 ()) (fun () ->
-          Log_dynamic.error_s log [%message "hi"] [%here];
-          Log_dynamic.error_s log [%message "bye"] [%here]))
+          Log_dynamic.error_s [%here] log [%message "hi"];
+          Log_dynamic.error_s [%here] log [%message "bye"]))
 ;;
 
 let command =

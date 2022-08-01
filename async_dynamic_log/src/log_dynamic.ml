@@ -3,8 +3,11 @@ open! Async_inotify
 open! Async
 open! Core
 
-type t = 
-  {log: Log.t; map: Position.t Async_dynamic_log.Position.Map.t}
+type t =
+  { log : Log.t
+  ; map : Position.t Position.Map.t
+  ; file : string option
+  }
 
 let levels_to_string level =
   match level with `Info -> "Info" | `Debug -> "Debug" | `Error -> "Error"
@@ -41,29 +44,25 @@ let add_to_hashtbl file_path (lexing : Lexing.position) =
     Writer.write w str_to_write)
 ;;
 
-let error_s ?time ?tags t the_sexp (lexing : Lexing.position) =
+let error_s ?time ?tags (lexing : Lexing.position) t the_sexp =
   (match Hashtbl.find master (Position.create_t lexing) with
-  | None -> sexp ~level:`Error ?time ?tags t the_sexp
-  | Some print -> if print then sexp ~level:`Error ?time ?tags t the_sexp);
-  don't_wait_for (add_to_hashtbl file lexing);
-  let m = Position.Map.empty in 
-  let m = Map.add 
+  | None -> sexp ~level:`Error ?time ?tags t.log the_sexp
+  | Some print -> if print then sexp ~level:`Error ?time ?tags t.log the_sexp);
+  don't_wait_for (add_to_hashtbl file lexing)
 ;;
 
-let debug_s ?time ?tags t the_sexp (lexing : Lexing.position) =
-  match Hashtbl.add master ~key:(Position.create_t lexing) ~data:true with
-  | _ ->
-    ();
-    if Hashtbl.find_exn master (Position.create_t lexing)
-    then sexp ~level:`Debug ?time ?tags t the_sexp
+let debug_s ?time ?tags (lexing : Lexing.position) t the_sexp =
+  (match Hashtbl.find master (Position.create_t lexing) with
+  | None -> sexp ~level:`Debug ?time ?tags t.log the_sexp
+  | Some print -> if print then sexp ~level:`Debug ?time ?tags t.log the_sexp);
+  don't_wait_for (add_to_hashtbl file lexing)
 ;;
 
-let info_s ?time ?tags t the_sexp (lexing : Lexing.position) =
-  match Hashtbl.add master ~key:(Position.create_t lexing) ~data:true with
-  | _ ->
-    ();
-    if Hashtbl.find_exn master (Position.create_t lexing)
-    then sexp ~level:`Info ?time ?tags t the_sexp
+let info_s ?time ?tags (lexing : Lexing.position) t the_sexp =
+  (match Hashtbl.find master (Position.create_t lexing) with
+  | None -> sexp ~level:`Info ?time ?tags t.log the_sexp
+  | Some print -> if print then sexp ~level:`Info ?time ?tags t.log the_sexp);
+  don't_wait_for (add_to_hashtbl file lexing)
 ;;
 
 let update_states file_path () =
@@ -131,11 +130,15 @@ let create
     ()
   =
   match listener_file_path with
-  | None -> Log.create ~level ~output ~on_error ?time_source ?transform ()
+  | None ->
+    { log = Log.create ~level ~output ~on_error ?time_source ?transform ()
+    ; map = Position.Map.empty
+    ; file = None
+    }
   | Some n ->
     let l = Log.create ~level ~output ~on_error ?time_source ?transform () in
     upon (set_listener n l) (fun () -> ());
-    l
+    { log = l; map = Position.Map.empty; file = Some n }
 ;;
 
 module Make_global_dynamic () : sig
