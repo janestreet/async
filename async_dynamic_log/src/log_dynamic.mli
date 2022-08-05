@@ -7,11 +7,11 @@ val create
   :  level:Log.Level.t
   -> output:Log.Output.t list
   -> on_error:[ `Raise | `Call of Core.Error.t -> unit ]
+  -> listener_file_path:string
   -> ?time_source:Async_kernel.Synchronous_time_source.t
   -> ?transform:(Log.Message.t -> Log.Message.t)
-  -> ?listener_file_path:string
   -> unit
-  -> t
+  -> t Deferred.t
 
 module Make_global_dynamic () : Async_unix.Log.Global_intf
 
@@ -39,10 +39,8 @@ val error_s
   -> Sexp.t
   -> unit
 
-val set_control_file : string -> unit Deferred.t
+val set_control_file : t -> unit Deferred.t
 
 module Global_dynamic_log : sig
   include Async_unix.Log.Global_intf
-
-  val set_listener : string -> unit Deferred.t
 end

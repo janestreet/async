@@ -15,4 +15,4 @@ module T = struct
 end
 
 include T
-module Map = Map.Make (T)
+include Comparator.Make (T)
