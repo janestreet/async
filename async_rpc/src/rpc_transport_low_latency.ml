@@ -125,6 +125,7 @@ module Reader_internal = struct
     ; mutable buf : (Bigstring.t[@sexp.opaque])
     ; mutable pos : int (* Start of unconsumed data. *)
     ; mutable max : int (* End   of unconsumed data. *)
+    ; mutable bytes_read : Int63.t
     }
   [@@deriving sexp_of, fields]
 
@@ -138,11 +139,13 @@ module Reader_internal = struct
     ; buf = Bigstring.create config.initial_buffer_size
     ; pos = 0
     ; max = 0
+    ; bytes_read = Int63.zero
     }
   ;;
 
   let is_closed t = t.closed
   let close_finished t = Ivar.read t.close_finished
+  let bytes_read t = t.bytes_read
 
   (* To avoid allocating options in a relatively safe way. *)
   module Message_len : sig
@@ -313,7 +316,9 @@ module Reader_internal = struct
           let start = t.reader.pos + Header.length in
           let () =
             match read_or_peek with
-            | `Read -> t.reader.pos <- start + len
+            | `Read ->
+              t.reader.bytes_read <- Int63.(t.reader.bytes_read + of_int len);
+              t.reader.pos <- start + len
             | `Peek -> ()
           in
           match t.on_message t.reader.buf ~pos:start ~len with
@@ -439,6 +444,7 @@ module Reader_internal = struct
                  in
                  if peek_len >= len
                  then (
+                   t.reader.bytes_read <- Int63.(t.reader.bytes_read + of_int len);
                    match on_message buf ~pos:0 ~len with
                    | Stop x -> interrupt t (Stopped_by_user x)
                    | Continue | Wait _ ->

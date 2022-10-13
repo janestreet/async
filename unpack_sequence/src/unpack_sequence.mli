@@ -61,3 +61,11 @@ val unpack_iter
   -> using:'a Unpack_buffer.t
   -> f:('a -> unit)
   -> 'a Unpack_iter_result.t Deferred.t
+
+(** [unpack_iter_with_pushback] waits for [pushback] after unpacking every chunk. *)
+val unpack_iter_with_pushback
+  :  from:Unpack_from.t
+  -> using:'a Unpack_buffer.t
+  -> f:('a -> unit)
+  -> pushback:(unit -> unit Deferred.t)
+  -> 'a Unpack_iter_result.t Deferred.t

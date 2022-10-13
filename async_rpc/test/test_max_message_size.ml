@@ -33,6 +33,6 @@ let%expect_test "default_max_message_size" =
         ((description <created-directly>)
          (writer
           ((t ((file_descr _) (info (writer "rpc_test 1")) (kind Fifo)))
-           (max_message_size 1)))))))
+           (max_message_size 1) (total_bytes 0)))))))
      ("<backtrace elided in test>")) |}]
 ;;

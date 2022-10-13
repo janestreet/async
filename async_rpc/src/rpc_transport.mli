@@ -33,6 +33,7 @@ val of_reader_writer : ?max_message_size:int -> Async_reader.t -> Async_writer.t
 val of_fd
   :  ?buffer_age_limit:Async_writer.buffer_age_limit
   -> ?reader_buffer_size:int
+  -> ?writer_buffer_size:int
   -> max_message_size:int
   -> Fd.t
   -> t

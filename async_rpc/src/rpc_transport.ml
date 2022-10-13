@@ -9,16 +9,19 @@ module With_limit : sig
   type 'a t = private
     { t : 'a
     ; max_message_size : int
+    ; mutable total_bytes : Int63.t
     }
   [@@deriving sexp_of]
 
   val create : 'a -> max_message_size:int -> 'a t
   val message_size_ok : _ t -> payload_len:int -> bool
   val check_message_size : _ t -> payload_len:int -> unit
+  val incr_total_bytes : _ t -> int -> unit
 end = struct
   type 'a t =
     { t : 'a
     ; max_message_size : int
+    ; mutable total_bytes : Int63.t
     }
   [@@deriving sexp_of]
 
@@ -29,7 +32,7 @@ end = struct
         "Rpc_transport.With_limit.create got negative max message size: %d"
         max_message_size
         ();
-    { t; max_message_size }
+    { t; max_message_size; total_bytes = Int63.zero }
   ;;
 
   let message_size_ok t ~payload_len =
@@ -45,6 +48,8 @@ end = struct
         (`Message_size payload_len, `Max_message_size t.max_message_size)
         [%sexp_of: [ `Message_size of int ] * [ `Max_message_size of int ]]
   ;;
+
+  let incr_total_bytes t bytes = t.total_bytes <- Int63.(t.total_bytes + of_int bytes)
 end
 
 module Unix_reader = struct
@@ -55,6 +60,7 @@ module Unix_reader = struct
   let create ~reader ~max_message_size = With_limit.create reader ~max_message_size
   let close t = Reader.close t.t
   let is_closed t = Reader.is_closed t.t
+  let bytes_read t = t.total_bytes
 
   let all_unit_then_return l ret_val =
     match l with
@@ -80,6 +86,7 @@ module Unix_reader = struct
         then finish_loop ~consumed ~need:total_len ~wait_before_reading
         else (
           let consumed = consumed + total_len in
+          incr_total_bytes t payload_len;
           let result : _ Handler_result.t =
             on_message buf ~pos:(pos + Header.length) ~len:payload_len
           in
@@ -133,6 +140,7 @@ module Unix_writer = struct
   let is_closed t = Writer.is_closed t.t
   let monitor t = Writer.monitor t.t
   let bytes_to_write t = Writer.bytes_to_write t.t
+  let bytes_written t = t.total_bytes
   let stopped t = Deferred.any [ Writer.close_started t.t; Writer.consumer_left t.t ]
   let flushed t = Writer.flushed t.t
   let ready_to_write = flushed
@@ -151,6 +159,7 @@ module Unix_writer = struct
       let payload_len = data_len + followup_len in
       if message_size_ok t ~payload_len
       then (
+        incr_total_bytes t payload_len;
         Writer.write_bin_prot_no_size_header
           t.t
           ~size:Header.length
@@ -222,11 +231,11 @@ let of_reader_writer ?max_message_size reader writer =
   }
 ;;
 
-let of_fd ?buffer_age_limit ?reader_buffer_size ~max_message_size fd =
+let of_fd ?buffer_age_limit ?reader_buffer_size ?writer_buffer_size ~max_message_size fd =
   of_reader_writer
     ~max_message_size
     (Async_unix.Reader.create ?buf_len:reader_buffer_size fd)
-    (Async_unix.Writer.create ?buffer_age_limit fd)
+    (Async_unix.Writer.create ?buf_len:writer_buffer_size ?buffer_age_limit fd)
 ;;
 
 module Tcp = struct

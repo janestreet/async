@@ -61,7 +61,10 @@ end
 
 module Unpack_to = struct
   type 'a t =
-    | Iter of ('a -> unit)
+    | Iter of
+        { f : 'a -> unit
+        ; pushback : unit -> unit Deferred.t
+        }
     | Pipe of 'a Pipe.Writer.t
   [@@deriving sexp_of]
 end
@@ -69,10 +72,12 @@ end
 let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buffer =
   let unpack_all_available =
     match to_ with
-    | Iter f ->
+    | Iter { f; pushback } ->
       fun () ->
         (match Unpack_buffer.unpack_iter unpack_buffer ~f with
-         | Ok () -> return `Continue
+         | Ok () ->
+           let%bind.Eager_deferred () = pushback () in
+           return `Continue
          | Error error -> return (`Stop (Unpack_result.Unpack_error error)))
     | Pipe output_writer ->
       let f a =
@@ -153,8 +158,8 @@ let unpack_into_pipe ~from ~using =
   output_reader, result
 ;;
 
-let unpack_iter ~from ~using ~f =
-  unpack_all ~from ~to_:(Iter f) ~using
+let unpack_iter_internal ~from ~using ~f ~pushback =
+  unpack_all ~from ~to_:(Iter { f; pushback }) ~using
   >>| function
   | Input_closed -> Unpack_iter_result.Input_closed
   | Input_closed_in_the_middle_of_data x -> Input_closed_in_the_middle_of_data x
@@ -165,6 +170,14 @@ let unpack_iter ~from ~using ~f =
       "Unpack_sequence.unpack_iter got unexpected value"
       t
       [%sexp_of: _ Unpack_result.t]
+;;
+
+let unpack_iter ~from ~using ~f =
+  unpack_iter_internal ~from ~using ~f ~pushback:(const Deferred.unit)
+;;
+
+let unpack_iter_with_pushback ~from ~using ~f ~pushback =
+  unpack_iter_internal ~from ~using ~f ~pushback
 ;;
 
 let%test_module _ =
