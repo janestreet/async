@@ -40,3 +40,21 @@ let%expect_test "[test] and [async_test] handle [~examples] the same" =
     test_output;
   return ()
 ;;
+
+let%expect_test "shrinkers are applied" =
+  let%map () =
+    Expect_test_helpers_async.require_does_raise_async [%here] (fun () ->
+      Async_quickcheck.async_test
+        ~sexp_of:String.sexp_of_t
+        ~shrinker:
+          (Quickcheck.Shrinker.create (function
+             | "SHRUNKEN" -> Sequence.empty
+             | _ -> Sequence.singleton "SHRUNKEN"))
+        ~trials
+        ~examples
+        generator
+        ~f:(fun (_ : _) -> assert false))
+  in
+  [%expect
+    {| ("random input" SHRUNKEN "Assert_failure test_async_quickcheck.ml:56:27") |}]
+;;
