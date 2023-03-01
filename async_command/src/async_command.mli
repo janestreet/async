@@ -20,7 +20,7 @@ type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> '
     default it is [false].
 
     If [behave_nicely_in_pipeline] is true, then [Writer.behave_nicely_in_pipeline ()]
-    is called when the command starts. Its default is [false]. *)
+    is called when the command starts. Its default is [true]. *)
 val async : unit Deferred.t basic_command with_options
 
 val async_spec : ('a, unit Deferred.t) basic_spec_command with_options

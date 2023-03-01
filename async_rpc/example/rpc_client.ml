@@ -52,7 +52,9 @@ let get_unique_id_cmd =
     ~summary:"get unique id from server"
     (let%map.Command host_and_port = host_and_port_param in
      fun () -> get_unique_id host_and_port)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let set_id_counter_cmd =
   Command.async
@@ -60,7 +62,9 @@ let set_id_counter_cmd =
     (let%map_open.Command host_and_port = host_and_port_param
      and i = anon ("counter" %: int) in
      fun () -> set_id_counter host_and_port i)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 (* This one is actually unsupported by the server, so using it will trigger an error. *)
 let set_id_counter_cmd_v0 =
@@ -70,14 +74,18 @@ let set_id_counter_cmd_v0 =
      and id1 = anon ("counter1" %: int)
      and id2 = anon ("counter2" %: int) in
      fun () -> set_id_counter_v0 host_and_port (id1, id2))
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let counter_values_cmd =
   Command.async
     ~summary:"subscribe to changes to counter id"
     (let%map.Command host_and_port = host_and_port_param in
      fun () -> counter_values host_and_port)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let () =
   Command_unix.run

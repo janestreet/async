@@ -14,7 +14,7 @@ let () =
 Otherwise the async timing wheel won't be precise enough.
 |}
       (Filename.basename Sys.executable_name);
-    Caml.exit 2)
+    Stdlib.exit 2)
 ;;
 
 module Spec = struct
@@ -246,6 +246,7 @@ max    : %f us
     Core.fprintf csv_oc "msgs/s,mean,stdev\n";
     let%map () =
       Deferred.List.iter
+        ~how:`Sequential
         [ 100
         ; 200
         ; 300
@@ -325,7 +326,9 @@ let server_command =
     ~summary:"test server"
     Command.Spec.(empty ++ Spec.port () ++ Rpc_impl.spec ())
     Server.main
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let client_command =
   Command.async_spec
@@ -338,7 +341,9 @@ let client_command =
       ++ Spec.port ()
       ++ Rpc_impl.spec ())
     Client.main
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let client_long_command =
   Command.async_spec
@@ -351,14 +356,18 @@ let client_long_command =
       ++ Spec.port ()
       ++ Rpc_impl.spec ())
     Client_long.main
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let quit_command =
   Command.async_spec
     ~summary:"test quit"
     Command.Spec.(empty ++ Spec.host () ++ Spec.port () ++ Rpc_impl.spec ())
     Quit.main
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let () =
   Command_unix.run

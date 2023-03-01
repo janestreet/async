@@ -52,6 +52,7 @@ let%expect_test _ =
   in
   let%bind () =
     Deferred.List.iter
+      ~how:`Sequential
       ~f:(fun (name, f) ->
         print_s [%message name];
         f ())

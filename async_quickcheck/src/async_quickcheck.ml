@@ -29,6 +29,7 @@ module Configure (Config : Quickcheck.Quickcheck_config) = struct
 
   let async_test
         ?seed
+        ?sizes
         ?(trials = default_trial_count)
         ?shrinker
         ?(shrink_attempts = default_shrink_attempts)
@@ -43,7 +44,7 @@ module Configure (Config : Quickcheck.Quickcheck_config) = struct
     let test_cases =
       Sequence.append
         (Sequence.of_list examples)
-        (Sequence.take (random_sequence ?seed quickcheck_generator) trials)
+        (Sequence.take (random_sequence ?seed ?sizes quickcheck_generator) trials)
     in
     let%bind failing_case =
       Sequence.delayed_fold

@@ -88,4 +88,5 @@ let command =
   Command.async
     param
     ~summary:"Small Async RPC proxy to inspect the traffic of an async RPC connection"
+    ~behave_nicely_in_pipeline:false
 ;;

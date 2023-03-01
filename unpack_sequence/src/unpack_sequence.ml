@@ -332,6 +332,7 @@ let%test_module _ =
     let run_tests ?(only_supports_output_to_pipe = false) test_fn =
       Thread_safe.block_on_async_exn (fun () ->
         Deferred.List.iter
+          ~how:`Sequential
           ([ setup_reader; setup_string_pipe_reader ]
            @ if only_supports_output_to_pipe then [] else [ setup_iter ])
           ~f:(fun setup ->

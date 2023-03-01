@@ -63,7 +63,9 @@ let server_cmd =
              let words = words () - !words_when_conn_created in
              printf "%d queries, %d words/query\n" num_queries (words / num_queries)));
          never ())
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let pipe_dispatch_exn rpc { Host_and_port.host; port } arg f =
   let reader, (_ : _ Pipe.Writer.t) = Pipe.create () in
@@ -115,7 +117,9 @@ let client_cmd =
     ~summary:"measure memory usage of client"
     (let%map.Command host_and_port = host_and_port_param in
      fun () -> counter_values_exn host_and_port)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let () =
   Command_unix.run

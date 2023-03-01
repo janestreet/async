@@ -143,7 +143,9 @@ let server_command =
                "invalid closing mode selection" valid_closing_modes (closing_mode : string)]
        in
        run_server ~port ~closing_mode ~use_regular_transport)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let client_command =
   Command.async
@@ -155,7 +157,9 @@ let client_command =
      fun () ->
        let host = Option.value host ~default:(Unix.gethostname ()) in
        run_client ~host ~port ~use_regular_transport)
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let command =
   Command.group ~summary:"" [ "server", server_command; "client", client_command ]

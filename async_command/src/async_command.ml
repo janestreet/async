@@ -6,7 +6,7 @@ include Core.Command
 type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> 'a
 
 let shutdown_with_error e =
-  Caml.at_exit (fun () ->
+  Stdlib.at_exit (fun () ->
     (* We use [Core] printing rather than [Async] printing, because the program may
        already be shutting down, which could cause the error to be omitted because
        shutdown only waits for flush of the output written before [shutdown] was called.
@@ -43,7 +43,7 @@ let maybe_print_error_and_shutdown = function
    These two behavior changes seem fine for servers as well (where stdout/stderr should
    contain almost nothing, or even be /dev/null), so we make them all the time.
 *)
-let in_async ?(behave_nicely_in_pipeline = false) ?extract_exn param on_result =
+let in_async ?(behave_nicely_in_pipeline = true) ?extract_exn param on_result =
   Param.map param ~f:(fun staged_main () ->
     if behave_nicely_in_pipeline then Writer.behave_nicely_in_pipeline ();
     let main = Or_error.try_with (fun () -> unstage (staged_main ())) in

@@ -13,11 +13,13 @@ let command () =
          ; Unix.Addr_info.AI_CANONNAME
          ]
        >>= fun addr_infos ->
-       Deferred.List.iter addr_infos ~f:(fun a ->
+       Deferred.List.iter ~how:`Sequential addr_infos ~f:(fun a ->
          Unix.Addr_info.sexp_of_t a |> Sexp.to_string |> print_endline;
          Unix.Name_info.get a.Unix.Addr_info.ai_addr []
          >>| fun name_info ->
          Unix.Name_info.sexp_of_t name_info |> Sexp.to_string |> print_endline))
+    ~behave_nicely_in_pipeline:false
 ;;
+
 
 let () = command () |> Command_unix.run

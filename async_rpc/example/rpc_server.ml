@@ -57,5 +57,6 @@ let () =
        flag "-port" ~doc:" Port to listen on" (optional_with_default 8080 int)
      in
      fun () -> main ~port)
+    ~behave_nicely_in_pipeline:false
   |> Command_unix.run
 ;;

@@ -28,7 +28,7 @@ let%expect_test "default_max_message_size" =
     {|
     (monitor.ml.Error
      ("Message cannot be sent"
-      ((reason (Message_too_big ((size 7) (max_message_size 1))))
+      ((reason (Message_too_big ((size 8) (max_message_size 1))))
        (connection
         ((description <created-directly>)
          (writer
