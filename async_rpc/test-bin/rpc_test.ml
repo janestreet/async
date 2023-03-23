@@ -886,10 +886,7 @@ module Rpc_expert_test = struct
              | `Ok -> ()
              | `Connection_closed -> assert false);
             let%bind () = assert_one_way_rpc_received () in
-            Log.debug
-              log
-              "sending %s query via Expert.schedule_dispatch"
-              (One_way.name rpc);
+            Log.debug log "sending %s query via Expert.schedule_dispatch" (One_way.name rpc);
             let%bind () =
               match One_way.Expert.schedule_dispatch rpc conn buf ~pos ~len with
               | `Flushed f -> f

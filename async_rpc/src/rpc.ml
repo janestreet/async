@@ -179,9 +179,7 @@ module Connection = struct
            let client_addr = (client_addr :> Socket.Address.t) in
            Info.create_s
              [%message
-               "TCP server"
-                 (server_addr : Socket.Address.t)
-                 (client_addr : Socket.Address.t)]
+               "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
          in
          serve_with_transport
            ~handshake_timeout

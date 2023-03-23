@@ -50,10 +50,7 @@ let send_a_lot_of_messages rpc conn =
 
 let print_connection_status ~side conn =
   upon (Rpc.Connection.close_reason ~on_close:`started conn) (fun info ->
-    Core.printf
-      !"%s rpc connection close started because of %{sexp:Info.t}\n%!"
-      side
-      info);
+    Core.printf !"%s rpc connection close started because of %{sexp:Info.t}\n%!" side info);
   upon (Rpc.Connection.close_reason ~on_close:`finished conn) (fun info ->
     Core.printf
       !"%s rpc connection close finished because of %{sexp:Info.t}\n%!"
@@ -140,7 +137,9 @@ let server_command =
          | _ ->
            raise_s
              [%message
-               "invalid closing mode selection" valid_closing_modes (closing_mode : string)]
+               "invalid closing mode selection"
+                 valid_closing_modes
+                 (closing_mode : string)]
        in
        run_server ~port ~closing_mode ~use_regular_transport)
     ~behave_nicely_in_pipeline:false

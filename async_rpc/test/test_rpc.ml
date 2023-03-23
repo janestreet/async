@@ -108,26 +108,24 @@ let%expect_test "[Connection.create] shouldn't raise" =
   return ()
 ;;
 
-open! Rpc
-
 let%test_unit "Open dispatches see connection closed error" =
   Thread_safe.block_on_async_exn (fun () ->
     let bin_t = Bin_prot.Type_class.bin_unit in
     let rpc =
-      Rpc.create
+      Rpc.Rpc.create
         ~version:1
         ~name:"__TEST_Async_rpc.Rpc"
         ~bin_query:bin_t
         ~bin_response:bin_t
     in
     let serve () =
-      let implementation = Rpc.implement rpc (fun () () -> Deferred.never ()) in
+      let implementation = Rpc.Rpc.implement rpc (fun () () -> Deferred.never ()) in
       let implementations =
-        Implementations.create_exn
+        Rpc.Implementations.create_exn
           ~implementations:[ implementation ]
           ~on_unknown_rpc:`Raise
       in
-      Connection.serve
+      Rpc.Connection.serve
         ~initial_connection_state:(fun _ _ -> ())
         ~implementations
         ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
@@ -135,12 +133,12 @@ let%test_unit "Open dispatches see connection closed error" =
     in
     let client ~port =
       let%bind connection =
-        Connection.client
+        Rpc.Connection.client
           (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
         >>| Result.ok_exn
       in
-      let res = Rpc.dispatch rpc connection () in
-      don't_wait_for (Connection.close connection);
+      let res = Rpc.Rpc.dispatch rpc connection () in
+      don't_wait_for (Rpc.Connection.close connection);
       match%map res with
       | Ok () -> failwith "Dispatch should have failed"
       | Error err ->
@@ -177,14 +175,14 @@ let%test_module "Exception handling" =
             ~implementation
         =
         let implementations =
-          Implementations.create_exn
+          Rpc.Implementations.create_exn
             ~implementations:[ implementation on_exception ]
             ~on_unknown_rpc:`Raise
         in
-        Connection.serve
+        Rpc.Connection.serve
           ~initial_connection_state:(fun _ connection ->
             don't_wait_for
-              (let%map () = Connection.close_finished connection in
+              (let%map () = Rpc.Connection.close_finished connection in
                Ivar.fill connection_closed_by_server ()))
           ~implementations
           ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
@@ -192,7 +190,7 @@ let%test_module "Exception handling" =
       in
       let client ~port =
         let%bind connection =
-          Connection.client
+          Rpc.Connection.client
             (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
           >>| Result.ok_exn
         in
@@ -209,12 +207,12 @@ let%test_module "Exception handling" =
         if not expect_close_connection
         then (
           [%test_pred: unit Ivar.t] Ivar.is_empty connection_closed_by_server;
-          [%test_pred: Connection.t] (Fn.non Connection.is_closed) connection;
-          don't_wait_for (Connection.close connection));
+          [%test_pred: Rpc.Connection.t] (Fn.non Rpc.Connection.is_closed) connection;
+          don't_wait_for (Rpc.Connection.close connection));
         (match res with
          | Ok _ -> assert ok_is_expected
          | Error err -> check_error err);
-        Connection.close_finished connection
+        Rpc.Connection.close_finished connection
       in
       let on_exception =
         Option.map use_on_exception ~f:(fun () ->
@@ -267,10 +265,16 @@ let%test_module "Exception handling" =
       f ~expect_close_connection:true
     ;;
 
+    let deny_all =
+      Rpc.Implementation.with_authorization ~f:(fun () ->
+        Async_rpc_kernel.Or_not_authorized.Not_authorized
+          (Error.create_s [%message "Denying all connections"]))
+    ;;
+
     let%test_module "RPC" =
       (module struct
         let rpc =
-          Rpc.create
+          Rpc.Rpc.create
             ~version:1
             ~name:"__TEST_Async_rpc.Rpc"
             ~bin_query:bin_t
@@ -278,10 +282,10 @@ let%test_module "Exception handling" =
         ;;
 
         let implementation on_exception =
-          Rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
+          Rpc.Rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
         ;;
 
-        let dispatch connection () = Rpc.dispatch rpc connection ()
+        let dispatch connection () = Rpc.Rpc.dispatch rpc connection ()
 
         let%expect_test "Regular rpc does not close the connection but returns the error" =
           let%bind () =
@@ -311,21 +315,38 @@ let%test_module "Exception handling" =
           [%expect {| |}];
           Deferred.unit
         ;;
+
+        let%expect_test "Regular rpc fails on authorization error" =
+          let%bind () =
+            test_exception_handling
+              ~implementation:(fun on_exception ->
+                implementation on_exception |> deny_all)
+              ~dispatch
+              ~ok_is_expected:false
+              ~check_error:
+                (location_field_in_error_msg
+                   ~expected:{|"server-side rpc authorization"|})
+              ~expect_close_connection:false
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
       end)
     ;;
 
     let%test_module "ONE-WAY" =
       (module struct
         let rpc =
-          One_way.create ~version:1 ~name:"__TEST_Async_rpc.One_way" ~bin_msg:bin_t
+          Rpc.One_way.create ~version:1 ~name:"__TEST_Async_rpc.One_way" ~bin_msg:bin_t
         ;;
 
         let implementation on_exception =
-          One_way.implement ?on_exception rpc (fun () () -> failwith "Exception")
+          Rpc.One_way.implement ?on_exception rpc (fun () () -> failwith "Exception")
         ;;
 
         let dispatch connection () =
-          Deferred.Or_error.return (One_way.dispatch rpc connection ())
+          Deferred.Or_error.return (Rpc.One_way.dispatch rpc connection ())
         ;;
 
         let%expect_test "One way rpc closes the connection because it can't return the \
@@ -356,13 +377,28 @@ let%test_module "Exception handling" =
           [%expect {| |}];
           Deferred.unit
         ;;
+
+        let%expect_test "One way rpc doesn't close connection on authorization error" =
+          let%bind () =
+            test_exception_handling
+              ~implementation:(fun on_exception ->
+                implementation on_exception |> deny_all)
+              ~dispatch
+              ~ok_is_expected:true
+              ~check_error:(Fn.const ())
+              ~expect_close_connection:false
+              ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
       end)
     ;;
 
     let%test_module "PIPE/STATE" =
       (module struct
         let rpc =
-          Pipe_rpc.create
+          Rpc.Pipe_rpc.create
             ~version:1
             ~name:"__TEST_Async_rpc.Pipe_rpc"
             ~bin_query:bin_t
@@ -372,10 +408,10 @@ let%test_module "Exception handling" =
         ;;
 
         let implementation on_exception =
-          Pipe_rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
+          Rpc.Pipe_rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
         ;;
 
-        let dispatch connection () = Pipe_rpc.dispatch rpc connection ()
+        let dispatch connection () = Rpc.Pipe_rpc.dispatch rpc connection ()
 
         let%expect_test "Pipe/State rpc does not close the connection, but returns the \
                          error"
@@ -410,7 +446,7 @@ let%test_module "Exception handling" =
         ;;
 
         let rpc =
-          Pipe_rpc.create
+          Rpc.Pipe_rpc.create
             ~version:1
             ~name:"__TEST_Async_rpc.Pipe_rpc"
             ~bin_query:bin_t
@@ -420,13 +456,13 @@ let%test_module "Exception handling" =
         ;;
 
         let implementation client_received_response on_exception =
-          Pipe_rpc.implement ?on_exception rpc (fun () () ->
+          Rpc.Pipe_rpc.implement ?on_exception rpc (fun () () ->
             upon (Ivar.read client_received_response) (fun () ->
               failwith "Asynchronous failure");
             failwith "Exception")
         ;;
 
-        let dispatch connection () = Pipe_rpc.dispatch rpc connection ()
+        let dispatch connection () = Rpc.Pipe_rpc.dispatch rpc connection ()
 
         let%expect_test "Pipe/State rpc may swallow asynchronous errors and merely log \
                          them"
@@ -492,6 +528,28 @@ let%test_module "Exception handling" =
                 ~check_error:
                   (location_field_in_error_msg
                      ~expected:{|"server-side pipe_rpc computation"|})
+                ()
+            in
+            Scheduler.yield_until_no_jobs_remain ()
+          in
+          [%expect {| |}];
+          Deferred.unit
+        ;;
+
+        let%expect_test "Pipe/State rpc fails on authorization error" =
+          let%bind () =
+            let client_received_response = Ivar.create () in
+            let%bind () =
+              test_exception_handling
+                ~client_received_response
+                ~expect_close_connection:false
+                ~implementation:(fun on_exception ->
+                  implementation client_received_response on_exception |> deny_all)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side pipe_rpc authorization"|})
                 ()
             in
             Scheduler.yield_until_no_jobs_remain ()
