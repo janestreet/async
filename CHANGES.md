@@ -1,3 +1,46 @@
+## Release v0.16.0
+
+- Update `Async_command.with_options`:
+  * Add optional `behave_nicely_in_pipeline` parameter
+  * If true, calls `Writer.behave_nicely_in_pipeline()` when the command starts
+  * Default value is true
+
+- Update `Async_quickcheck.async_test` function:
+  * Add optional `sizes` parameter to specify a sequence of sizes for generated test data
+  * Add optional `shrinker` parameter to provide a custom shrinker for the test data
+  * Add optional `shrink_attempts` parameter to control the number of attempts at shrinking test data
+
+- Changes in `Async_rpc.Rpc`:
+ * Change `handshake_timeout` parameter type from `Time.Span.t` to `Time_float.Span.t`.
+ * Remove `on_handshake_error` type from `Rpc.Connection` to simplify the interface
+
+- Changes in `Async_rpc.Rpc_transport`:
+  * Add `writer_buffer_size` parameter to `Rpc_transport.of_fd`
+
+- Add new function to `Rpc_transport_low_latency.Reader.With_internal_reader`:
+  * `read_one_message_bin_prot_without_buffering`
+    - Similar to `Rpc_kernel.Transport.Reader.read_one_message_bin_prot`
+    - Reads only the necessary bytes for a single bin prot message from the underlying file descriptor
+
+- Changes in `Lock_file_async.Flock`:
+  * `Flock.lock_exn` and `Flock.lock` now have optional `exclusive` and `close_on_exec` parameters
+    - `exclusive` controls exclusive access to the lock
+    - `close_on_exec` specifies whether to close the lock when executing a new program
+
+- Update functions in `Flock` module in `Lock_file_async`:
+  * Added an optional `exclusive` parameter, enabling shared locks
+    when set to false (previously exclusive locks only)
+  * Add optional `close_on_exec` parameter to control if the lock is closed on exec
+
+- Changes in `Persistent_connection`:
+  * `retry_delay` and `handshake_timeout` changed from `Time.Span.t` to `Time_float.Span.t`
+
+- Changes in `Unpack_sequence`:
+  * Added a new function: `Unpack_sequence.unpack_iter_with_pushback`
+    - Similar to `unpack_iter`, but waits for `pushback` after unpacking every chunk
+
+## Old pre-v0.15 changelogs (very likely stale and incomplete)
+
 ## git version
 
 - Added a new (single-module) library `async.log_extended`, extending
