@@ -18,7 +18,9 @@ let copy conn_number desc reader writer =
         then (
           let header = P.Header.bin_read_t buf ~pos_ref in
           assert (!pos_ref = pos + len);
-          assert (T.Writer.send_bin_prot writer P.Header.bin_writer_t header = Sent ());
+          assert (
+            T.Writer.send_bin_prot writer P.Header.bin_writer_t header
+            = Sent { result = (); bytes = len });
           [%sexp Header (header : P.Header.t)])
         else (
           let msg = P.Message.bin_read_nat0_t buf ~pos_ref in
@@ -32,7 +34,7 @@ let copy conn_number desc reader writer =
               ~buf
               ~pos:!pos_ref
               ~len:left
-            = Sent ());
+            = Sent { result = (); bytes = len });
           let sexp_of_data len =
             let len = (len : Bin_prot.Nat0.t :> int) in
             let disp_len = min 16 len in

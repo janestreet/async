@@ -19,7 +19,7 @@ let server =
                Writer.write writer (sprintf "Response to %s\n" query);
                loop ()
              | `Eof ->
-               Ivar.fill finished ();
+               Ivar.fill_exn finished ();
                message "Server got EOF\n")
          in
          loop ()))

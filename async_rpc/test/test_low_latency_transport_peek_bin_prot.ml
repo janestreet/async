@@ -45,12 +45,14 @@ let run_test_suite_with ~fds ~f =
   let reader_fd, writer_fd = fds () in
   let reader, writer = create_reader reader_fd, create_writer writer_fd in
   match Rpc.Low_latency_transport.Writer.send_bin_prot writer bin_writer_char message with
-  | Sent () -> f ~reader_fd ~reader ~writer_fd ~writer
+  | Sent { result = (); bytes = (_ : int) } -> f ~reader_fd ~reader ~writer_fd ~writer
   | (Closed | Message_too_big _) as res ->
     raise_s
       [%message
         "write_bin_prot error for low latency transport"
-          (res : unit Rpc.Low_latency_transport.Send_result.t)]
+          ~res:
+            ([%globalize: unit Rpc.Low_latency_transport.Send_result.t] res
+             : unit Rpc.Low_latency_transport.Send_result.t)]
 ;;
 
 let%expect_test "peeking a message shouldn't result in read offset to change" =

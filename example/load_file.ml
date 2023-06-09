@@ -6,7 +6,7 @@ let lines file =
     Deferred.create (fun i ->
       let rec loop ac =
         upon (Reader.read_line reader) (function
-          | `Eof -> Ivar.fill i (Array.of_list (List.rev ac))
+          | `Eof -> Ivar.fill_exn i (Array.of_list (List.rev ac))
           | `Ok line -> loop (line :: ac))
       in
       loop []))

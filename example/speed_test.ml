@@ -13,13 +13,13 @@ let run_test ~fill_before_upon ~no_ivars ~spawn_factor =
       let i = Ivar.create () in
       if fill_before_upon
       then (
-        Ivar.fill i ();
+        Ivar.fill_exn i ();
         spawn i)
       else (
         spawn i;
-        Ivar.fill i ());
+        Ivar.fill_exn i ());
       loop (n - 1))
-    else Ivar.fill finished ()
+    else Ivar.fill_exn finished ()
   in
   loop no_ivars;
   Ivar.read finished

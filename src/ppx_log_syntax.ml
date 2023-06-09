@@ -6,14 +6,7 @@ module T = struct
   type return_type = unit
 
   let would_log = Log.would_log
-
-  let sexp ?level ?pos t msg =
-    let tags =
-      Option.map pos ~f:(fun pos -> [ "pos", Source_code_position.to_string pos ])
-    in
-    Log.sexp ?level ?tags t msg
-  ;;
-
+  let sexp ?level ?tags t msg = Log.sexp ?level ?tags t msg
   let default = ()
 end
 
@@ -24,13 +17,7 @@ module Global = struct
 
   let default = ()
   let would_log = Log.Global.would_log
-
-  let sexp ?level ?pos msg =
-    let tags =
-      Option.map pos ~f:(fun pos -> [ "pos", Source_code_position.to_string pos ])
-    in
-    Log.Global.sexp ?level ?tags msg
-  ;;
+  let sexp ?level ?tags msg = Log.Global.sexp ?level ?tags msg
 end
 
 module No_global = struct
@@ -42,7 +29,7 @@ module No_global = struct
 
       let default = `Do_not_use_because_it_will_not_log
       let would_log _ = false
-      let sexp ?level:_ ?pos:_ _ = `Do_not_use_because_it_will_not_log
+      let sexp ?level:_ ?tags:_ _ = `Do_not_use_because_it_will_not_log
     end
   end
 end

@@ -26,12 +26,12 @@ module Make (Conn : Closable) = struct
     in
     let on_event event =
       Option.iter log ~f:(fun log ->
-        if Log.would_log log (Some (Event.log_level event))
+        if Log.would_log log (Some (Persistent_connection_kernel.Event.log_level event))
         then
           Log.sexp
             log
             ~tags:[ "persistent-connection-to", server_name ]
-            ~level:(Event.log_level event)
+            ~level:(Persistent_connection_kernel.Event.log_level event)
             [%sexp (event : Address.t Event.t)]);
       on_event event
     in

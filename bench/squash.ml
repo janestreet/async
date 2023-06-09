@@ -13,7 +13,7 @@ let deep _n =
 ;;
 
 let deep_create () = ignore (deep 100 : unit Ivar.t)
-let deep_create_and_fill () = Ivar.fill (deep 100 : unit Ivar.t) ()
+let deep_create_and_fill () = Ivar.fill_exn (deep 100 : unit Ivar.t) ()
 
 let () =
   Command_unix.run

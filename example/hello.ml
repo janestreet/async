@@ -17,7 +17,7 @@ let handler _ reader writer =
         read ()
       | `Eof ->
         write ();
-        Ivar.fill i ()
+        Ivar.fill_exn i ()
       | _ -> read ()
     in
     read ())

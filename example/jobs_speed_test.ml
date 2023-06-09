@@ -8,7 +8,7 @@ let run_test () =
   Deferred.create (fun i ->
     let rec loop n =
       if n = 0
-      then Ivar.fill i ()
+      then Ivar.fill_exn i ()
       else
         Deferred.create (fun i ->
           let finished = ref num_jobs in
@@ -17,7 +17,7 @@ let run_test () =
             then (
               upon Deferred.unit (fun () ->
                 decr finished;
-                if !finished = 0 then Ivar.fill i ());
+                if !finished = 0 then Ivar.fill_exn i ());
               loop (n - 1))
           in
           loop num_jobs)

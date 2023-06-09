@@ -3,10 +3,10 @@ open Poly
 open! Async
 open! Import
 
-let make_tests ~make_transport ~transport_name =
+let make_tests ~trace ~make_transport ~transport_name =
   List.mapi
     ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
-    [ test1 ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
+    [ test1 ~trace ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
         let n = 3 in
         let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n in
         let%bind x =
@@ -16,13 +16,14 @@ let make_tests ~make_transport ~transport_name =
         in
         [%test_result: int] ~expect:n x;
         Deferred.unit)
-    ; test1 ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
+    ; test1 ~trace ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
         let%bind result = Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1) in
         match result with
         | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
        test1
+         ~trace
          ~make_transport
          ~imp:[ pipe_wait_imp ivar ]
          ~state:()
@@ -32,7 +33,7 @@ let make_tests ~make_transport ~transport_name =
            let%bind res = Pipe.read pipe_r in
            assert (res = `Ok ());
            don't_wait_for (Rpc.Connection.close conn1);
-           Ivar.fill ivar ();
+           Ivar.fill_exn ivar ();
            let%bind res = Pipe.read pipe_r in
            assert (res = `Ok ());
            Deferred.unit))
@@ -56,19 +57,68 @@ let%expect_test _ =
       ~f:(fun (name, f) ->
         print_s [%message name];
         f ())
-      (make_tests ~make_transport:make_transport_std ~transport_name:"std"
+      (make_tests ~trace:true ~make_transport:make_transport_std ~transport_name:"std"
        @ make_tests
+           ~trace:true
            ~make_transport:make_transport_low_latency
            ~transport_name:"low-latency")
   in
   [%expect
     {|
     rpc-std-0
+    B 1 (pipe_count)  22B (Sent Query)
+    A 1 (pipe_count)  22B (Received Query)
+    A 1 (pipe_count)   7B (Sent (Response Streaming_initial))
+    A 1 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 1 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 1 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 1 (pipe_count)   8B (Sent (Response Streaming_closed))
+    B 1 (<unknown>)    7B (Received (Response Partial_response))
+    B 1 (<unknown>)   10B (Received (Response Partial_response))
+    B 1 (<unknown>)   10B (Received (Response Partial_response))
+    B 1 (<unknown>)   10B (Received (Response Partial_response))
+    B 1 (<unknown>)    8B (Received (Response Response_finished))
     rpc-std-1
+    B 2 (pipe_count)  23B (Sent Query)
+    A 2 (pipe_count)  23B (Received Query)
+    A 2 (pipe_count)  10B (Sent (Response Single_or_streaming_error))
+    B 2 (<unknown>)   10B (Received (Response Response_finished))
     rpc-std-2
+    B 3 (pipe_wait)   21B (Sent Query)
+    A 3 (pipe_wait)   21B (Received Query)
+    A 3 (pipe_wait)    7B (Sent (Response Streaming_initial))
+    A 3 (pipe_wait)   10B (Sent (Response Streaming_update))
+    B 3 (<unknown>)    7B (Received (Response Partial_response))
+    B 3 (<unknown>)   10B (Received (Response Partial_response))
+    A 3 (pipe_wait)   10B (Sent (Response Streaming_update))
+    B 3 (<unknown>)   10B (Received (Response Partial_response))
     rpc-low-latency-0
+    B 4 (pipe_count)  22B (Sent Query)
+    A 4 (pipe_count)  22B (Received Query)
+    A 4 (pipe_count)   7B (Sent (Response Streaming_initial))
+    A 4 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 4 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 4 (pipe_count)  10B (Sent (Response Streaming_update))
+    A 4 (pipe_count)   8B (Sent (Response Streaming_closed))
+    B 4 (<unknown>)    7B (Received (Response Partial_response))
+    B 4 (<unknown>)   10B (Received (Response Partial_response))
+    B 4 (<unknown>)   10B (Received (Response Partial_response))
+    B 4 (<unknown>)   10B (Received (Response Partial_response))
+    B 4 (<unknown>)    8B (Received (Response Response_finished))
     rpc-low-latency-1
-    rpc-low-latency-2 |}];
+    B 5 (pipe_count)  23B (Sent Query)
+    A 5 (pipe_count)  23B (Received Query)
+    A 5 (pipe_count)  10B (Sent (Response Single_or_streaming_error))
+    B 5 (<unknown>)   10B (Received (Response Response_finished))
+    rpc-low-latency-2
+    B 6 (pipe_wait)   21B (Sent Query)
+    A 6 (pipe_wait)   21B (Received Query)
+    A 6 (pipe_wait)    7B (Sent (Response Streaming_initial))
+    A 6 (pipe_wait)   10B (Sent (Response Streaming_update))
+    B 6 (<unknown>)    7B (Received (Response Partial_response))
+    B 6 (<unknown>)   10B (Received (Response Partial_response))
+    A 6 (pipe_wait)   10B (Sent (Response Streaming_update))
+    B 6 (<unknown>)   10B (Received (Response Partial_response)) |}];
   return ()
 ;;
 
@@ -86,9 +136,9 @@ let%expect_test "[Connection.create] shouldn't raise" =
              (Reader.create r1)
              (Writer.create w2))
       >>> function
-      | Error exn -> Ivar.fill ivar (`Raised exn)
+      | Error exn -> Ivar.fill_exn ivar (`Raised exn)
       | Ok (Ok (_ : Rpc.Connection.t)) -> assert false
-      | Ok (Error exn) -> Ivar.fill ivar (`Returned exn))
+      | Ok (Error exn) -> Ivar.fill_exn ivar (`Returned exn))
   in
   let writer1 = Writer.create w1 in
   (* We must write at least [Header.length] (8) bytes. *)
@@ -158,6 +208,13 @@ let%test_unit "Open dispatches see connection closed error" =
 
 let%test_module "Exception handling" =
   (module struct
+    let on_exception ~callback_triggered ~expect_close_connection =
+      { Async_rpc_kernel.Rpc.On_exception.callback =
+          Some (fun (_ : exn) -> Ivar.fill_exn callback_triggered ())
+      ; close_connection_if_no_return_value = expect_close_connection
+      }
+    ;;
+
     let test_exception_handling
           ?client_received_response
           ?use_on_exception
@@ -183,7 +240,7 @@ let%test_module "Exception handling" =
           ~initial_connection_state:(fun _ connection ->
             don't_wait_for
               (let%map () = Rpc.Connection.close_finished connection in
-               Ivar.fill connection_closed_by_server ()))
+               Ivar.fill_exn connection_closed_by_server ()))
           ~implementations
           ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
           ()
@@ -202,7 +259,7 @@ let%test_module "Exception handling" =
         in
         let%bind () = Scheduler.yield_until_no_jobs_remain () in
         let%bind res = res in
-        Option.iter client_received_response ~f:(Fn.flip Ivar.fill ());
+        Option.iter client_received_response ~f:(Fn.flip Ivar.fill_exn ());
         let%bind () = Scheduler.yield_until_no_jobs_remain () in
         if not expect_close_connection
         then (
@@ -216,10 +273,7 @@ let%test_module "Exception handling" =
       in
       let on_exception =
         Option.map use_on_exception ~f:(fun () ->
-          { Async_rpc_kernel.Rpc.On_exception.callback =
-              Some (fun (_ : exn) -> Ivar.fill callback_triggered ())
-          ; close_connection_if_no_return_value = expect_close_connection
-          })
+          on_exception ~callback_triggered ~expect_close_connection)
       in
       let%bind server = serve on_exception ~implementation in
       Monitor.protect
@@ -237,7 +291,8 @@ let%test_module "Exception handling" =
       |> List.hd
       |> Option.value ~default:(Error.to_string_hum err |> Sexp.of_string)
       |> Sexp.to_string_mach
-      |> [%test_eq: string] expected
+      |> Re2.matches (Re2.create_exn expected)
+      |> [%test_result: bool] ~expect:true
     ;;
 
     let bin_t = Bin_prot.Type_class.bin_unit
@@ -265,14 +320,24 @@ let%test_module "Exception handling" =
       f ~expect_close_connection:true
     ;;
 
-    let deny_all =
-      Rpc.Implementation.with_authorization ~f:(fun () ->
+    let implementation_with_denied_authorization implementation ~callback_triggered =
+      implementation
+        (on_exception ~callback_triggered ~expect_close_connection:false |> Some)
+      |> Rpc.Implementation.with_authorization ~f:(fun () ->
         Async_rpc_kernel.Or_not_authorized.Not_authorized
           (Error.create_s [%message "Denying all connections"]))
     ;;
 
     let%test_module "RPC" =
       (module struct
+        module Rpc_mode = struct
+          type t =
+            | Blocking
+            | Deferred
+            | Expert
+          [@@deriving enumerate, sexp_of]
+        end
+
         let rpc =
           Rpc.Rpc.create
             ~version:1
@@ -281,53 +346,82 @@ let%test_module "Exception handling" =
             ~bin_response:bin_t
         ;;
 
-        let implementation on_exception =
-          Rpc.Rpc.implement ?on_exception rpc (fun () () -> failwith "Exception")
+        let implementation rpc_mode on_exception =
+          let f () () = failwith "Exception" in
+          match rpc_mode with
+          | Rpc_mode.Blocking -> Rpc.Rpc.implement' ?on_exception rpc f
+          | Deferred -> Rpc.Rpc.implement ?on_exception rpc f
+          | Expert ->
+            Rpc.Rpc.Expert.implement'
+              ?on_exception
+              rpc
+              (fun
+                ()
+                (_ : Rpc.Implementations.Expert.Responder.t)
+                (_ : Bigstring.t)
+                ~pos:(_ : int)
+                ~len:(_ : int)
+                -> failwith "Exception")
         ;;
 
         let dispatch connection () = Rpc.Rpc.dispatch rpc connection ()
 
         let%expect_test "Regular rpc does not close the connection but returns the error" =
           let%bind () =
-            test_exception_handling
-              ~expect_close_connection:false
-              ~implementation
-              ~dispatch
-              ~ok_is_expected:false
-              ~check_error:
-                (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
-              ()
+            Rpc_mode.all
+            |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
+              test_exception_handling
+                ~expect_close_connection:false
+                ~implementation:(implementation rpc_mode)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side.*rpc.*computation"|})
+                ())
           in
-          [%expect {| |}];
+          [%expect {||}];
           Deferred.unit
         ;;
 
         let%expect_test "Regular rpc honors On_exception.t" =
           let%bind () =
-            test_exception_handling_using_on_exception
-              ~implementation
-              ~dispatch
-              ~ok_is_expected:false
-              ~check_error:
-                (location_field_in_error_msg ~expected:{|"server-side rpc computation"|})
-              ()
+            Rpc_mode.all
+            |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
+              test_exception_handling_using_on_exception
+                ~implementation:(implementation rpc_mode)
+                ~dispatch
+                ~ok_is_expected:false
+                ~check_error:
+                  (location_field_in_error_msg
+                     ~expected:{|"server-side.*rpc.*computation"|})
+                ())
           in
-          [%expect {| |}];
+          [%expect {||}];
           Deferred.unit
         ;;
 
-        let%expect_test "Regular rpc fails on authorization error" =
+        let%expect_test {|Regular rpc fails on authorization error but doesn't call on_exception|}
+          =
           let%bind () =
-            test_exception_handling
-              ~implementation:(fun on_exception ->
-                implementation on_exception |> deny_all)
-              ~dispatch
-              ~ok_is_expected:false
-              ~check_error:
-                (location_field_in_error_msg
-                   ~expected:{|"server-side rpc authorization"|})
-              ~expect_close_connection:false
-              ()
+            Rpc_mode.all
+            |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
+              let callback_triggered = Ivar.create () in
+              let%map () =
+                test_exception_handling
+                  ~implementation:(fun (_ : Rpc.On_exception.t option) ->
+                    implementation_with_denied_authorization
+                      (implementation rpc_mode)
+                      ~callback_triggered)
+                  ~dispatch
+                  ~ok_is_expected:false
+                  ~check_error:
+                    (location_field_in_error_msg
+                       ~expected:{|"server-side.*rpc.*authorization"|})
+                  ~expect_close_connection:false
+                  ()
+              in
+              [%test_result: bool] (Ivar.is_full callback_triggered) ~expect:false)
           in
           [%expect {| |}];
           Deferred.unit
@@ -378,17 +472,22 @@ let%test_module "Exception handling" =
           Deferred.unit
         ;;
 
-        let%expect_test "One way rpc doesn't close connection on authorization error" =
+        let%expect_test {|One way rpc doesn't close connection on authorization error and doesn't call on_exception|}
+          =
+          let callback_triggered = Ivar.create () in
           let%bind () =
             test_exception_handling
-              ~implementation:(fun on_exception ->
-                implementation on_exception |> deny_all)
+              ~implementation:(fun (_ : Rpc.On_exception.t option) ->
+                implementation_with_denied_authorization
+                  implementation
+                  ~callback_triggered)
               ~dispatch
               ~ok_is_expected:true
               ~check_error:(Fn.const ())
               ~expect_close_connection:false
               ()
           in
+          assert (Ivar.is_empty callback_triggered);
           [%expect {| |}];
           Deferred.unit
         ;;
@@ -536,15 +635,19 @@ let%test_module "Exception handling" =
           Deferred.unit
         ;;
 
-        let%expect_test "Pipe/State rpc fails on authorization error" =
+        let%expect_test {|Pipe/State rpc fails on authorization error but doesn't call on_exception|}
+          =
+          let callback_triggered = Ivar.create () in
           let%bind () =
             let client_received_response = Ivar.create () in
             let%bind () =
               test_exception_handling
                 ~client_received_response
                 ~expect_close_connection:false
-                ~implementation:(fun on_exception ->
-                  implementation client_received_response on_exception |> deny_all)
+                ~implementation:(fun (_ : Rpc.On_exception.t option) ->
+                  implementation_with_denied_authorization
+                    (implementation client_received_response)
+                    ~callback_triggered)
                 ~dispatch
                 ~ok_is_expected:false
                 ~check_error:
@@ -554,6 +657,7 @@ let%test_module "Exception handling" =
             in
             Scheduler.yield_until_no_jobs_remain ()
           in
+          assert (Ivar.is_empty callback_triggered);
           [%expect {| |}];
           Deferred.unit
         ;;

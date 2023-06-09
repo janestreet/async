@@ -73,7 +73,7 @@ let run_server ~port ~closing_mode ~use_regular_transport =
            ~on_unknown_rpc:`Raise)
       ~heartbeat_config
       ~initial_connection_state:(fun _ conn ->
-        Ivar.fill client_conn conn;
+        Ivar.fill_exn client_conn conn;
         upon Deferred.unit (fun () -> send_a_lot_of_messages Rpcs.From_server.rpc conn))
       ~where_to_listen:(Tcp.Where_to_listen.of_port port)
       ?make_transport:(make_transport ~use_regular_transport)

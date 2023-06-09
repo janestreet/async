@@ -390,7 +390,7 @@ module Pipe_iter_test = struct
                (match !next_expected with
                 | `Update _ -> assert false
                 | `Closed_remotely ->
-                  Ivar.fill finished ();
+                  Ivar.fill_exn finished ();
                   Continue)
              | Closed (`Error e) -> Error.raise e)
          in
@@ -400,7 +400,7 @@ module Pipe_iter_test = struct
            dispatch_exn Time_float.Span.second (function
              | Update _ -> assert false
              | Closed `By_remote_side ->
-               Ivar.fill finished ();
+               Ivar.fill_exn finished ();
                Continue
              | Closed (`Error e) -> Error.raise e)
          in
@@ -411,7 +411,7 @@ module Pipe_iter_test = struct
            dispatch_exn Time_float.Span.second (function
              | Update _ | Closed `By_remote_side -> assert false
              | Closed (`Error _) ->
-               Ivar.fill finished ();
+               Ivar.fill_exn finished ();
                Continue)
          in
          let%bind () = Connection.close conn in
@@ -834,12 +834,12 @@ module Rpc_expert_test = struct
                        buf
                        ~pos:0
                        ~len:(Bigstring.length buf)
-                       ~handle_error:(fun e -> Ivar.fill i (Error e))
+                       ~handle_error:(fun e -> Ivar.fill_exn i (Error e))
                        ~handle_response:(fun buf ~pos ~len ->
                          let pos_ref = ref pos in
                          let response = String.bin_read_t buf ~pos_ref in
                          assert (!pos_ref - pos = len);
-                         Ivar.fill i (Ok response);
+                         Ivar.fill_exn i (Ok response);
                          Deferred.unit)
                      : [ `Connection_closed | `Flushed of unit Deferred.t ]))
               in
@@ -859,12 +859,12 @@ module Rpc_expert_test = struct
                    buf
                    ~pos:0
                    ~len:(Bigstring.length buf)
-                   ~handle_error:(fun e -> Ivar.fill i (Error e))
+                   ~handle_error:(fun e -> Ivar.fill_exn i (Error e))
                    ~handle_response:(fun buf ~pos ~len ->
                      let pos_ref = ref pos in
                      let response = String.bin_read_t buf ~pos_ref in
                      assert (!pos_ref - pos = len);
-                     Ivar.fill i (Ok response);
+                     Ivar.fill_exn i (Ok response);
                      Deferred.unit)
                  : [ `Connection_closed | `Flushed of unit Deferred.t ]))
           in

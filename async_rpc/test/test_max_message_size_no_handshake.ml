@@ -4,7 +4,7 @@ open Import
 
 (* This test must be in a file by itself because of lazy evaluation of the environment
    variable *)
-let%expect_test "default_max_message_size" =
+let%expect_test "handshake is too large" =
   Unix.putenv ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE" ~data:"1";
   let make_transport_default_size (fd_r, fd_w) : Rpc.Transport.t =
     { reader = Reader.create fd_r |> Rpc.Transport.Reader.of_reader
@@ -15,6 +15,7 @@ let%expect_test "default_max_message_size" =
     match%map
       Monitor.try_with (fun () ->
         test1
+          ~trace:true
           ~make_transport:make_transport_default_size
           ~imp:[ pipe_count_imp ]
           ~state:()

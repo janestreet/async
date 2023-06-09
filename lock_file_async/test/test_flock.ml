@@ -19,7 +19,7 @@ let%expect_test "Flock" =
     and () =
       let waiting_thread = Lock_file_async.Flock.wait_for_lock_exn ~lock_path () in
       print_endline "waiting thread started";
-      Ivar.fill second_thread_started ();
+      Ivar.fill_exn second_thread_started ();
       let%bind flock = waiting_thread in
       print_endline "waiting thread took lock";
       let%map () = Lock_file_async.Flock.unlock_exn flock in
@@ -66,7 +66,7 @@ let%expect_test "Symlink" =
       let waiting_thread =
         Lock_file_async.Symlink.wait_for_lock_exn ~lock_path ~metadata:"waiting-thread" ()
       in
-      Ivar.fill second_thread_started ();
+      Ivar.fill_exn second_thread_started ();
       let%bind flock = waiting_thread in
       print_endline "waiting thread took lock";
       let%map () = Lock_file_async.Symlink.unlock_exn flock in

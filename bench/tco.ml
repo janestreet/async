@@ -25,7 +25,7 @@ let rec bind_loop = function
 let pure_loop n =
   Deferred.create (fun i ->
     let rec f = function
-      | 0 -> Ivar.fill i ()
+      | 0 -> Ivar.fill_exn i ()
       | n -> f (n - 1)
     in
     f n)
@@ -37,7 +37,7 @@ let pure_loop n =
 let slow_upon_loop n =
   Deferred.create (fun i ->
     let rec f = function
-      | 0 -> Ivar.fill i ()
+      | 0 -> Ivar.fill_exn i ()
       | n -> bind_upon tick (fun () -> f (n - 1))
     in
     f n)
@@ -46,7 +46,7 @@ let slow_upon_loop n =
 let upon_loop n =
   Deferred.create (fun i ->
     let rec f = function
-      | 0 -> Ivar.fill i ()
+      | 0 -> Ivar.fill_exn i ()
       | n -> upon tick (fun () -> f (n - 1))
     in
     f n)

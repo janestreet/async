@@ -5,6 +5,60 @@ module Header = Kernel_transport.Header
 module Handler_result = Kernel_transport.Handler_result
 module Send_result = Kernel_transport.Send_result
 
+let environment_variable = "ASYNC_RPC_MAX_MESSAGE_SIZE"
+
+let max_message_size_from_environment =
+  lazy
+    (Option.try_with_join (fun () ->
+       Sys.getenv environment_variable |> Option.map ~f:Int.of_string))
+;;
+
+let aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max =
+  let default =
+    (* unfortunately, copied from reader0.ml *)
+    100 * 1024 * 1024
+  in
+  match proposed_max, max_message_size_from_environment with
+  | None, None -> default
+  | Some x, None | None, Some x -> x
+  | Some x, Some y -> Int.max x y
+;;
+
+let%expect_test " " =
+  let test ~max_message_size_from_environment =
+    List.iter
+      [ None; Some 1; Some (200 * 1024 * 1024) ]
+      ~f:(fun proposed_max ->
+        let effective_max =
+          aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max
+        in
+        print_s [%message (proposed_max : int option) (effective_max : int)])
+  in
+  test ~max_message_size_from_environment:None;
+  [%expect
+    {|
+    ((proposed_max ()) (effective_max 104857600))
+    ((proposed_max (1)) (effective_max 1))
+    ((proposed_max (209715200)) (effective_max 209715200)) |}];
+  test ~max_message_size_from_environment:(Some 1024);
+  [%expect
+    {|
+    ((proposed_max ()) (effective_max 1024))
+    ((proposed_max (1)) (effective_max 1024))
+    ((proposed_max (209715200)) (effective_max 209715200)) |}];
+  test ~max_message_size_from_environment:(Some (300 * 1024 * 1024));
+  [%expect
+    {|
+    ((proposed_max ()) (effective_max 314572800))
+    ((proposed_max (1)) (effective_max 314572800))
+    ((proposed_max (209715200)) (effective_max 314572800)) |}]
+;;
+
+let effective_max_message_size ~proposed_max =
+  let max_message_size_from_environment = force max_message_size_from_environment in
+  aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max
+;;
+
 module With_limit : sig
   type 'a t = private
     { t : 'a
@@ -13,7 +67,7 @@ module With_limit : sig
     }
   [@@deriving sexp_of]
 
-  val create : 'a -> max_message_size:int -> 'a t
+  val create : 'a -> max_message_size:int option -> 'a t
   val message_size_ok : _ t -> payload_len:int -> bool
   val check_message_size : _ t -> payload_len:int -> unit
   val incr_total_bytes : _ t -> int -> unit
@@ -26,6 +80,7 @@ end = struct
   [@@deriving sexp_of]
 
   let create t ~max_message_size =
+    let max_message_size = effective_max_message_size ~proposed_max:max_message_size in
     if max_message_size < 0
     then
       failwithf
@@ -153,58 +208,59 @@ module Unix_writer = struct
   let send_bin_prot_internal t (bin_writer : _ Bin_prot.Type_class.writer) x ~followup_len
     : _ Send_result.t
     =
-    if not (Writer.is_closed t.t)
-    then (
-      let data_len = bin_writer.size x in
-      let payload_len = data_len + followup_len in
-      if message_size_ok t ~payload_len
-      then (
-        incr_total_bytes t payload_len;
-        Writer.write_bin_prot_no_size_header
-          t.t
-          ~size:Header.length
-          bin_write_payload_length
-          payload_len;
-        Writer.write_bin_prot_no_size_header t.t ~size:data_len bin_writer.write x;
-        Sent ())
-      else Message_too_big { size = payload_len; max_message_size = t.max_message_size })
-    else Closed
+    
+      (if not (Writer.is_closed t.t)
+       then (
+         let data_len = bin_writer.size x in
+         let payload_len = data_len + followup_len in
+         if message_size_ok t ~payload_len
+         then (
+           incr_total_bytes t payload_len;
+           Writer.write_bin_prot_no_size_header
+             t.t
+             ~size:Header.length
+             bin_write_payload_length
+             payload_len;
+           Writer.write_bin_prot_no_size_header t.t ~size:data_len bin_writer.write x;
+           Sent { result = (); bytes = payload_len })
+         else
+           Message_too_big { size = payload_len; max_message_size = t.max_message_size })
+       else Closed)
   ;;
 
-  let send_bin_prot t bin_writer x = send_bin_prot_internal t bin_writer x ~followup_len:0
+  let send_bin_prot t bin_writer x =
+     (send_bin_prot_internal t bin_writer x ~followup_len:0)
+  ;;
 
   let send_bin_prot_and_bigstring t bin_writer x ~buf ~pos ~len : _ Send_result.t =
-    match send_bin_prot_internal t bin_writer x ~followup_len:len with
-    | Sent () ->
-      Writer.write_bigstring t.t buf ~pos ~len;
-      Sent ()
-    | error -> error
+    
+      (match send_bin_prot_internal t bin_writer x ~followup_len:len with
+       | Sent { result = (); bytes = (_ : int) } as result ->
+         Writer.write_bigstring t.t buf ~pos ~len;
+         result
+       | error -> error)
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t bin_writer x ~buf ~pos ~len
     : _ Send_result.t
     =
-    match send_bin_prot_internal t bin_writer x ~followup_len:len with
-    | Sent () ->
-      Writer.schedule_bigstring t.t buf ~pos ~len;
-      Sent (Writer.flushed t.t)
-    | (Closed | Message_too_big _) as r -> r
+    
+      (match send_bin_prot_internal t bin_writer x ~followup_len:len with
+       | Sent { result = (); bytes } ->
+         Writer.schedule_bigstring t.t buf ~pos ~len;
+         Sent
+           { result = Writer.flushed t.t
+           ; bytes
+             (* The response from [send_bin_prot_internal] includes [followup_len] *)
+           }
+       | (Closed | Message_too_big _) as r -> r)
   ;;
 end
-
-let default_max_message_size =
-  Lazy.from_fun (fun () ->
-    match Sys.getenv "ASYNC_RPC_MAX_MESSAGE_SIZE" with
-    | None ->
-      (* unfortunately, copied from reader0.ml *)
-      100 * 1024 * 1024
-    | Some max_message_size -> Int.of_string max_message_size)
-;;
 
 module Reader = struct
   include Kernel_transport.Reader
 
-  let of_reader ?(max_message_size = force default_max_message_size) reader =
+  let of_reader ?max_message_size reader =
     pack (module Unix_reader) (Unix_reader.create ~reader ~max_message_size)
   ;;
 end
@@ -212,7 +268,7 @@ end
 module Writer = struct
   include Kernel_transport.Writer
 
-  let of_writer ?(max_message_size = force default_max_message_size) writer =
+  let of_writer ?max_message_size writer =
     pack (module Unix_writer) (Unix_writer.create ~writer ~max_message_size)
   ;;
 end
@@ -248,7 +304,7 @@ module Tcp = struct
         ?backlog
         ?drop_incoming_connections
         ?time_source
-        ?(max_message_size = force default_max_message_size)
+        ?max_message_size:proposed_max
         ?(make_transport = default_transport_maker)
         ?(auth = fun _ -> true)
         ?(on_handler_error = `Ignore)
@@ -267,6 +323,7 @@ module Tcp = struct
          match auth client_addr with
          | false -> return ()
          | true ->
+           let max_message_size = effective_max_message_size ~proposed_max in
            let transport = make_transport ~max_message_size (Socket.fd socket) in
            let%bind result =
              Monitor.try_with
@@ -293,7 +350,7 @@ module Tcp = struct
   ;;
 
   let connect
-        ?(max_message_size = force default_max_message_size)
+        ?max_message_size:proposed_max
         ?(make_transport = default_transport_maker)
         ?(tcp_connect_timeout =
           Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout)
@@ -317,6 +374,7 @@ module Tcp = struct
          don't_wait_for (Unix.close (Socket.fd sock));
          return (Error exn_could_be_raised_if_the_socket_is_diconnected_now)
        | sock_peername ->
+         let max_message_size = effective_max_message_size ~proposed_max in
          let transport = make_transport (Socket.fd sock) ~max_message_size in
          return (Ok (transport, sock_peername)))
   ;;
