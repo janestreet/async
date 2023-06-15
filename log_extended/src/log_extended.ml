@@ -240,8 +240,7 @@ module Command = struct
       print ~log_to_console:false ~log_with_color:true ~log_to_stdout:true;
       [%expect {|
         (Error
-         ((Failure "-log-with-color and -log-to-stdout require -log-to-console")
-          (""))) |}];
+         ((Failure "-log-with-color and -log-to-stdout require -log-to-console") ())) |}];
       print ~log_to_console:true ~log_with_color:true ~log_to_stdout:false;
       [%expect {| (Ok "(Stderr Color)") |}];
       print ~log_to_console:true ~log_with_color:false ~log_to_stdout:false;

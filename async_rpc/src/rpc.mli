@@ -199,3 +199,15 @@ module Connection : sig
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t
 end
+
+module For_debugging : sig
+  (** If called, then when a message is not the expected length, dump the buffer being
+      read to a file under /dev/shm for later debugging. The default is to do nothing in
+      this case.
+
+      This is intended to be enabled in the background to debug applications that are
+      occasionally seeing apparent message corruption, to help debug. It can also be
+      enabled by setting the ASYNC_RPC_DEBUG_DUMP_MESSAGE_LENGTH_ERRORS environment
+      variable. *)
+  val enable_dumping_buffers_on_message_size_errors : unit -> unit
+end

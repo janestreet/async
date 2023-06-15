@@ -339,3 +339,48 @@ module Connection = struct
       (fun ~remote_server:_ -> f)
   ;;
 end
+
+module For_debugging = struct
+  let dump_message_length_error buf ~pos =
+    (* Dump the message synchronously, this is this ok as this is being used to debug why
+       the application is seeing this error, and is likely about to shut down from the
+       failed RPC anyway. *)
+    let path = "/dev/shm/message-length-reader-errors" in
+    let fd =
+      Core_unix.openfile
+        path
+        ~mode:
+          [ O_CREAT
+          ; O_WRONLY
+          ; (let ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these =
+               Core_unix.O_TRUNC
+             in
+             ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these)
+          ]
+    in
+    let result =
+      match Bigstring_unix.really_write fd buf with
+      | () ->
+        sprintf "Dump of buffer written to %s. This message begins at offset %d" path pos
+      | exception e ->
+        sprintf
+          "Tried and failed to dump internal buffer to %s (offset %d): %s"
+          path
+          pos
+          (Exn.to_string e)
+    in
+    Core_unix.close fd;
+    result
+  ;;
+
+  let enable_dumping_buffers_on_message_size_errors () =
+    Async_rpc_kernel.Async_rpc_kernel_private.Util.dumper_for_message_length_errors
+    := dump_message_length_error
+  ;;
+
+  let () =
+    match Sys.getenv "ASYNC_RPC_DEBUG_DUMP_MESSAGE_LENGTH_ERRORS" with
+    | None | Some "" -> ()
+    | Some (_ : string) -> enable_dumping_buffers_on_message_size_errors ()
+  ;;
+end
