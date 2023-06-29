@@ -201,13 +201,18 @@ module Connection : sig
 end
 
 module For_debugging : sig
-  (** If called, then when a message is not the expected length, dump the buffer being
-      read to a file under /dev/shm for later debugging. The default is to do nothing in
-      this case.
+  (** If called, then when a message is not the expected length, or when bin_io
+      deserialization fails, dump the buffer being read to a file under /dev/shm for later
+      debugging. The default is to not dump any buffers in these cases. The file may be
+      overridden by passing [path_override]
 
       This is intended to be enabled in the background to debug applications that are
       occasionally seeing apparent message corruption, to help debug. It can also be
-      enabled by setting the ASYNC_RPC_DEBUG_DUMP_MESSAGE_LENGTH_ERRORS environment
-      variable. *)
-  val enable_dumping_buffers_on_message_size_errors : unit -> unit
+      enabled by setting the ASYNC_RPC_DEBUG_DUMP_DESERIALIZATION_ERRORS environment
+      variable, in which case errors will be written to the path specified by the env var
+      (relative to /dev/shm if the path contains no ‘/’). *)
+  val enable_dumping_buffers_on_deserialization_errors
+    :  ?path_override:Filename.t
+    -> unit
+    -> unit
 end

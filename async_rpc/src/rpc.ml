@@ -341,22 +341,42 @@ module Connection = struct
 end
 
 module For_debugging = struct
-  let dump_message_length_error buf ~pos =
+  let default_path =
+    lazy ("/dev/shm/rpc-message-reader-errors__pid_" ^ Pid.to_string (Core_unix.getpid ()))
+  ;;
+
+  let path_override = ref None
+
+  let dump_deserialization_error buf ~pos =
     (* Dump the message synchronously, this is this ok as this is being used to debug why
        the application is seeing this error, and is likely about to shut down from the
        failed RPC anyway. *)
-    let path = "/dev/shm/message-length-reader-errors" in
-    let fd =
-      Core_unix.openfile
-        path
-        ~mode:
-          [ O_CREAT
-          ; O_WRONLY
-          ; (let ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these =
-               Core_unix.O_TRUNC
-             in
-             ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these)
-          ]
+    let open_file () =
+      let path =
+        match !path_override with
+        | None -> force default_path
+        | Some path -> path
+      in
+      ( Core_unix.openfile
+          path
+          ~mode:
+            [ O_CREAT
+            ; O_WRONLY
+            ; (let ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these =
+                 Core_unix.O_TRUNC
+               in
+               ensure_we_dont_fill_up_filesystem_if_program_is_emitting_many_of_these)
+            ]
+      , path )
+    in
+    let fd, path =
+      try open_file () with
+      | exn ->
+        if Option.is_none !path_override
+        then raise exn
+        else (
+          path_override := None;
+          open_file ())
     in
     let result =
       match Bigstring_unix.really_write fd buf with
@@ -373,14 +393,28 @@ module For_debugging = struct
     result
   ;;
 
-  let enable_dumping_buffers_on_message_size_errors () =
-    Async_rpc_kernel.Async_rpc_kernel_private.Util.dumper_for_message_length_errors
-    := dump_message_length_error
+  let enable_dumping_buffers_on_deserialization_errors ?path_override:override () =
+    (match override with
+     | None -> ()
+     | Some override -> path_override := Some override);
+    Async_rpc_kernel.Async_rpc_kernel_private.Util.dumper_for_deserialization_errors
+    := dump_deserialization_error
   ;;
 
   let () =
-    match Sys.getenv "ASYNC_RPC_DEBUG_DUMP_MESSAGE_LENGTH_ERRORS" with
-    | None | Some "" -> ()
-    | Some (_ : string) -> enable_dumping_buffers_on_message_size_errors ()
+    match Sys.getenv "ASYNC_RPC_DEBUG_DUMP_DESERIALIZATION_ERRORS" with
+    | None ->
+      (* support for old env var *)
+      (match Sys.getenv "ASYNC_RPC_DEBUG_DUMP_MESSAGE_LENGTH_ERRORS" with
+       | None | Some "" -> ()
+       | Some _ -> enable_dumping_buffers_on_deserialization_errors ())
+    | Some dump_to ->
+      let path_override =
+        match dump_to with
+        | "" | "1" -> None
+        | dump_to when String.contains dump_to '/' -> Some dump_to
+        | dump_to -> Some ("/dev/shm" ^/ dump_to)
+      in
+      enable_dumping_buffers_on_deserialization_errors ?path_override ()
   ;;
 end
