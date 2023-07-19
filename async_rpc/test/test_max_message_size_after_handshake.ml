@@ -15,21 +15,21 @@ let triangle_query ~n ~str =
   in
   match%bind
     let server_conn = Ivar.create () in
-    Monitor.try_with (fun () ->
-      test1
-        ~trace:true
-        ~make_transport:make_transport_default_size
-        ~imp:[ pipe_triangle_imp ]
-        ~state:()
-        ~f:(fun sconn conn ->
-          Ivar.fill_exn server_conn sconn;
-          Rpc.Pipe_rpc.dispatch_exn pipe_triangle_rpc conn (n, str))
-        ())
+    test1
+      ~trace:true
+      ~make_transport:make_transport_default_size
+      ~imp:[ pipe_triangle_imp ]
+      ~state:()
+      ~f:(fun sconn conn ->
+        Ivar.fill_exn server_conn sconn;
+        Rpc.Pipe_rpc.dispatch pipe_triangle_rpc conn (n, str))
+      ()
   with
-  | Error exn ->
-    print_s ([%sexp_of: Exn.t] exn);
+  | Error error ->
+    print_s ([%sexp_of: Error.t] error);
     return ()
-  | Ok (pipe, (_ : Rpc.Pipe_rpc.Metadata.t)) ->
+  | Ok (Error ()) -> failwith "RPC implementation failed"
+  | Ok (Ok (pipe, (_ : Rpc.Pipe_rpc.Metadata.t))) ->
     let count = ref 0 in
     (match%map
        Clock_ns.with_timeout
@@ -52,15 +52,17 @@ let%expect_test "Query too large" =
   [%expect
     {|
     B 1 (pipe_tri)    72B (Failed_to_send Query Too_large)
-    (monitor.ml.Error
-     ("Message cannot be sent"
-      ((reason (Message_too_big ((size 72) (max_message_size 40))))
-       (connection
-        ((description <created-directly>)
-         (writer
-          ((t ((file_descr _) (info (writer "rpc_test 1")) (kind Fifo)))
-           (max_message_size 40) (total_bytes 8)))))))
-     ("<backtrace elided in test>" "Caught by monitor Monitor.protect")) |}]
+    ((rpc_error
+      (Uncaught_exn
+       ("Message cannot be sent"
+        ((reason (Message_too_big ((size 72) (max_message_size 40))))
+         (connection
+          ((description <created-directly>)
+           (writer
+            ((t ((file_descr _) (info (writer "rpc_test 1")) (kind Fifo)))
+             (max_message_size 40) (total_bytes 8)))))))))
+     (connection_description <created-directly>) (rpc_name pipe_tri)
+     (rpc_version 0)) |}]
 ;;
 
 let%expect_test "responses small enough" =
