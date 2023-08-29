@@ -40,7 +40,9 @@ let%expect_test "Symlink" =
     let lock_path = tempdir ^/ "lock-symlink" in
     let second_thread_started = Ivar.create () in
     let%bind flock =
-      match%map Lock_file_async.Symlink.lock_exn ~lock_path ~metadata:"original-thread" with
+      match%map
+        Lock_file_async.Symlink.lock_exn ~lock_path ~metadata:"original-thread"
+      with
       | `Somebody_else_took_it _ -> assert false
       | `We_took_it flock ->
         print_endline "original thread took lock";
@@ -51,17 +53,14 @@ let%expect_test "Symlink" =
       print_endline "original thread releasing lock";
       Lock_file_async.Symlink.unlock_exn flock
     and () =
-      let%bind ()
-        =
+      let%bind () =
         match%map
           Lock_file_async.Symlink.lock_exn ~lock_path ~metadata:"waiting-thread"
         with
         | `Somebody_else_took_it metadata ->
-          print_s [%sexp
-            `waiting_thread_sees
-              (`lock_taken_by (metadata : string Or_error.t))]
-        | `We_took_it _ ->
-          assert false
+          print_s
+            [%sexp `waiting_thread_sees (`lock_taken_by (metadata : string Or_error.t))]
+        | `We_took_it _ -> assert false
       in
       let waiting_thread =
         Lock_file_async.Symlink.wait_for_lock_exn ~lock_path ~metadata:"waiting-thread" ()

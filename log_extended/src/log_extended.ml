@@ -117,7 +117,7 @@ module Command = struct
       ; log_to_syslog:bool
       ; log_to_file:string option
       }
-    [@@deriving fields, sexp]
+    [@@deriving fields ~getters ~iterators:create, sexp]
 
     module Flag_name = struct
       (* This module exists to make it easier to inspect flag names. *)

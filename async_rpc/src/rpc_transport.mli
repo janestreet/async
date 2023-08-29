@@ -32,6 +32,9 @@ val of_reader_writer : ?max_message_size:int -> Async_reader.t -> Async_writer.t
 
 val of_fd
   :  ?buffer_age_limit:Async_writer.buffer_age_limit
+  (** Note: Reducing [reader_buffer_size] and [writer_buffer_size] below 128KiB can have
+      unintuitive effects on program memory usage, see the documentation of
+      [Reader.create] and [Writer.create] for more details. *)
   -> ?reader_buffer_size:int
   -> ?writer_buffer_size:int
   -> max_message_size:int

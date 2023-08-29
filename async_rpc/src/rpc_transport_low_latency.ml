@@ -127,7 +127,7 @@ module Reader_internal = struct
     ; mutable max : int (* End   of unconsumed data. *)
     ; mutable bytes_read : Int63.t
     }
-  [@@deriving sexp_of, fields]
+  [@@deriving sexp_of]
 
   let create fd config =
     set_nonblocking fd;
@@ -644,7 +644,7 @@ module Writer_internal = struct
     ; mutable last_send_job : int
     ; mutable sends_in_this_job : int
     }
-  [@@deriving sexp_of, fields]
+  [@@deriving sexp_of, fields ~getters]
 
   let create fd config =
     set_nonblocking fd;
