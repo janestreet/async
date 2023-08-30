@@ -208,7 +208,7 @@ module Unix_writer = struct
   let send_bin_prot_internal t (bin_writer : _ Bin_prot.Type_class.writer) x ~followup_len
     : _ Send_result.t
     =
-    
+    [%ocaml.local]
       (if not (Writer.is_closed t.t)
        then (
          let data_len = bin_writer.size x in
@@ -229,11 +229,11 @@ module Unix_writer = struct
   ;;
 
   let send_bin_prot t bin_writer x =
-     (send_bin_prot_internal t bin_writer x ~followup_len:0)
+    [%ocaml.local] (send_bin_prot_internal t bin_writer x ~followup_len:0)
   ;;
 
   let send_bin_prot_and_bigstring t bin_writer x ~buf ~pos ~len : _ Send_result.t =
-    
+    [%ocaml.local]
       (match send_bin_prot_internal t bin_writer x ~followup_len:len with
        | Sent { result = (); bytes = (_ : int) } as result ->
          Writer.write_bigstring t.t buf ~pos ~len;
@@ -244,7 +244,7 @@ module Unix_writer = struct
   let send_bin_prot_and_bigstring_non_copying t bin_writer x ~buf ~pos ~len
     : _ Send_result.t
     =
-    
+    [%ocaml.local]
       (match send_bin_prot_internal t bin_writer x ~followup_len:len with
        | Sent { result = (); bytes } ->
          Writer.schedule_bigstring t.t buf ~pos ~len;

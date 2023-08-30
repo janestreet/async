@@ -866,7 +866,7 @@ module Writer_internal = struct
     ~len
     : _ Send_result.t
     =
-    
+    [%ocaml.local]
       (let payload_len = writer.size msg + len in
        let total_len = Header.length + payload_len in
        if Config.message_size_ok t.config ~payload_len
@@ -903,7 +903,7 @@ module Writer_internal = struct
     ~len
     : _ Send_result.t
     =
-    
+    [%ocaml.local]
       (if is_closed t
        then Closed
        else (
@@ -954,7 +954,7 @@ module Writer_internal = struct
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t writer msg ~buf ~pos ~len =
-    
+    [%ocaml.local]
       (match send_bin_prot_and_bigstring t writer msg ~buf ~pos ~len with
        | (Closed | Message_too_big _) as r -> r
        | Sent { result = (); bytes } -> Sent { result = Deferred.unit; bytes })
@@ -963,7 +963,7 @@ module Writer_internal = struct
   let dummy_buf = Bigstring.create 0
 
   let send_bin_prot t writer msg =
-     (send_bin_prot_and_bigstring t writer msg ~buf:dummy_buf ~pos:0 ~len:0)
+    [%ocaml.local] (send_bin_prot_and_bigstring t writer msg ~buf:dummy_buf ~pos:0 ~len:0)
   ;;
 
   let close t =
