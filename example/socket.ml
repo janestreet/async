@@ -29,22 +29,22 @@ let doit () =
   upon
     (Clock.after (sec 2.))
     (fun () ->
-       let s = Socket.create Socket.Type.tcp in
-       upon
-         (Socket.connect
-            s
-            (Socket.Address.Inet.create (Unix.Inet_addr.of_string "127.0.0.1") ~port))
-         (fun s ->
-            let w = Writer.create (Socket.fd s) in
-            let buf = String.make 4096 ' ' in
-            let rec loop bytes_written =
-              Writer.write w buf;
-              upon (Writer.flushed w) (fun _ ->
-                let bytes_written = bytes_written + String.length buf in
-                printf "wrote %d bytes in total.\n" bytes_written;
-                loop bytes_written)
-            in
-            loop 0))
+      let s = Socket.create Socket.Type.tcp in
+      upon
+        (Socket.connect
+           s
+           (Socket.Address.Inet.create (Unix.Inet_addr.of_string "127.0.0.1") ~port))
+        (fun s ->
+          let w = Writer.create (Socket.fd s) in
+          let buf = String.make 4096 ' ' in
+          let rec loop bytes_written =
+            Writer.write w buf;
+            upon (Writer.flushed w) (fun _ ->
+              let bytes_written = bytes_written + String.length buf in
+              printf "wrote %d bytes in total.\n" bytes_written;
+              loop bytes_written)
+          in
+          loop 0))
 ;;
 
 let () = doit ()

@@ -17,14 +17,14 @@ module Connection = struct
   include Rpc_kernel.Connection
 
   let create
-        ?implementations
-        ~connection_state
-        ?max_message_size
-        ?handshake_timeout
-        ?heartbeat_config
-        ?description
-        reader
-        writer
+    ?implementations
+    ~connection_state
+    ?max_message_size
+    ?handshake_timeout
+    ?heartbeat_config
+    ?description
+    reader
+    writer
     =
     create
       ?implementations
@@ -38,26 +38,24 @@ module Connection = struct
 
   let contains_magic_prefix reader =
     match%map
-      Deferred.Or_error.try_with
-        ~run:`Schedule
-        ~rest:`Log
-        (fun () -> Reader.peek_bin_prot reader contains_magic_prefix)
+      Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log (fun () ->
+        Reader.peek_bin_prot reader contains_magic_prefix)
     with
     | Error _ | Ok `Eof -> false
     | Ok (`Ok b) -> b
   ;;
 
   let with_close
-        ?implementations
-        ?max_message_size
-        ?handshake_timeout
-        ?heartbeat_config
-        ?description
-        ~connection_state
-        reader
-        writer
-        ~dispatch_queries
-        ~on_handshake_error
+    ?implementations
+    ?max_message_size
+    ?handshake_timeout
+    ?heartbeat_config
+    ?description
+    ~connection_state
+    reader
+    writer
+    ~dispatch_queries
+    ~on_handshake_error
     =
     with_close
       ?implementations
@@ -72,15 +70,15 @@ module Connection = struct
   ;;
 
   let server_with_close
-        ?max_message_size
-        ?handshake_timeout
-        ?heartbeat_config
-        ?description
-        reader
-        writer
-        ~implementations
-        ~connection_state
-        ~on_handshake_error
+    ?max_message_size
+    ?handshake_timeout
+    ?heartbeat_config
+    ?description
+    reader
+    writer
+    ~implementations
+    ~connection_state
+    ~on_handshake_error
     =
     server_with_close
       ?handshake_timeout:
@@ -112,14 +110,14 @@ module Connection = struct
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
   let serve_with_transport
-        ~handshake_timeout
-        ~heartbeat_config
-        ~implementations
-        ~description
-        ~connection_state
-        ~on_handshake_error
-        ~client_addr
-        transport
+    ~handshake_timeout
+    ~heartbeat_config
+    ~implementations
+    ~description
+    ~connection_state
+    ~on_handshake_error
+    ~client_addr
+    transport
     =
     let%bind res =
       collect_errors transport ~f:(fun () ->
@@ -146,22 +144,22 @@ module Connection = struct
   ;;
 
   let make_serve_func
-        serve_with_transport_handler
-        ~implementations
-        ~initial_connection_state
-        ~where_to_listen
-        ?max_connections
-        ?backlog
-        ?drop_incoming_connections
-        ?time_source
-        ?max_message_size
-        ?make_transport
-        ?handshake_timeout
-        ?heartbeat_config
-        ?auth
-        ?(on_handshake_error = `Ignore)
-        ?on_handler_error
-        ()
+    serve_with_transport_handler
+    ~implementations
+    ~initial_connection_state
+    ~where_to_listen
+    ?max_connections
+    ?backlog
+    ?drop_incoming_connections
+    ?time_source
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout
+    ?heartbeat_config
+    ?auth
+    ?(on_handshake_error = `Ignore)
+    ?on_handler_error
+    ()
     =
     serve_with_transport_handler
       ~where_to_listen
@@ -174,22 +172,22 @@ module Connection = struct
       ?auth
       ?on_handler_error
       (fun ~client_addr ~server_addr transport ->
-         let description =
-           let server_addr = (server_addr :> Socket.Address.t) in
-           let client_addr = (client_addr :> Socket.Address.t) in
-           Info.create_s
-             [%message
-               "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
-         in
-         serve_with_transport
-           ~handshake_timeout
-           ~heartbeat_config
-           ~implementations
-           ~description
-           ~connection_state:(fun conn -> initial_connection_state client_addr conn)
-           ~on_handshake_error
-           ~client_addr
-           transport)
+      let description =
+        let server_addr = (server_addr :> Socket.Address.t) in
+        let client_addr = (client_addr :> Socket.Address.t) in
+        Info.create_s
+          [%message
+            "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
+      in
+      serve_with_transport
+        ~handshake_timeout
+        ~heartbeat_config
+        ~implementations
+        ~description
+        ~connection_state:(fun conn -> initial_connection_state client_addr conn)
+        ~on_handshake_error
+        ~client_addr
+        transport)
   ;;
 
   (* eta-expand [implementations] to avoid value restriction. *)
@@ -206,13 +204,13 @@ module Connection = struct
   ;;
 
   let client'
-        ?implementations
-        ?max_message_size
-        ?make_transport
-        ?handshake_timeout:(handshake_timeout_float = default_handshake_timeout_float)
-        ?heartbeat_config
-        ?description
-        where_to_connect
+    ?implementations
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout:(handshake_timeout_float = default_handshake_timeout_float)
+    ?heartbeat_config
+    ?description
+    where_to_connect
     =
     let handshake_timeout =
       Time_ns.Span.of_span_float_round_nearest handshake_timeout_float
@@ -272,13 +270,13 @@ module Connection = struct
   ;;
 
   let client
-        ?implementations
-        ?max_message_size
-        ?make_transport
-        ?handshake_timeout
-        ?heartbeat_config
-        ?description
-        where_to_connect
+    ?implementations
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout
+    ?heartbeat_config
+    ?description
+    where_to_connect
     =
     client'
       ?implementations
@@ -292,14 +290,14 @@ module Connection = struct
   ;;
 
   let with_client'
-        ?implementations
-        ?max_message_size
-        ?make_transport
-        ?handshake_timeout
-        ?heartbeat_config
-        ?description
-        where_to_connect
-        f
+    ?implementations
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout
+    ?heartbeat_config
+    ?description
+    where_to_connect
+    f
     =
     client'
       ?implementations
@@ -311,23 +309,20 @@ module Connection = struct
       where_to_connect
     >>=? fun (remote_server, t) ->
     let%bind result =
-      Monitor.try_with
-        ~run:`Schedule
-        ~rest:`Log
-        (fun () -> f ~remote_server t)
+      Monitor.try_with ~run:`Schedule ~rest:`Log (fun () -> f ~remote_server t)
     in
     let%map () = close t ~reason:(Info.of_string "Rpc.Connection.with_client finished") in
     result
   ;;
 
   let with_client
-        ?implementations
-        ?max_message_size
-        ?make_transport
-        ?handshake_timeout
-        ?heartbeat_config
-        where_to_connect
-        f
+    ?implementations
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout
+    ?heartbeat_config
+    where_to_connect
+    f
     =
     with_client'
       ?implementations
@@ -398,7 +393,7 @@ module For_debugging = struct
      | None -> ()
      | Some override -> path_override := Some override);
     Async_rpc_kernel.Async_rpc_kernel_private.Util.dumper_for_deserialization_errors
-    := dump_deserialization_error
+      := dump_deserialization_error
   ;;
 
   let () =

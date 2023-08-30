@@ -25,7 +25,6 @@ module Connection : sig
     include Rpc_kernel.Connection
   end
 
-
   (** These functions are mostly the same as the ones with the same names in
       [Async_rpc_kernel.Rpc.Connection]; see [Connection_intf] in that library for
       documentation. The differences are that:
@@ -92,7 +91,6 @@ module Connection : sig
   *)
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
-
   (** [serve implementations ~port ?on_handshake_error ()] starts a server with the given
       implementation on [port].  The optional auth function will be called on all incoming
       connections with the address info of the client and will disconnect the client
@@ -114,7 +112,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?auth:('address -> bool) (** default is [`Ignore] *)
     -> ?on_handshake_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
-    (** default is [`Ignore] *)
+         (** default is [`Ignore] *)
     -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
@@ -136,7 +134,7 @@ module Connection : sig
     -> ?auth:(Socket.Address.Inet.t -> bool) (** default is [`Ignore] *)
     -> ?on_handshake_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
-    (** default is [`Ignore] *)
+         (** default is [`Ignore] *)
     -> ?on_handler_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> unit
@@ -169,7 +167,6 @@ module Connection : sig
     -> ?description:Info.t
     -> 'address Tcp.Where_to_connect.t
     -> ('address * t, Exn.t) Result.t Deferred.t
-
 
   (** [with_client where_to_connect f] connects to the server at [where_to_connect] and
       runs f until an exception is thrown or until the returned Deferred is fulfilled.

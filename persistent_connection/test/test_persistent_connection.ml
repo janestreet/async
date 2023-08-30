@@ -13,14 +13,14 @@ module Hello = struct
   include Versioned_rpc.Caller_converts.Rpc.Make (Model)
 
   module V1 = Register (struct
-      let version = 1
+    let version = 1
 
-      type query = unit [@@deriving bin_io]
-      type response = unit [@@deriving bin_io]
+    type query = unit [@@deriving bin_io]
+    type response = unit [@@deriving bin_io]
 
-      let query_of_model = Fn.id
-      let model_of_response = Fn.id
-    end)
+    let query_of_model = Fn.id
+    let model_of_response = Fn.id
+  end)
 end
 
 let%expect_test _ =
@@ -48,12 +48,12 @@ let%expect_test _ =
   let on_unversioned_event
     : Host_and_port.t Persistent_connection.Rpc.Event.t -> unit Deferred.t
     = function
-      | Obtained_address _ ->
-        printf "(Obtained_address <elided>)\n";
-        return ()
-      | event ->
-        print_s [%sexp (event : Host_and_port.t Persistent_connection.Rpc.Event.t)];
-        return ()
+    | Obtained_address _ ->
+      printf "(Obtained_address <elided>)\n";
+      return ()
+    | event ->
+      print_s [%sexp (event : Host_and_port.t Persistent_connection.Rpc.Event.t)];
+      return ()
   in
   let unversioned_conn =
     Persistent_connection.Rpc.create'
@@ -75,13 +75,13 @@ let%expect_test _ =
   let on_versioned_event
     : Host_and_port.t Persistent_connection.Versioned_rpc.Event.t -> unit Deferred.t
     = function
-      | Obtained_address _ ->
-        printf "(Obtained_address <elided>)\n";
-        return ()
-      | event ->
-        print_s
-          [%sexp (event : Host_and_port.t Persistent_connection.Versioned_rpc.Event.t)];
-        return ()
+    | Obtained_address _ ->
+      printf "(Obtained_address <elided>)\n";
+      return ()
+    | event ->
+      print_s
+        [%sexp (event : Host_and_port.t Persistent_connection.Versioned_rpc.Event.t)];
+      return ()
   in
   let versioned_conn =
     Persistent_connection.Versioned_rpc.create'

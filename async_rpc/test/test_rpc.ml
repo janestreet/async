@@ -127,14 +127,11 @@ let%expect_test "[Connection.create] shouldn't raise" =
   let%bind `Reader _, `Writer w2 = Unix.pipe (Info.of_string "rpc_test 2") in
   let result =
     Deferred.create (fun ivar ->
-      Monitor.try_with
-        ~run:`Schedule
-        ~rest:`Log
-        (fun () ->
-           Rpc.Connection.create
-             ~connection_state:(Fn.const ())
-             (Reader.create r1)
-             (Writer.create w2))
+      Monitor.try_with ~run:`Schedule ~rest:`Log (fun () ->
+        Rpc.Connection.create
+          ~connection_state:(Fn.const ())
+          (Reader.create r1)
+          (Writer.create w2))
       >>> function
       | Error exn -> Ivar.fill_exn ivar (`Raised exn)
       | Ok (Ok (_ : Rpc.Connection.t)) -> assert false
@@ -216,20 +213,20 @@ let%test_module "Exception handling" =
     ;;
 
     let test_exception_handling
-          ?client_received_response
-          ?use_on_exception
-          ~expect_close_connection
-          ~implementation
-          ~dispatch
-          ~ok_is_expected
-          ~check_error
-          ()
+      ?client_received_response
+      ?use_on_exception
+      ~expect_close_connection
+      ~implementation
+      ~dispatch
+      ~ok_is_expected
+      ~check_error
+      ()
       =
       let callback_triggered = Ivar.create () in
       let connection_closed_by_server = Ivar.create () in
       let serve
-            (on_exception : Async_rpc_kernel.Rpc.On_exception.t option)
-            ~implementation
+        (on_exception : Async_rpc_kernel.Rpc.On_exception.t option)
+        ~implementation
         =
         let implementations =
           Rpc.Implementations.create_exn
@@ -279,8 +276,8 @@ let%test_module "Exception handling" =
       Monitor.protect
         ~finally:(fun () -> Tcp.Server.close server)
         (fun () ->
-           let port = Tcp.Server.listening_on server in
-           client ~port)
+          let port = Tcp.Server.listening_on server in
+          client ~port)
     ;;
 
     let location_field_in_error_msg err ~expected =
@@ -298,12 +295,12 @@ let%test_module "Exception handling" =
     let bin_t = Bin_prot.Type_class.bin_unit
 
     let test_exception_handling_using_on_exception
-          ?client_received_response
-          ~implementation
-          ~dispatch
-          ~ok_is_expected
-          ~check_error
-          ()
+      ?client_received_response
+      ~implementation
+      ~dispatch
+      ~ok_is_expected
+      ~check_error
+      ()
       =
       let f ~expect_close_connection =
         test_exception_handling
@@ -324,8 +321,8 @@ let%test_module "Exception handling" =
       implementation
         (on_exception ~callback_triggered ~expect_close_connection:false |> Some)
       |> Rpc.Implementation.with_authorization ~f:(fun () ->
-        Async_rpc_kernel.Or_not_authorized.Not_authorized
-          (Error.create_s [%message "Denying all connections"]))
+           Async_rpc_kernel.Or_not_authorized.Not_authorized
+             (Error.create_s [%message "Denying all connections"]))
     ;;
 
     let%test_module "RPC" =
@@ -356,12 +353,12 @@ let%test_module "Exception handling" =
               ?on_exception
               rpc
               (fun
-                ()
-                (_ : Rpc.Implementations.Expert.Responder.t)
-                (_ : Bigstring.t)
-                ~pos:(_ : int)
-                ~len:(_ : int)
-                -> failwith "Exception")
+                  ()
+                  (_ : Rpc.Implementations.Expert.Responder.t)
+                  (_ : Bigstring.t)
+                  ~pos:(_ : int)
+                  ~len:(_ : int)
+                  -> failwith "Exception")
         ;;
 
         let dispatch connection () = Rpc.Rpc.dispatch rpc connection ()
@@ -370,15 +367,15 @@ let%test_module "Exception handling" =
           let%bind () =
             Rpc_mode.all
             |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
-              test_exception_handling
-                ~expect_close_connection:false
-                ~implementation:(implementation rpc_mode)
-                ~dispatch
-                ~ok_is_expected:false
-                ~check_error:
-                  (location_field_in_error_msg
-                     ~expected:{|"server-side.*rpc.*computation"|})
-                ())
+                 test_exception_handling
+                   ~expect_close_connection:false
+                   ~implementation:(implementation rpc_mode)
+                   ~dispatch
+                   ~ok_is_expected:false
+                   ~check_error:
+                     (location_field_in_error_msg
+                        ~expected:{|"server-side.*rpc.*computation"|})
+                   ())
           in
           [%expect {||}];
           Deferred.unit
@@ -388,14 +385,14 @@ let%test_module "Exception handling" =
           let%bind () =
             Rpc_mode.all
             |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
-              test_exception_handling_using_on_exception
-                ~implementation:(implementation rpc_mode)
-                ~dispatch
-                ~ok_is_expected:false
-                ~check_error:
-                  (location_field_in_error_msg
-                     ~expected:{|"server-side.*rpc.*computation"|})
-                ())
+                 test_exception_handling_using_on_exception
+                   ~implementation:(implementation rpc_mode)
+                   ~dispatch
+                   ~ok_is_expected:false
+                   ~check_error:
+                     (location_field_in_error_msg
+                        ~expected:{|"server-side.*rpc.*computation"|})
+                   ())
           in
           [%expect {||}];
           Deferred.unit
@@ -406,22 +403,22 @@ let%test_module "Exception handling" =
           let%bind () =
             Rpc_mode.all
             |> Deferred.List.iter ~how:`Sequential ~f:(fun rpc_mode ->
-              let callback_triggered = Ivar.create () in
-              let%map () =
-                test_exception_handling
-                  ~implementation:(fun (_ : Rpc.On_exception.t option) ->
-                    implementation_with_denied_authorization
-                      (implementation rpc_mode)
-                      ~callback_triggered)
-                  ~dispatch
-                  ~ok_is_expected:false
-                  ~check_error:
-                    (location_field_in_error_msg
-                       ~expected:{|"server-side.*rpc.*authorization"|})
-                  ~expect_close_connection:false
-                  ()
-              in
-              [%test_result: bool] (Ivar.is_full callback_triggered) ~expect:false)
+                 let callback_triggered = Ivar.create () in
+                 let%map () =
+                   test_exception_handling
+                     ~implementation:(fun (_ : Rpc.On_exception.t option) ->
+                       implementation_with_denied_authorization
+                         (implementation rpc_mode)
+                         ~callback_triggered)
+                     ~dispatch
+                     ~ok_is_expected:false
+                     ~check_error:
+                       (location_field_in_error_msg
+                          ~expected:{|"server-side.*rpc.*authorization"|})
+                     ~expect_close_connection:false
+                     ()
+                 in
+                 [%test_result: bool] (Ivar.is_full callback_triggered) ~expect:false)
           in
           [%expect {| |}];
           Deferred.unit

@@ -1,7 +1,9 @@
 open! Core
 open! Async
 
-include module type of struct include Async.Log end
+include module type of struct
+  include Async.Log
+end
 
 module Console : sig
   (** returns a [Log.Output.t] given optional styles (i.e. values of type [Ansi.t list])
@@ -12,8 +14,8 @@ module Console : sig
       [create] doesn't take a [format] argument because colorized output should be read
       by humans.
   *)
-  val output :
-    ?debug:Console.Ansi.attr list
+  val output
+    :  ?debug:Console.Ansi.attr list
     -> ?info:Console.Ansi.attr list
     -> ?error:Console.Ansi.attr list
     -> Writer.t
@@ -21,8 +23,8 @@ module Console : sig
 
   module Blocking : sig
     (** as [output] but for use with non-async logs *)
-    val output :
-      ?debug:Console.Ansi.attr list
+    val output
+      :  ?debug:Console.Ansi.attr list
       -> ?info:Console.Ansi.attr list
       -> ?error:Console.Ansi.attr list
       -> Out_channel.t
@@ -33,9 +35,9 @@ end
 module Syslog : sig
   (** [output ()] return a Log.Output.t for use with Async.Log. *)
   val output
-    :  ?id:string                          (** default is [Sys.argv.(0)] *)
-    -> ?options:Syslog.Open_option.t list  (** default is [[PID; CONS]] *)
-    -> ?facility:Syslog.Facility.t         (** default is [USER] *)
+    :  ?id:string (** default is [Sys.argv.(0)] *)
+    -> ?options:Syslog.Open_option.t list (** default is [[PID; CONS]] *)
+    -> ?facility:Syslog.Facility.t (** default is [USER] *)
     -> unit
     -> Log.Output.t
 
@@ -45,8 +47,16 @@ module Syslog : sig
 end
 
 module Command : sig
-  type console_style = Plain | Color [@@deriving sexp]
-  type console_output = No | Stdout of console_style | Stderr of console_style [@@deriving sexp]
+  type console_style =
+    | Plain
+    | Color
+  [@@deriving sexp]
+
+  type console_output =
+    | No
+    | Stdout of console_style
+    | Stderr of console_style
+  [@@deriving sexp]
 
   (** [setup_via_params] either sets up console, syslog, or file logging with the defaults
       passed in as parameters to this function, or overrides those defaults via the

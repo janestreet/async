@@ -2,7 +2,6 @@ open Core
 open Import
 include Core.Command
 
-
 type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> 'a
 
 let shutdown_with_error e =
@@ -72,11 +71,8 @@ let in_async ?(behave_nicely_in_pipeline = true) ?extract_exn param on_result =
                 a "shutdown forced" message and exit 1 if [prev ()] finished first. *)
              [ prev (); (before_shutdown () >>= fun () -> after (sec 1.)) ]);
       upon
-        (Deferred.Or_error.try_with
-           ~run:`Schedule
-           ~rest:`Log
-           ?extract_exn
-           (fun () -> main `Scheduler_started))
+        (Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log ?extract_exn (fun () ->
+           main `Scheduler_started))
         on_result;
       (never_returns (Scheduler.go ()) : unit))
 ;;
@@ -110,12 +106,12 @@ module Staged = struct
   ;;
 
   let async_spec_or_error
-        ?behave_nicely_in_pipeline
-        ?extract_exn
-        ~summary
-        ?readme
-        spec
-        main
+    ?behave_nicely_in_pipeline
+    ?extract_exn
+    ~summary
+    ?readme
+    spec
+    main
     =
     async_or_error
       ?behave_nicely_in_pipeline

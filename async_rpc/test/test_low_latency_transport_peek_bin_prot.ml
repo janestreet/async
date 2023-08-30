@@ -52,7 +52,7 @@ let run_test_suite_with ~fds ~f =
         "write_bin_prot error for low latency transport"
           ~res:
             ([%globalize: unit Rpc.Low_latency_transport.Send_result.t] res
-             : unit Rpc.Low_latency_transport.Send_result.t)]
+              : unit Rpc.Low_latency_transport.Send_result.t)]
 ;;
 
 let%expect_test "peeking a message shouldn't result in read offset to change" =
@@ -60,28 +60,28 @@ let%expect_test "peeking a message shouldn't result in read offset to change" =
     run_test_suite_with
       ~fds:fifo_fds
       ~f:(fun ~reader_fd:_ ~reader ~writer_fd:_ ~writer:_ ->
-        match%bind
-          Rpc.Low_latency_transport.Reader.With_internal_reader.peek_bin_prot
-            reader
-            bin_reader_char
-        with
-        | Error (`Eof | `Closed) -> raise_s [%message "Received EOF while peeking"]
-        | Ok msg ->
-          printf "peeked message is: %c\n" msg;
-          (* read the message now *)
-          let%bind () =
-            match%bind
-              Rpc.Low_latency_transport.Reader.read_one_message_bin_prot
-                (Rpc.Low_latency_transport.Reader.With_internal_reader.transport_reader
-                   reader)
-                bin_reader_char
-            with
-            | Error (`Eof | `Closed) -> raise_s [%message "Received EOF while reading"]
-            | Ok msg ->
-              printf "read message is: %c\n" msg;
-              return ()
-          in
-          return ())
+      match%bind
+        Rpc.Low_latency_transport.Reader.With_internal_reader.peek_bin_prot
+          reader
+          bin_reader_char
+      with
+      | Error (`Eof | `Closed) -> raise_s [%message "Received EOF while peeking"]
+      | Ok msg ->
+        printf "peeked message is: %c\n" msg;
+        (* read the message now *)
+        let%bind () =
+          match%bind
+            Rpc.Low_latency_transport.Reader.read_one_message_bin_prot
+              (Rpc.Low_latency_transport.Reader.With_internal_reader.transport_reader
+                 reader)
+              bin_reader_char
+          with
+          | Error (`Eof | `Closed) -> raise_s [%message "Received EOF while reading"]
+          | Ok msg ->
+            printf "read message is: %c\n" msg;
+            return ()
+        in
+        return ())
   in
   [%expect {|
     peeked message is: a
@@ -115,13 +115,13 @@ let%expect_test "peeking a message without buffering - peeking multiple times wi
     run_test_suite_with
       ~fds:socket_fds
       ~f:(fun ~reader_fd ~reader ~writer_fd:_ ~writer:_ ->
-        let%bind msg = peek_available_without_buffering reader in
-        bigstring_read_bin_prot "(first)" msg;
-        (* create another reader and peek again *)
-        let another_reader = create_reader reader_fd in
-        let%bind msg = peek_available_without_buffering another_reader in
-        bigstring_read_bin_prot "(second)" msg;
-        return ())
+      let%bind msg = peek_available_without_buffering reader in
+      bigstring_read_bin_prot "(first)" msg;
+      (* create another reader and peek again *)
+      let another_reader = create_reader reader_fd in
+      let%bind msg = peek_available_without_buffering another_reader in
+      bigstring_read_bin_prot "(second)" msg;
+      return ())
   in
   [%expect {|
     (first) peeked message is: a
@@ -136,16 +136,16 @@ let%expect_test "peeking a message without buffering - trying to peek number of 
     run_test_suite_with
       ~fds:socket_fds
       ~f:(fun ~reader_fd:_ ~reader ~writer_fd:_ ~writer:_ ->
-        match%bind
-          Rpc.Low_latency_transport.Reader.With_internal_reader
-          .peek_once_without_buffering_from_socket
-            reader
-            ~len:(message_bin_prot_len + 1)
-        with
-        | Error `Not_enough_data ->
-          return (print_endline "Received Not_enough_data while peeking")
-        | Error `Closed -> raise_s [%message "Got `Closed error"]
-        | Ok _ -> raise_s [%message "Peeking unexpectedly succeeded"])
+      match%bind
+        Rpc.Low_latency_transport.Reader.With_internal_reader
+        .peek_once_without_buffering_from_socket
+          reader
+          ~len:(message_bin_prot_len + 1)
+      with
+      | Error `Not_enough_data ->
+        return (print_endline "Received Not_enough_data while peeking")
+      | Error `Closed -> raise_s [%message "Got `Closed error"]
+      | Ok _ -> raise_s [%message "Peeking unexpectedly succeeded"])
   in
   [%expect {|
     Received Not_enough_data while peeking |}];

@@ -298,17 +298,17 @@ module Tcp = struct
   let default_transport_maker fd ~max_message_size = of_fd fd ~max_message_size
 
   let make_serve_func
-        tcp_creator
-        ~where_to_listen
-        ?max_connections
-        ?backlog
-        ?drop_incoming_connections
-        ?time_source
-        ?max_message_size:proposed_max
-        ?(make_transport = default_transport_maker)
-        ?(auth = fun _ -> true)
-        ?(on_handler_error = `Ignore)
-        handle_transport
+    tcp_creator
+    ~where_to_listen
+    ?max_connections
+    ?backlog
+    ?drop_incoming_connections
+    ?time_source
+    ?max_message_size:proposed_max
+    ?(make_transport = default_transport_maker)
+    ?(auth = fun _ -> true)
+    ?(on_handler_error = `Ignore)
+    handle_transport
     =
     tcp_creator
       ?max_connections
@@ -320,25 +320,22 @@ module Tcp = struct
       ~on_handler_error
       where_to_listen
       (fun client_addr socket ->
-         match auth client_addr with
-         | false -> return ()
-         | true ->
-           let max_message_size = effective_max_message_size ~proposed_max in
-           let transport = make_transport ~max_message_size (Socket.fd socket) in
-           let%bind result =
-             Monitor.try_with
-               ~run:`Schedule
-               ~rest:`Raise
-               (fun () ->
-                  handle_transport
-                    ~client_addr
-                    ~server_addr:(Socket.getsockname socket)
-                    transport)
-           in
-           let%bind () = close transport in
-           (match result with
-            | Ok () -> return ()
-            | Error exn -> raise exn))
+      match auth client_addr with
+      | false -> return ()
+      | true ->
+        let max_message_size = effective_max_message_size ~proposed_max in
+        let transport = make_transport ~max_message_size (Socket.fd socket) in
+        let%bind result =
+          Monitor.try_with ~run:`Schedule ~rest:`Raise (fun () ->
+            handle_transport
+              ~client_addr
+              ~server_addr:(Socket.getsockname socket)
+              transport)
+        in
+        let%bind () = close transport in
+        (match result with
+         | Ok () -> return ()
+         | Error exn -> raise exn))
   ;;
 
   (* eta-expand [where_to_listen] to avoid value restriction. *)
@@ -350,20 +347,17 @@ module Tcp = struct
   ;;
 
   let connect
-        ?max_message_size:proposed_max
-        ?(make_transport = default_transport_maker)
-        ?(tcp_connect_timeout =
-          Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout)
-        where_to_connect
+    ?max_message_size:proposed_max
+    ?(make_transport = default_transport_maker)
+    ?(tcp_connect_timeout =
+      Async_rpc_kernel.Async_rpc_kernel_private.default_handshake_timeout)
+    where_to_connect
     =
     let%bind sock =
-      Monitor.try_with
-        ~run:`Schedule
-        ~rest:`Log
-        (fun () ->
-           Tcp.connect_sock
-             ~timeout:(Time_ns.Span.to_span_float_round_nearest tcp_connect_timeout)
-             where_to_connect)
+      Monitor.try_with ~run:`Schedule ~rest:`Log (fun () ->
+        Tcp.connect_sock
+          ~timeout:(Time_ns.Span.to_span_float_round_nearest tcp_connect_timeout)
+          where_to_connect)
     in
     match sock with
     | Error _ as error -> return error

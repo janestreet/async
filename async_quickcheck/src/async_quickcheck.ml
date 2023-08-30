@@ -28,15 +28,15 @@ module Configure (Config : Quickcheck.Quickcheck_config) = struct
   ;;
 
   let async_test
-        ?seed
-        ?sizes
-        ?(trials = default_trial_count)
-        ?shrinker
-        ?(shrink_attempts = default_shrink_attempts)
-        ?sexp_of
-        ?(examples = [])
-        quickcheck_generator
-        ~f
+    ?seed
+    ?sizes
+    ?(trials = default_trial_count)
+    ?shrinker
+    ?(shrink_attempts = default_shrink_attempts)
+    ?sexp_of
+    ?(examples = [])
+    quickcheck_generator
+    ~f
     =
     let f x =
       Deferred.Or_error.try_with ~run:`Now ~rest:`Raise ~extract_exn:true (fun () -> f x)

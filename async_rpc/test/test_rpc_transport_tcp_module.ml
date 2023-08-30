@@ -82,9 +82,9 @@ let%expect_test "transport is closed when handle_transport returns #1" =
     Rpc.Transport.Tcp.serve
       ~where_to_listen
       (fun ~client_addr:_ ~server_addr:_ transport ->
-         Ivar.fill_exn server_transport transport;
-         (* if we return immediately, the transport is closed. *)
-         return ())
+      Ivar.fill_exn server_transport transport;
+      (* if we return immediately, the transport is closed. *)
+      return ())
   in
   let%bind _sock, reader, writer =
     Tcp.connect
@@ -115,15 +115,15 @@ let%expect_test "transport is closed when handle_transport returns #2" =
     Rpc.Transport.Tcp.serve
       ~where_to_listen
       (fun ~client_addr:_ ~server_addr:_ transport ->
-         let%bind connection =
-           Async_rpc_kernel.Rpc.Connection.create
-             ~implementations
-             ~connection_state:(fun _ -> "server-state")
-             transport
-         in
-         let connection = Result.ok_exn connection in
-         Ivar.fill_exn server_connection connection;
-         Ivar.read server_has_finished_with_connection)
+      let%bind connection =
+        Async_rpc_kernel.Rpc.Connection.create
+          ~implementations
+          ~connection_state:(fun _ -> "server-state")
+          transport
+      in
+      let connection = Result.ok_exn connection in
+      Ivar.fill_exn server_connection connection;
+      Ivar.read server_has_finished_with_connection)
   in
   let%bind client_connection =
     Rpc.Connection.client

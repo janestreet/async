@@ -8,16 +8,16 @@ module Make (Conn : Closable) = struct
   include Persistent_connection_kernel.Make (Conn)
 
   let create
-        (type address)
-        ~server_name
-        ?log
-        ?(on_event = fun _ -> Deferred.unit)
-        ?retry_delay
-        ?random_state
-        ?time_source
-        ~connect
-        ~address
-        get_address
+    (type address)
+    ~server_name
+    ?log
+    ?(on_event = fun _ -> Deferred.unit)
+    ?retry_delay
+    ?random_state
+    ?time_source
+    ~connect
+    ~address
+    get_address
     =
     let (module Address : Address with type t = address) = address in
     let retry_delay =
@@ -48,21 +48,21 @@ module Make (Conn : Closable) = struct
 end
 
 let create_convenience_wrapper
-      ~create
-      ~connection_of_rpc_connection
-      ~server_name
-      ?log
-      ?on_event
-      ?retry_delay
-      ?random_state
-      ?time_source
-      ?bind_to_address
-      ?implementations
-      ?max_message_size
-      ?make_transport
-      ?handshake_timeout
-      ?heartbeat_config
-      get_address
+  ~create
+  ~connection_of_rpc_connection
+  ~server_name
+  ?log
+  ?on_event
+  ?retry_delay
+  ?random_state
+  ?time_source
+  ?bind_to_address
+  ?implementations
+  ?max_message_size
+  ?make_transport
+  ?handshake_timeout
+  ?heartbeat_config
+  get_address
   =
   let connect host_and_port =
     let%bind.Deferred.Or_error conn =
@@ -92,13 +92,13 @@ let create_convenience_wrapper
 
 module Versioned_rpc = struct
   include Make (struct
-      type t = Versioned_rpc.Connection_with_menu.t
+    type t = Versioned_rpc.Connection_with_menu.t
 
-      let rpc_connection = Versioned_rpc.Connection_with_menu.connection
-      let close t = Rpc.Connection.close (rpc_connection t)
-      let is_closed t = Rpc.Connection.is_closed (rpc_connection t)
-      let close_finished t = Rpc.Connection.close_finished (rpc_connection t)
-    end)
+    let rpc_connection = Versioned_rpc.Connection_with_menu.connection
+    let close t = Rpc.Connection.close (rpc_connection t)
+    let is_closed t = Rpc.Connection.is_closed (rpc_connection t)
+    let close_finished t = Rpc.Connection.close_finished (rpc_connection t)
+  end)
 
   let create' ~server_name =
     create_convenience_wrapper
@@ -110,12 +110,12 @@ end
 
 module Rpc = struct
   include Make (struct
-      type t = Rpc.Connection.t
+    type t = Rpc.Connection.t
 
-      let close t = Rpc.Connection.close t
-      let is_closed t = Rpc.Connection.is_closed t
-      let close_finished t = Rpc.Connection.close_finished t
-    end)
+    let close t = Rpc.Connection.close t
+    let is_closed t = Rpc.Connection.is_closed t
+    let close_finished t = Rpc.Connection.close_finished t
+  end)
 
   let create' ~server_name =
     create_convenience_wrapper

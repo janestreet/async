@@ -141,7 +141,7 @@ module Symlink : sig
     :  lock_path:string
     -> metadata:string
     -> [ `Somebody_else_took_it of string Or_error.t | `We_took_it of t ]
-         Deferred.Or_error.t
+       Deferred.Or_error.t
 
   val unlock_exn : t -> unit Deferred.t
   val unlock : t -> unit Deferred.Or_error.t

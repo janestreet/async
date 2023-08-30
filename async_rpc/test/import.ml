@@ -9,19 +9,19 @@ let print_trace (conn : Rpc.Connection.t) source =
     (Async_rpc_kernel.Async_rpc_kernel_private.Connection.events conn)
     [%here]
     ~f:(fun ((event : Async_rpc_kernel.Tracing_event.t) [@local]) ->
-      let%tydi { event; rpc; id; payload_bytes } = event in
-      let id = id |> Int63.to_int64 in
-      let name =
-        match rpc with
-        | None -> "<unknown>"
-        | Some { name; version = _ } -> String.globalize name
-      in
-      let header = sprintf !"%s %Ld (%s)" source id name in
-      Core.printf
-        !"%-16s %3dB %{sexp: Async_rpc_kernel.Tracing_event.Event.t}\n%!"
-        header
-        payload_bytes
-        ([%globalize: Async_rpc_kernel.Tracing_event.Event.t] event))
+    let%tydi { event; rpc; id; payload_bytes } = event in
+    let id = id |> Int63.to_int64 in
+    let name =
+      match rpc with
+      | None -> "<unknown>"
+      | Some { name; version = _ } -> String.globalize name
+    in
+    let header = sprintf !"%s %Ld (%s)" source id name in
+    Core.printf
+      !"%-16s %3dB %{sexp: Async_rpc_kernel.Tracing_event.Event.t}\n%!"
+      header
+      payload_bytes
+      ([%globalize: Async_rpc_kernel.Tracing_event.Event.t] event))
 ;;
 
 let test ~trace ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =

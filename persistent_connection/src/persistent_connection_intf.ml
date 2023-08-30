@@ -11,13 +11,13 @@ module type S = sig
   val create
     :  server_name:string
     -> ?log:Log.t
-    (** If [~log] is supplied then all events that would be passed to [on_event] will be
+         (** If [~log] is supplied then all events that would be passed to [on_event] will be
         written there as well, with a "persistent-connection-to" tag value of
         [server_name], which should be the name of the server we are connecting to. *)
     -> ?on_event:('address Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
-    (** If a [~random_state] is supplied, randomization is applied to the result of
+         (** If a [~random_state] is supplied, randomization is applied to the result of
         [retry_delay] after each call; if not, no randomization will be applied. The
         default is [`State Random.State.default]. *)
     -> ?time_source:Time_source.t
@@ -25,12 +25,10 @@ module type S = sig
     -> address:(module Address with type t = 'address)
     -> (unit -> 'address Or_error.t Deferred.t)
     -> t
-
 end
 
 module type S_rpc = sig
   include S
-
 
   (** Like [create] but for Rpc-like connections (i.e. Async.Rpc and Async.Versioned_rpc)
       where there is an obvious default for [connect] -- with a handful of extra optional

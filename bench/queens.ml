@@ -35,7 +35,7 @@ let nqueens nq =
     List.concat
       (List.map bs ~f:(fun b ->
          List.concat (List.map nql ~f:(fun q -> if safe q 1 b then [ q :: b ] else []))))
-      (* use option instead *)
+    (* use option instead *)
   in
   let rec step n b =
     if n < nq

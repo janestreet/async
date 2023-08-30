@@ -29,8 +29,8 @@ let rec loop i =
     upon
       (Clock.after (sec 1.))
       (fun () ->
-         compact ();
-         loop (i - 1))
+        compact ();
+        loop (i - 1))
 ;;
 
 let () = loop 5

@@ -35,17 +35,17 @@ let fail_on_abort path ~held_by = function
       "Lock_file timed out waiting for existing lock"
       path
       (fun path ->
-         match held_by with
-         | None -> [%sexp (path : string)]
-         | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
+      match held_by with
+      | None -> [%sexp (path : string)]
+      | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
 ;;
 
 let waiting_create
-      ?(abort = Deferred.never ())
-      ?message
-      ?close_on_exec
-      ?unlink_on_exit
-      path
+  ?(abort = Deferred.never ())
+  ?message
+  ?close_on_exec
+  ?unlink_on_exit
+  path
   =
   repeat_with_abort ~abort ~f:(fun () ->
     create ?message ?close_on_exec ?unlink_on_exit path)
@@ -75,8 +75,7 @@ module Nfs = struct
     repeat_with_abort ~abort ~f:(fun () ->
       match%map create ?message path with
       | Ok () -> true
-      | Error _ ->
-        false)
+      | Error _ -> false)
     >>| fail_on_abort path ~held_by:None
   ;;
 
@@ -84,7 +83,7 @@ module Nfs = struct
     let%bind () = waiting_create ~abort ?message path in
     Monitor.protect
       ~rest:`Log
-      (* `Log for compatibility. Ideally, we'd forward a ?rest argument, and push the
+        (* `Log for compatibility. Ideally, we'd forward a ?rest argument, and push the
          ~rest:`Log into the callers *)
       ~finally:(fun () -> unlock_exn path)
       f
@@ -113,12 +112,12 @@ module Flock = struct
   let unlock t = Monitor.try_with_or_error ~extract_exn:true (fun () -> unlock_exn t)
 
   let wait_for_lock_exn
-        ?(abort = Deferred.never ())
-        ?lock_owner_uid
-        ?exclusive
-        ?close_on_exec
-        ~lock_path
-        ()
+    ?(abort = Deferred.never ())
+    ?lock_owner_uid
+    ?exclusive
+    ?close_on_exec
+    ~lock_path
+    ()
     =
     let lock_handle = Set_once.create () in
     let%map () =
@@ -169,8 +168,8 @@ module Symlink = struct
             lock_path
             ~held_by:
               (Option.map !last_lock_holder ~f:(function
-                 | Ok s -> Sexp.Atom s
-                 | Error e -> [%sexp Error (e : Error.t)]))
+                | Ok s -> Sexp.Atom s
+                | Error e -> [%sexp Error (e : Error.t)]))
     in
     Set_once.get_exn lock_handle [%here]
   ;;

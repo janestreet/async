@@ -58,18 +58,18 @@ let rec edit_loop t =
     >>= fun () ->
     edit_file (module Data) filename
     >>= (function
-      | None -> edit_loop t
-      | Some updated ->
-        let t = Map.set t ~key ~data:updated in
-        printf "full sexp of map:\n";
-        printf "%s\n" (sexp_of_t t |> Sexp.to_string_hum);
-        printf "\njust data:\n";
-        printf
-          "%s\n"
-          (Map.map ~f:Sexp.With_text.value t
-           |> [%sexp_of: Data.t String.Map.t]
-           |> Sexp.to_string_hum);
-        edit_loop t)
+    | None -> edit_loop t
+    | Some updated ->
+      let t = Map.set t ~key ~data:updated in
+      printf "full sexp of map:\n";
+      printf "%s\n" (sexp_of_t t |> Sexp.to_string_hum);
+      printf "\njust data:\n";
+      printf
+        "%s\n"
+        (Map.map ~f:Sexp.With_text.value t
+         |> [%sexp_of: Data.t String.Map.t]
+         |> Sexp.to_string_hum);
+      edit_loop t)
 ;;
 
 let () =

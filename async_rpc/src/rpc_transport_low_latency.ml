@@ -15,7 +15,7 @@ external writev2
   -> len2:int
   -> Unix.Syscall_result.Int.t
   = "async_extra_rpc_writev2_byte" "async_extra_rpc_writev2"
-[@@noalloc]
+  [@@noalloc]
 
 module Config = struct
   (* Same as the default value of [buffer_age_limit] for [Async_unix.Writer] *)
@@ -43,18 +43,18 @@ module Config = struct
     ; write_timeout : Time_ns.Span.t [@default default_write_timeout]
     ; buffering_threshold_in_bytes : int [@default default_buffering_threshold_in_bytes]
     ; start_batching_after_num_messages : int
-                                          [@default default_start_batching_after_num_messages]
+         [@default default_start_batching_after_num_messages]
     }
   [@@deriving sexp]
 
   let validate t =
     if t.initial_buffer_size <= 0
-    || t.max_message_size <= 0
-    || t.initial_buffer_size > t.max_buffer_size
-    || t.max_message_size > t.max_buffer_size
-    || t.buffering_threshold_in_bytes < 0
-    || t.start_batching_after_num_messages < 0
-    || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
+       || t.max_message_size <= 0
+       || t.initial_buffer_size > t.max_buffer_size
+       || t.max_message_size > t.max_buffer_size
+       || t.buffering_threshold_in_bytes < 0
+       || t.start_batching_after_num_messages < 0
+       || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
     then
       failwiths
         ~here:[%here]
@@ -67,13 +67,13 @@ module Config = struct
   let t_of_sexp sexp = t_of_sexp sexp |> validate
 
   let create
-        ?(max_message_size = default_max_message_size)
-        ?(initial_buffer_size = default_initial_buffer_size)
-        ?(max_buffer_size = default_max_buffer_size)
-        ?(write_timeout = default_write_timeout)
-        ?(buffering_threshold_in_bytes = default_buffering_threshold_in_bytes)
-        ?(start_batching_after_num_messages = default_start_batching_after_num_messages)
-        ()
+    ?(max_message_size = default_max_message_size)
+    ?(initial_buffer_size = default_initial_buffer_size)
+    ?(max_buffer_size = default_max_buffer_size)
+    ?(write_timeout = default_write_timeout)
+    ?(buffering_threshold_in_bytes = default_buffering_threshold_in_bytes)
+    ?(start_batching_after_num_messages = default_start_batching_after_num_messages)
+    ()
     =
     validate
       { max_message_size
@@ -97,7 +97,7 @@ module Config = struct
       raise_s
         [%sexp
           "Rpc_transport_low_latency: message too small or too big"
-        , { message_size = (payload_len : int); config = (t : t) }]
+          , { message_size = (payload_len : int); config = (t : t) }]
   ;;
 
   let grow_buffer t buf ~new_size_request =
@@ -107,7 +107,7 @@ module Config = struct
       raise_s
         [%sexp
           "Rpc_transport_low_latency: cannot grow buffer"
-        , { new_size_request : int; config = (t : t) }];
+          , { new_size_request : int; config = (t : t) }];
     let len = Int.min t.max_buffer_size (Int.ceil_pow2 new_size_request) in
     Bigstring.unsafe_destroy_and_resize buf ~len
   ;;
@@ -429,29 +429,29 @@ module Reader_internal = struct
             t.reader.fd
             `Read
             (fun t ->
-               if can_process_message t
-               then (
-                 let peek_len =
-                   (* [Fd.syscall_exn] catches EINTR and retries the function. This is better
+              if can_process_message t
+              then (
+                let peek_len =
+                  (* [Fd.syscall_exn] catches EINTR and retries the function. This is better
                       than calling [recv_peek_assume_fd_is_nonblocking] directly.
                    *)
-                   Fd.syscall_exn t.reader.fd (fun file_descr ->
-                     Bigstring_unix.recv_peek_assume_fd_is_nonblocking
-                       file_descr
-                       ~pos:0
-                       ~len
-                       buf)
-                 in
-                 if peek_len >= len
-                 then (
-                   t.reader.bytes_read <- Int63.(t.reader.bytes_read + of_int len);
-                   match on_message buf ~pos:0 ~len with
-                   | Stop x -> interrupt t (Stopped_by_user x)
-                   | Continue | Wait _ ->
-                     failwith
-                       "Rpc_transport_low_latency.Reader_internal.Dispatcher.peek_once_without_buffering_from_socket: \
-                        on_message returned unexpected value")
-                 else interrupt t Eof_reached))
+                  Fd.syscall_exn t.reader.fd (fun file_descr ->
+                    Bigstring_unix.recv_peek_assume_fd_is_nonblocking
+                      file_descr
+                      ~pos:0
+                      ~len
+                      buf)
+                in
+                if peek_len >= len
+                then (
+                  t.reader.bytes_read <- Int63.(t.reader.bytes_read + of_int len);
+                  match on_message buf ~pos:0 ~len with
+                  | Stop x -> interrupt t (Stopped_by_user x)
+                  | Continue | Wait _ ->
+                    failwith
+                      "Rpc_transport_low_latency.Reader_internal.Dispatcher.peek_once_without_buffering_from_socket: \
+                       on_message returned unexpected value")
+                else interrupt t Eof_reached))
             t)
       with
       | `Bad_fd | `Unsupported ->
@@ -514,8 +514,8 @@ module Reader_internal = struct
   let read_forever = read_forever' ~allow_buffering:true
 
   let read_one_message_bin_prot_without_buffering
-        t
-        (bin_reader : _ Bin_prot.Type_class.reader)
+    t
+    (bin_reader : _ Bin_prot.Type_class.reader)
     =
     read_forever'
       t
@@ -783,7 +783,7 @@ module Writer_internal = struct
         raise_s
           [%sexp
             "Rpc_transport_low_latency.Writer: fd changed"
-          , { t : t; ready_to_result = (result : [ `Bad_fd | `Closed ]) }])
+            , { t : t; ready_to_result = (result : [ `Bad_fd | `Closed ]) }])
   ;;
 
   let flush t =
@@ -858,12 +858,12 @@ module Writer_internal = struct
   ;;
 
   let slow_write_bin_prot_and_bigstring
-        t
-        (writer : _ Bin_prot.Type_class.writer)
-        msg
-        ~buf
-        ~pos
-        ~len
+    t
+    (writer : _ Bin_prot.Type_class.writer)
+    msg
+    ~buf
+    ~pos
+    ~len
     : _ Send_result.t
     =
     
@@ -895,12 +895,12 @@ module Writer_internal = struct
   ;;
 
   let send_bin_prot_and_bigstring
-        t
-        (writer : _ Bin_prot.Type_class.writer)
-        msg
-        ~buf
-        ~pos
-        ~len
+    t
+    (writer : _ Bin_prot.Type_class.writer)
+    msg
+    ~buf
+    ~pos
+    ~len
     : _ Send_result.t
     =
     
@@ -950,8 +950,7 @@ module Writer_internal = struct
            in
            if send_now then flush t else schedule_flush t;
            result)
-         else
-           Sent { result = (); bytes = 0 }))
+         else Sent { result = (); bytes = 0 }))
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t writer msg ~buf ~pos ~len =

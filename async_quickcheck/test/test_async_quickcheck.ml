@@ -48,8 +48,8 @@ let%expect_test "shrinkers are applied" =
         ~sexp_of:String.sexp_of_t
         ~shrinker:
           (Quickcheck.Shrinker.create (function
-             | "SHRUNKEN" -> Sequence.empty
-             | _ -> Sequence.singleton "SHRUNKEN"))
+            | "SHRUNKEN" -> Sequence.empty
+            | _ -> Sequence.singleton "SHRUNKEN"))
         ~trials
         ~examples
         generator

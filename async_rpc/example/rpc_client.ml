@@ -12,10 +12,10 @@ let pipe_dispatch_exn rpc { Host_and_port.host; port } arg f =
   Rpc.Connection.with_client
     (Tcp.Where_to_connect.of_host_and_port { host; port })
     (fun conn ->
-       let%bind pipe, (_ : Rpc.Pipe_rpc.Metadata.t) =
-         Rpc.Pipe_rpc.dispatch_exn rpc conn arg
-       in
-       f pipe)
+      let%bind pipe, (_ : Rpc.Pipe_rpc.Metadata.t) =
+        Rpc.Pipe_rpc.dispatch_exn rpc conn arg
+      in
+      f pipe)
   >>| Result.ok_exn
 ;;
 
@@ -55,7 +55,6 @@ let get_unique_id_cmd =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let set_id_counter_cmd =
   Command.async
     ~summary:"forcibly set the unique id counter.  DANGEROUS"
@@ -64,7 +63,6 @@ let set_id_counter_cmd =
      fun () -> set_id_counter host_and_port i)
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 (* This one is actually unsupported by the server, so using it will trigger an error. *)
 let set_id_counter_cmd_v0 =
@@ -77,7 +75,6 @@ let set_id_counter_cmd_v0 =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let counter_values_cmd =
   Command.async
     ~summary:"subscribe to changes to counter id"
@@ -85,7 +82,6 @@ let counter_values_cmd =
      fun () -> counter_values host_and_port)
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 let () =
   Command_unix.run

@@ -329,7 +329,6 @@ let server_command =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let client_command =
   Command.async_spec
     ~summary:"test client"
@@ -343,7 +342,6 @@ let client_command =
     Client.main
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 let client_long_command =
   Command.async_spec
@@ -359,7 +357,6 @@ let client_long_command =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let quit_command =
   Command.async_spec
     ~summary:"test quit"
@@ -367,7 +364,6 @@ let quit_command =
     Quit.main
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 let () =
   Command_unix.run

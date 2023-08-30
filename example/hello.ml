@@ -11,7 +11,7 @@ let handler _ reader writer =
     let rec read () =
       Reader.read_line reader
       >>> function
-        (* Blows up horribly if it's a POST (or anything with Content-length /= 0). *)
+      (* Blows up horribly if it's a POST (or anything with Content-length /= 0). *)
       | `Ok "" ->
         write ();
         read ()
@@ -29,7 +29,7 @@ let () =
        (Tcp.Where_to_listen.of_port 55_555)
        ~on_handler_error:`Ignore
        handler
-     : Tcp.Server.inet Deferred.t)
+      : Tcp.Server.inet Deferred.t)
 ;;
 
 let () = never_returns (Scheduler.go ())

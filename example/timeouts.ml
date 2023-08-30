@@ -8,11 +8,11 @@ let () =
     ~summary:"Run a whole buncha timeouts"
     Command.Spec.empty
     (fun () ->
-       Deferred.repeat_until_finished 100_000_000 (fun n ->
-         Clock.with_timeout (sec 60.) (Deferred.return ())
-         >>| function
-         | `Result () -> if n = 0 then `Finished () else `Repeat (n - 1)
-         | `Timeout -> failwith "Timeout"))
+      Deferred.repeat_until_finished 100_000_000 (fun n ->
+        Clock.with_timeout (sec 60.) (Deferred.return ())
+        >>| function
+        | `Result () -> if n = 0 then `Finished () else `Repeat (n - 1)
+        | `Timeout -> failwith "Timeout"))
     ~behave_nicely_in_pipeline:false
   |> Command_unix.run
 ;;

@@ -22,7 +22,7 @@ let direct_impl =
     incr query_counter;
     ignore
       (Rpc.Pipe_rpc.Direct_stream_writer.write_without_pushback writer 0
-       : [ `Ok | `Closed ]);
+        : [ `Ok | `Closed ]);
     return (Ok ()))
 ;;
 
@@ -47,12 +47,12 @@ let server_cmd =
              (Tcp.Where_to_listen.of_port port)
              ~on_handler_error:`Ignore
              (fun _addr reader writer ->
-                Rpc.Connection.server_with_close
-                  reader
-                  writer
-                  ~implementations
-                  ~connection_state:(fun _ -> words_when_conn_created := words ())
-                  ~on_handshake_error:`Ignore)
+             Rpc.Connection.server_with_close
+               reader
+               writer
+               ~implementations
+               ~connection_state:(fun _ -> words_when_conn_created := words ())
+               ~on_handshake_error:`Ignore)
          in
          ignore (server : (_, _) Tcp.Server.t Deferred.t);
          Clock.every (Time_float.Span.of_sec 5.) (fun () ->
@@ -66,7 +66,6 @@ let server_cmd =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let pipe_dispatch_exn rpc { Host_and_port.host; port } arg f =
   let reader, (_ : _ Pipe.Writer.t) = Pipe.create () in
   printf "1 pipe = %d words\n%!" (Ocaml_value_size.words reader);
@@ -75,22 +74,22 @@ let pipe_dispatch_exn rpc { Host_and_port.host; port } arg f =
   Rpc.Connection.with_client
     (Tcp.Where_to_connect.of_host_and_port { host; port })
     (fun conn ->
-       let pipes = Queue.create () in
-       let pipe_words = measure_words pipes in
-       let rpc_words = measure_words conn in
-       let start () =
-         let n = 1_000 in
-         for _ = 0 to n - 1 do
-           don't_wait_for
-             (match%map Rpc.Pipe_rpc.dispatch_iter rpc conn arg ~f >>| ok_exn with
-              | Error () -> assert false
-              | Ok id -> Queue.enqueue pipes id)
-         done;
-         let%map () = Clock.after (sec 5.) in
-         printf "\n%d words/rpc, %d words/pipe\n%!" (rpc_words () / n) (pipe_words () / n)
-       in
-       Deferred.forever () start;
-       never ())
+      let pipes = Queue.create () in
+      let pipe_words = measure_words pipes in
+      let rpc_words = measure_words conn in
+      let start () =
+        let n = 1_000 in
+        for _ = 0 to n - 1 do
+          don't_wait_for
+            (match%map Rpc.Pipe_rpc.dispatch_iter rpc conn arg ~f >>| ok_exn with
+             | Error () -> assert false
+             | Ok id -> Queue.enqueue pipes id)
+        done;
+        let%map () = Clock.after (sec 5.) in
+        printf "\n%d words/rpc, %d words/pipe\n%!" (rpc_words () / n) (pipe_words () / n)
+      in
+      Deferred.forever () start;
+      never ())
   >>| Result.ok_exn
 ;;
 
@@ -119,7 +118,6 @@ let client_cmd =
      fun () -> counter_values_exn host_and_port)
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 let () =
   Command_unix.run

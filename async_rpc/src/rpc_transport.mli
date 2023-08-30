@@ -23,16 +23,16 @@ module Writer : sig
 end
 
 include module type of struct
-  include Rpc_kernel.Transport
-end
-with module Reader := Rpc_kernel.Transport.Reader
-with module Writer := Rpc_kernel.Transport.Writer
+    include Rpc_kernel.Transport
+  end
+  with module Reader := Rpc_kernel.Transport.Reader
+  with module Writer := Rpc_kernel.Transport.Writer
 
 val of_reader_writer : ?max_message_size:int -> Async_reader.t -> Async_writer.t -> t
 
 val of_fd
   :  ?buffer_age_limit:Async_writer.buffer_age_limit
-  (** Note: Reducing [reader_buffer_size] and [writer_buffer_size] below 128KiB can have
+       (** Note: Reducing [reader_buffer_size] and [writer_buffer_size] below 128KiB can have
       unintuitive effects on program memory usage, see the documentation of
       [Reader.create] and [Writer.create] for more details. *)
   -> ?reader_buffer_size:int
@@ -56,10 +56,10 @@ module Tcp : sig
     -> ?time_source:[> read ] Time_source.T1.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
-    (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
+         (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
     -> ?auth:('address -> bool)
     -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
-    (** default is [`Ignore] *)
+         (** default is [`Ignore] *)
     -> (client_addr:'address
         -> server_addr:'address
         -> Rpc_kernel.Transport.t
@@ -94,7 +94,7 @@ module Tcp : sig
   val connect
     :  ?max_message_size:int
     -> ?make_transport:transport_maker
-    (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
+         (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
     -> ?tcp_connect_timeout:Time_ns.Span.t
     -> 'addr Tcp.Where_to_connect.t
     -> (Rpc_kernel.Transport.t * 'addr, Exn.t) Result.t Deferred.t

@@ -30,7 +30,7 @@ let make_transport ~use_regular_transport =
   else
     Some
       (fun fd ~max_message_size ->
-         Rpc.Low_latency_transport.create ~max_message_size ~config:low_latency_config fd)
+        Rpc.Low_latency_transport.create ~max_message_size ~config:low_latency_config fd)
 ;;
 
 let heartbeat_config =
@@ -145,7 +145,6 @@ let server_command =
     ~behave_nicely_in_pipeline:false
 ;;
 
-
 let client_command =
   Command.async
     ~summary:""
@@ -158,7 +157,6 @@ let client_command =
        run_client ~host ~port ~use_regular_transport)
     ~behave_nicely_in_pipeline:false
 ;;
-
 
 let command =
   Command.group ~summary:"" [ "server", server_command; "client", client_command ]
