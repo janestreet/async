@@ -1,12 +1,11 @@
 open Base
-open Async_unix
 
 module T = struct
-  type t = Async_unix.Log.t
+  type t = Async_log.t
   type return_type = unit
 
-  let would_log = Log.would_log
-  let sexp ?level ?tags t msg = Log.sexp ?level ?tags t msg
+  let would_log = Async_log.would_log
+  let sexp ?level ?tags t msg = Async_log.sexp ?level ?tags t msg
   let default = ()
 end
 
@@ -16,8 +15,8 @@ module Global = struct
   type return_type = unit
 
   let default = ()
-  let would_log = Log.Global.would_log
-  let sexp ?level ?tags msg = Log.Global.sexp ?level ?tags msg
+  let would_log = Async_log.Global.would_log
+  let sexp ?level ?tags msg = Async_log.Global.sexp ?level ?tags msg
 end
 
 module No_global = struct

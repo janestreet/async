@@ -24,11 +24,11 @@ let print_trace (conn : Rpc.Connection.t) source =
       ([%globalize: Async_rpc_kernel.Tracing_event.Event.t] event))
 ;;
 
-let test ~trace ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
+let test ~trace ~make_transport ~make_transport2 ~imp1 ~imp2 ~state1 ~state2 ~f () =
   let%bind `Reader r1, `Writer w2 = Unix.pipe (Info.of_string "rpc_test 1") in
   let%bind `Reader r2, `Writer w1 = Unix.pipe (Info.of_string "rpc_test 2") in
   let t1 = make_transport (r1, w1) in
-  let t2 = make_transport (r2, w2) in
+  let t2 = make_transport2 (r2, w2) in
   let s imp =
     if List.length imp > 0
     then
@@ -63,8 +63,16 @@ let test ~trace ~make_transport ~imp1 ~imp2 ~state1 ~state2 ~f () =
     ~on_handshake_error:`Raise
 ;;
 
-let test1 ~trace ~make_transport ~imp ~state ~f =
-  test ~trace ~make_transport ~imp1:imp ~state1:state ~imp2:[] ~state2:() ~f
+let test1 ~trace ~make_transport ~make_client_transport ~imp ~state ~f =
+  test
+    ~make_transport2:make_client_transport
+    ~trace
+    ~make_transport
+    ~imp1:imp
+    ~state1:state
+    ~imp2:[]
+    ~state2:()
+    ~f
 ;;
 
 module Pipe_count_error = struct

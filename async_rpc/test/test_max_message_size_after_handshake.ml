@@ -4,19 +4,31 @@ open Import
 
 (* These tests must be in a file by themselves because of lazy evaluation of the environment
    variable *)
-let triangle_query ~n ~str =
+let triangle_query' ~base_max_message_size ~client_message_size ~n ~str =
   (* We only need to set this once but this makes it clear that we always use the same
      value. *)
-  Unix.putenv ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE" ~data:"40";
+  Unix.putenv
+    ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE"
+    ~data:(Int.to_string base_max_message_size);
   let make_transport_default_size (fd_r, fd_w) : Rpc.Transport.t =
     { reader = Reader.create fd_r |> Rpc.Transport.Reader.of_reader
     ; writer = Writer.create fd_w |> Rpc.Transport.Writer.of_writer
     }
   in
+  let make_client_transport =
+    match client_message_size with
+    | None -> make_transport_default_size
+    | Some max_message_size ->
+      fun (fd_r, fd_w) : Rpc.Transport.t ->
+        { reader = Reader.create fd_r |> Rpc.Transport.Reader.of_reader ~max_message_size
+        ; writer = Writer.create fd_w |> Rpc.Transport.Writer.of_writer ~max_message_size
+        }
+  in
   match%bind
     let server_conn = Ivar.create () in
     test1
       ~trace:true
+      ~make_client_transport
       ~make_transport:make_transport_default_size
       ~imp:[ pipe_triangle_imp ]
       ~state:()
@@ -43,6 +55,10 @@ let triangle_query ~n ~str =
        if Pipe.is_closed pipe
        then Core.printf "Timed out unexpectedly!\n"
        else Core.printf "pipe never closed. Got %d results\n" !count)
+;;
+
+let triangle_query ~n ~str =
+  triangle_query' ~base_max_message_size:40 ~client_message_size:None ~n ~str
 ;;
 
 let%expect_test "Query too large" =
@@ -145,4 +161,24 @@ let%expect_test "multiple entries too large" =
     B 5 (<unknown>)   38B (Received (Response Partial_response))
     1969-12-31 19:00:00.000000-05:00 Error ("Exception raised to [Monitor.try_with] that already returned.""This error was captured by a default handler in [Async.Log]."(exn(monitor.ml.Error("write to closed pipe"(pipe((id <hidden_in_test>)(buffer())(size_budget 0)(reserved_space 0)(pushback(Full()))(num_values_read 3)(blocked_flushes())(blocked_reads())(closed(Full()))(read_closed(Full()))(consumers(((pipe_id 7)(values_read(Have_not_been_sent_downstream Empty))(downstream_flushed <fun>))))(upstream_flusheds()))))("<backtrace elided in test>""Caught by monitor Monitor.protect"))))
     got 2 results, pipe closed |}]
+;;
+
+let%expect_test "different queries on server and client" =
+  (* Here the client successfully sends more bytes of query than the server will take, and
+     so the server rejects it. The large limit should allow enough room for the server to
+     respond with an error message over the protocol (but it doesn’t) *)
+  let%map () =
+    let base_max_message_size = 8_000 in
+    triangle_query'
+      ~base_max_message_size
+      ~client_message_size:(Some 10_000)
+      ~n:1
+      ~str:(String.init base_max_message_size ~f:(Fn.const 'x'))
+  in
+  [%expect
+    {|
+    B 6 (pipe_tri)   8027B (Sent Query)
+    ((rpc_error (Connection_closed ("EOF or connection closed")))
+     (connection_description <created-directly>) (rpc_name pipe_tri)
+     (rpc_version 0)) |}]
 ;;

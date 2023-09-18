@@ -771,7 +771,7 @@ module Writer_internal = struct
       match result with
       | `Result `Ready -> write_everything t
       | `Timeout ->
-        Log.Global.sexp
+        Async_log.Global.sexp
           ~level:`Error
           [%message
             "Rpc_transport_low_latency.Writer timed out waiting to write on file \

@@ -4,9 +4,12 @@ open! Async
 open! Import
 
 let make_tests ~trace ~make_transport ~transport_name =
+  let test1 =
+    test1 ~trace ~state:() ~make_transport ~make_client_transport:make_transport
+  in
   List.mapi
     ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
-    [ test1 ~trace ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
+    [ test1 ~imp:[ pipe_count_imp ] ~f:(fun _ conn ->
         let n = 3 in
         let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n in
         let%bind x =
@@ -16,17 +19,14 @@ let make_tests ~trace ~make_transport ~transport_name =
         in
         [%test_result: int] ~expect:n x;
         Deferred.unit)
-    ; test1 ~trace ~make_transport ~imp:[ pipe_count_imp ] ~state:() ~f:(fun _ conn ->
+    ; test1 ~imp:[ pipe_count_imp ] ~f:(fun _ conn ->
         let%bind result = Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1) in
         match result with
         | Ok (Ok _) | Error _ -> assert false
         | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
        test1
-         ~trace
-         ~make_transport
          ~imp:[ pipe_wait_imp ivar ]
-         ~state:()
          ~f:(fun conn1 conn2 ->
            (* Test that the pipe is flushed when the connection is closed. *)
            let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 () in

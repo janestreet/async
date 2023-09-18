@@ -17,6 +17,7 @@ let%expect_test "handshake is too large" =
         test1
           ~trace:true
           ~make_transport:make_transport_default_size
+          ~make_client_transport:make_transport_default_size
           ~imp:[ pipe_count_imp ]
           ~state:()
           ~f:(fun _ conn -> Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn 1)

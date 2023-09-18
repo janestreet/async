@@ -17,6 +17,14 @@ end
 
 include Async_unix (** @open *)
 
+(** {2 Async_log} *)
+
+(* We define [Async_log] using [struct include ... end] rather than as an alias so that we
+   don't have to add [async_log] to downstream jbuild library imports. *)
+module Log = struct
+  include Async_log
+end
+
 (** {2 Async_command} *)
 
 (* We define [Command] using [struct include ... end] rather than as an alias so that we

@@ -12,6 +12,7 @@ build: [
 depends: [
   "ocaml" {>= "4.14.0"}
   "async_kernel"
+  "async_log"
   "async_rpc_kernel"
   "async_unix"
   "core"
