@@ -203,6 +203,35 @@ let%test_unit "Open dispatches see connection closed error" =
     Tcp.Server.close server)
 ;;
 
+let%expect_test "serve_unix returns the identity of the caller" =
+  Expect_test_helpers_async.with_temp_dir
+    ~in_dir:
+      (let force_tmp_to_avoid_unix_socket_path_length_problems = "/tmp" in
+       force_tmp_to_avoid_unix_socket_path_length_problems)
+    (fun tempdir ->
+      let socket_path = tempdir ^/ "socket" in
+      let%bind server =
+        Rpc.Connection.serve_unix
+          ~initial_connection_state:
+            (fun
+              (_ : Socket.Address.Unix.t)
+              (peer_creds : Linux_ext.Peer_credentials.t)
+              (_ : Rpc.Connection.t)
+              ->
+            [%test_result: int] peer_creds.uid ~expect:(Unix.getuid ());
+            [%test_result: int] peer_creds.gid ~expect:(Unix.getgid ());
+            [%test_result: Pid.t] peer_creds.pid ~expect:(Unix.getpid ()))
+          ~implementations:(Rpc.Implementations.null ())
+          ~where_to_listen:(Tcp.Where_to_listen.of_file socket_path)
+          ()
+      in
+      let%bind connection =
+        Rpc.Connection.client (Tcp.Where_to_connect.of_file socket_path) >>| Result.ok_exn
+      in
+      let%bind () = Rpc.Connection.close connection in
+      Tcp.Server.close server)
+;;
+
 let%test_module "Exception handling" =
   (module struct
     let on_exception ~callback_triggered ~expect_close_connection =

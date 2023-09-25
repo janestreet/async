@@ -5,12 +5,12 @@ module Header = Kernel_transport.Header
 module Handler_result = Kernel_transport.Handler_result
 module Send_result = Kernel_transport.Send_result
 
-let environment_variable = "ASYNC_RPC_MAX_MESSAGE_SIZE"
+let max_message_size_env_var = "ASYNC_RPC_MAX_MESSAGE_SIZE"
 
 let max_message_size_from_environment =
   lazy
     (Option.try_with_join (fun () ->
-       Sys.getenv environment_variable |> Option.map ~f:Int.of_string))
+       Sys.getenv max_message_size_env_var |> Option.map ~f:Int.of_string))
 ;;
 
 let aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max =
@@ -99,7 +99,9 @@ end = struct
     then
       failwiths
         ~here:[%here]
-        "Rpc_transport: message too small or too big"
+        [%string
+          "Rpc_transport: message is too large or has negative size. Try increasing the \
+           size limit by setting the %{max_message_size_env_var} env var"]
         (`Message_size payload_len, `Max_message_size t.max_message_size)
         [%sexp_of: [ `Message_size of int ] * [ `Max_message_size of int ]]
   ;;
@@ -297,7 +299,7 @@ let of_fd ?buffer_age_limit ?reader_buffer_size ?writer_buffer_size ~max_message
 module Tcp = struct
   let default_transport_maker fd ~max_message_size = of_fd fd ~max_message_size
 
-  let make_serve_func
+  let make_serve_func_with_fd
     tcp_creator
     ~where_to_listen
     ?max_connections
@@ -324,10 +326,12 @@ module Tcp = struct
       | false -> return ()
       | true ->
         let max_message_size = effective_max_message_size ~proposed_max in
-        let transport = make_transport ~max_message_size (Socket.fd socket) in
+        let fd = Socket.fd socket in
+        let transport = make_transport ~max_message_size fd in
         let%bind result =
           Monitor.try_with ~run:`Schedule ~rest:`Raise (fun () ->
             handle_transport
+              fd
               ~client_addr
               ~server_addr:(Socket.getsockname socket)
               transport)
@@ -338,12 +342,73 @@ module Tcp = struct
          | Error exn -> raise exn))
   ;;
 
+  let make_serve_func
+    tcp_creator
+    ~where_to_listen
+    ?max_connections
+    ?backlog
+    ?drop_incoming_connections
+    ?time_source
+    ?max_message_size
+    ?make_transport
+    ?auth
+    ?on_handler_error
+    handle_transport
+    =
+    make_serve_func_with_fd
+      tcp_creator
+      ~where_to_listen
+      ?max_connections
+      ?backlog
+      ?drop_incoming_connections
+      ?time_source
+      ?max_message_size
+      ?make_transport
+      ?auth
+      ?on_handler_error
+      (fun (_ : Fd.t) ~client_addr ~server_addr transport ->
+      handle_transport ~client_addr ~server_addr transport)
+  ;;
+
   (* eta-expand [where_to_listen] to avoid value restriction. *)
   let serve ~where_to_listen = make_serve_func Tcp.Server.create_sock ~where_to_listen
 
   (* eta-expand [where_to_listen] to avoid value restriction. *)
   let serve_inet ~where_to_listen =
     make_serve_func Tcp.Server.create_sock_inet ~where_to_listen
+  ;;
+
+  let serve_unix
+    ~(where_to_listen : Tcp.Where_to_listen.unix)
+    ?max_connections
+    ?backlog
+    ?drop_incoming_connections
+    ?time_source
+    ?max_message_size
+    ?make_transport
+    ?auth
+    ?on_handler_error
+    handle_transport
+    =
+    make_serve_func_with_fd
+      Tcp.Server.create_sock
+      ~where_to_listen
+      ?max_connections
+      ?backlog
+      ?drop_incoming_connections
+      ?time_source
+      ?max_message_size
+      ?make_transport
+      ?auth
+      ?on_handler_error
+      (fun fd ~client_addr ~server_addr transport ->
+      let peer_credentials =
+        Or_error.try_with (fun () ->
+          (ok_exn Linux_ext.peer_credentials) (Fd.file_descr_exn fd))
+        |> Or_error.tag ~tag:"Error getting peer credentials of unix socket"
+        |> ok_exn
+      in
+      handle_transport ~client_addr ~server_addr peer_credentials transport)
   ;;
 
   let connect

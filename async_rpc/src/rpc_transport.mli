@@ -85,6 +85,26 @@ module Tcp : sig
         -> unit Deferred.t)
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
+  (** [serve_inet] is like [serve] but only for unix sockets (not inet sockets), and
+      returns the identity of the peer on the socket. *)
+  val serve_unix
+    :  where_to_listen:Tcp.Where_to_listen.unix
+    -> ?max_connections:int
+    -> ?backlog:int
+    -> ?drop_incoming_connections:bool
+    -> ?time_source:[> read ] Time_source.T1.t
+    -> ?max_message_size:int
+    -> ?make_transport:transport_maker
+    -> ?auth:(Socket.Address.Unix.t -> bool)
+    -> ?on_handler_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
+    -> (client_addr:Socket.Address.Unix.t
+        -> server_addr:Socket.Address.Unix.t
+        -> Linux_ext.Peer_credentials.t
+        -> Rpc_kernel.Transport.t
+        -> unit Deferred.t)
+    -> (Socket.Address.Unix.t, string) Tcp.Server.t Deferred.t
+
   (** [connect ?make_transport where_to_connect ()] connects to the server at
       [where_to_connect]. On success, it returns the transport created using
       [make_transport] and the [Socket.Address.t] that it connected to, otherwise it

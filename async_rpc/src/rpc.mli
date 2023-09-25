@@ -140,6 +140,30 @@ module Connection : sig
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
+  (** As [serve], but only accepts Unix sockets; provides peer credentials of the socket
+      to [initial_connection_state]. *)
+  val serve_unix
+    :  implementations:'s Implementations.t
+    -> initial_connection_state:
+         (Socket.Address.Unix.t -> Linux_ext.Peer_credentials.t -> t -> 's)
+    -> where_to_listen:Tcp.Where_to_listen.unix
+    -> ?max_connections:int
+    -> ?backlog:int
+    -> ?drop_incoming_connections:bool
+    -> ?time_source:[> read ] Time_source.T1.t
+    -> ?max_message_size:int
+    -> ?make_transport:transport_maker
+    -> ?handshake_timeout:Time_float.Span.t
+    -> ?heartbeat_config:Heartbeat_config.t
+    -> ?auth:(Socket.Address.Unix.t -> bool) (** default is [`Ignore] *)
+    -> ?on_handshake_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
+         (** default is [`Ignore] *)
+    -> ?on_handler_error:
+         [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
+    -> unit
+    -> Tcp.Server.unix Deferred.t
+
   (** [client where_to_connect ()] connects to the server at [where_to_connect] and
       returns the connection or an Error if a connection could not be made. It is the
       responsibility of the caller to eventually call [close].

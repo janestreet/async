@@ -143,6 +143,16 @@ module Connection = struct
     Result.ok_exn res
   ;;
 
+  let connection_description ~server_addr ~client_addr =
+    let server_addr = (server_addr :> Socket.Address.t) in
+    let client_addr = (client_addr :> Socket.Address.t) in
+    Info.create_s
+      [%message
+        "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
+  ;;
+
+  let default_on_handshake_error = `Ignore
+
   let make_serve_func
     serve_with_transport_handler
     ~implementations
@@ -157,7 +167,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?auth
-    ?(on_handshake_error = `Ignore)
+    ?(on_handshake_error = default_on_handshake_error)
     ?on_handler_error
     ()
     =
@@ -172,18 +182,11 @@ module Connection = struct
       ?auth
       ?on_handler_error
       (fun ~client_addr ~server_addr transport ->
-      let description =
-        let server_addr = (server_addr :> Socket.Address.t) in
-        let client_addr = (client_addr :> Socket.Address.t) in
-        Info.create_s
-          [%message
-            "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
-      in
       serve_with_transport
         ~handshake_timeout
         ~heartbeat_config
         ~implementations
-        ~description
+        ~description:(connection_description ~server_addr ~client_addr)
         ~connection_state:(fun conn -> initial_connection_state client_addr conn)
         ~on_handshake_error
         ~client_addr
@@ -196,6 +199,46 @@ module Connection = struct
   (* eta-expand [implementations] to avoid value restriction. *)
   let serve_inet ~implementations =
     make_serve_func Rpc_transport.Tcp.serve_inet ~implementations
+  ;;
+
+  let serve_unix
+    ~implementations
+    ~initial_connection_state
+    ~where_to_listen
+    ?max_connections
+    ?backlog
+    ?drop_incoming_connections
+    ?time_source
+    ?max_message_size
+    ?make_transport
+    ?handshake_timeout
+    ?heartbeat_config
+    ?auth
+    ?(on_handshake_error = default_on_handshake_error)
+    ?on_handler_error
+    ()
+    =
+    Rpc_transport.Tcp.serve_unix
+      ~where_to_listen
+      ?max_connections
+      ?backlog
+      ?drop_incoming_connections
+      ?time_source
+      ?max_message_size
+      ?make_transport
+      ?auth
+      ?on_handler_error
+      (fun ~client_addr ~server_addr peer_creds transport ->
+      serve_with_transport
+        ~handshake_timeout
+        ~heartbeat_config
+        ~implementations
+        ~description:(connection_description ~server_addr ~client_addr)
+        ~connection_state:(fun conn ->
+          initial_connection_state client_addr peer_creds conn)
+        ~on_handshake_error
+        ~client_addr
+        transport)
   ;;
 
   let default_handshake_timeout_float =
