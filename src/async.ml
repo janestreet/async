@@ -49,4 +49,4 @@ let%test "Async library initialization does not initialize the scheduler" =
 
 module Expect_test_config = Expect_test_config
 module Expect_test_config_or_error = Expect_test_config_or_error
-module Ppx_log_syntax = Ppx_log_syntax
+module Ppx_log_syntax = Async_log.Ppx_syntax

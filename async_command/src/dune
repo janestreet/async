@@ -1,2 +1,3 @@
 (library (name async_command) (public_name async.async_command)
- (preprocess (pps ppx_jane)) (libraries async_kernel async_unix core))
+ (preprocess (pps ppx_jane))
+ (libraries async_kernel async_unix core_unix.command_unix core))

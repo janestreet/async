@@ -73,3 +73,13 @@ end
     scheduler isn't started for ordinary execution of the command, which makes it possible
     for the command to daemonize (which requires the scheduler to not have been started).
 *)
+
+module For_testing : sig
+  (** Invoke a [Command.t] that possibly is one of the above async choices from within a
+      test already running async.
+
+      Note that for the [Staged] variants, we can't have them run before Async starts
+      (since that ship has already sailed!) So anything that actually relies on that is
+      unlikely to work. *)
+  val run_from_within_async : argv:string list -> t -> unit Or_error.t Deferred.t
+end
