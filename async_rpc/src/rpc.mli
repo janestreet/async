@@ -171,7 +171,7 @@ module Connection : sig
       In [client] and [with_client], the [handshake_timeout] encompasses both the TCP
       connection timeout and the timeout for this module's own handshake. *)
   val client
-    :  ?implementations:_ Client_implementations.t
+    :  ?implementations:Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
@@ -183,7 +183,7 @@ module Connection : sig
   (** Similar to [client], but additionally expose the [Socket.Address.t] of the RPC
       server that we connected to. *)
   val client'
-    :  ?implementations:_ Client_implementations.t
+    :  ?implementations:Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
@@ -198,7 +198,7 @@ module Connection : sig
       NOTE:  As with [with_close], you should be careful when using this with [Pipe_rpc].
       See [with_close] for more information. *)
   val with_client
-    :  ?implementations:_ Client_implementations.t
+    :  ?implementations:Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
@@ -210,7 +210,7 @@ module Connection : sig
   (** Similar to [with_client], but additionally expose the [Socket.Address.t] of the RPC
       server that we connected to. *)
   val with_client'
-    :  ?implementations:_ Client_implementations.t
+    :  ?implementations:Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t

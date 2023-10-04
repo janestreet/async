@@ -99,12 +99,13 @@ let run_client ~host ~port ~use_regular_transport =
   let%bind conn =
     Rpc.Connection.client
       ~implementations:
-        { connection_state = (fun _ -> ref 0)
-        ; implementations =
-            Rpc.Implementations.create_exn
-              ~implementations:[ Rpcs.From_server.impl ]
-              ~on_unknown_rpc:`Raise
-        }
+        (T
+           { connection_state = (fun _ -> ref 0)
+           ; implementations =
+               Rpc.Implementations.create_exn
+                 ~implementations:[ Rpcs.From_server.impl ]
+                 ~on_unknown_rpc:`Raise
+           })
       ~heartbeat_config
       ?make_transport:(make_transport ~use_regular_transport)
       (Tcp.Where_to_connect.of_host_and_port (Host_and_port.create ~host ~port))

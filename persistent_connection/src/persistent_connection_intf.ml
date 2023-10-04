@@ -41,7 +41,7 @@ module type S_rpc = sig
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
     -> ?time_source:Time_source.t
     -> ?bind_to_address:Unix.Inet_addr.t
-    -> ?implementations:_ Rpc.Connection.Client_implementations.t
+    -> ?implementations:Rpc.Connection.Client_implementations.t
     -> ?max_message_size:int
     -> ?make_transport:Rpc.Connection.transport_maker
     -> ?handshake_timeout:Time_float.Span.t

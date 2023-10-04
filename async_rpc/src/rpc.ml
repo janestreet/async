@@ -286,7 +286,7 @@ module Connection = struct
       let%bind rpc_connection =
         match implementations with
         | None ->
-          let { Client_implementations.connection_state; implementations } =
+          let (T { connection_state; implementations }) =
             Client_implementations.null ()
           in
           Rpc_kernel.Connection.create
@@ -296,7 +296,7 @@ module Connection = struct
             ~implementations
             ~description
             ~connection_state
-        | Some { Client_implementations.connection_state; implementations } ->
+        | Some (Client_implementations.T { connection_state; implementations }) ->
           Rpc_kernel.Connection.create
             transport
             ~handshake_timeout

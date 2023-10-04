@@ -19,7 +19,6 @@ depends: [
   "core_kernel"
   "core_unix"
   "ppx_jane"
-  "ppx_log"
   "textutils"
   "dune"             {>= "2.0.0"}
 ]
