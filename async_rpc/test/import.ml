@@ -9,14 +9,13 @@ let print_trace (conn : Rpc.Connection.t) source =
     (Async_rpc_kernel.Async_rpc_kernel_private.Connection.events conn)
     [%here]
     ~f:(fun ((event : Async_rpc_kernel.Tracing_event.t) [@local]) ->
-    let%tydi { event; rpc; id; payload_bytes } = event in
-    let id = id |> Int63.to_int64 in
+    let%tydi { event; rpc; id = _; payload_bytes } = event in
     let name =
       match rpc with
       | None -> "<unknown>"
       | Some { name; version = _ } -> String.globalize name
     in
-    let header = sprintf !"%s %Ld (%s)" source id name in
+    let header = sprintf !"%s (%s)" source name in
     Core.printf
       !"%-16s %3dB %{sexp: Async_rpc_kernel.Tracing_event.Event.t}\n%!"
       header
@@ -102,12 +101,20 @@ let pipe_wait_rpc =
 (* takes (n,str) and outputs a pipe of str, strstr, strstrstr, ... for n events. *)
 let pipe_triangle_rpc =
   Rpc.Pipe_rpc.create
-    ~name:{|pipe_tri|}
+    ~name:"pipe_tri"
     ~version:0
     ~bin_query:[%bin_type_class: int * string]
     ~bin_response:String.bin_t
     ~bin_error:Unit.bin_t
     ()
+;;
+
+let replicate_rpc =
+  Rpc.Rpc.create
+    ~name:"replicate"
+    ~version:0
+    ~bin_query:[%bin_type_class: int * string]
+    ~bin_response:String.bin_t
 ;;
 
 let pipe_count_imp =
@@ -147,4 +154,9 @@ let pipe_triangle_imp =
     in
     let pipe = Pipe.create_reader ~close_on_exception:true (fun pipe -> loop pipe "" 1) in
     return (Ok pipe))
+;;
+
+let replicate_imp =
+  Rpc.Rpc.implement' replicate_rpc (fun () (n, str) ->
+    List.init n ~f:(fun (_ : int) -> str) |> String.concat)
 ;;
