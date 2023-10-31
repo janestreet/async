@@ -170,7 +170,6 @@ let%expect_test "response and error too large" =
     B (replicate)     28B (Sent Query)
     A (replicate)     28B (Received Query)
     A (replicate)    229B (Failed_to_send (Response Single_succeeded) Too_large)
-    A (replicate)    282B (Failed_to_send (Response Single_or_streaming_error) Too_large)
     ((rpc_error (Connection_closed ("EOF or connection closed")))
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
@@ -180,7 +179,7 @@ let%expect_test "response and error too large" =
       ("exn raised in RPC connection loop"
        (monitor.ml.Error
         ("Failed to send write error to client"
-         ((error (Message_too_big ((size 282) (max_message_size 40))))
+         ((error (Message_too_big ((size 229) (max_message_size 40))))
           (reason (Message_too_big ((size 62) (max_message_size 40))))))
         ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))) |}]
 ;;

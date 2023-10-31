@@ -64,12 +64,12 @@ module Pipe_simple_test = struct
         let string = String.init bytes ~f:(fun _ -> 'A') in
         let stop = Pipe.closed writer in
         Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
-          Log.Global.printf "Queue size: %d" (Pipe.length reader));
+          [%log.global.format "Queue size: %d" (Pipe.length reader)]);
         Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
-          Log.Global.printf
+          [%log.global.format
             "Messages per sec: %f"
-            (Float.of_int !total_msgs
-             /. Time_float.Span.to_sec (Time_float.diff (Time_float.now ()) start)));
+              (Float.of_int !total_msgs
+               /. Time_float.Span.to_sec (Time_float.diff (Time_float.now ()) start))]);
         let prev = ref (Time_float.now ()) in
         let () =
           match t with
@@ -86,7 +86,7 @@ module Pipe_simple_test = struct
               let msgs =
                 let new_time = Time_float.now () in
                 let diff = Time_float.Span.to_sec (Time_float.diff new_time !prev) in
-                Log.Global.printf "The diff is %f\n" diff;
+                [%log.global.format "The diff is %f\n" diff];
                 prev := new_time;
                 Int.of_float (diff *. Int.to_float t.msgs_per_sec)
               in
@@ -123,7 +123,7 @@ module Pipe_simple_test = struct
       let major_cycles = ref 0 in
       ignore (Gc.Alarm.create (fun () -> incr major_cycles));
       Clock.every (Time_float.Span.of_sec 5.) (fun () ->
-        Log.Global.printf "%d major cycles" !major_cycles)
+        [%log.global.format "%d major cycles" !major_cycles])
     ;;
   end
 
@@ -147,7 +147,7 @@ module Pipe_simple_test = struct
         Clock.every (Time_float.Span.of_sec 1.) (fun () ->
           let now = Time_float.now () in
           let secs = Time_float.Span.to_sec (Time_float.diff now start) in
-          Log.Global.printf "%f msgs per sec" (Float.of_int !msgs /. secs));
+          [%log.global.format "%f msgs per sec" (Float.of_int !msgs /. secs)]);
         Pipe.iter_without_pushback pipe ~f:(fun _string -> incr msgs)
     ;;
 
@@ -746,7 +746,7 @@ module Rpc_expert_test = struct
         let pos_ref = ref init_pos in
         let query = String.bin_read_t buf ~pos_ref in
         [%test_result: string] query ~expect:the_query;
-        Log.debug log "query value = %S" query;
+        [%log.debug_format log "query value = %S" query];
         assert (!pos_ref - init_pos = len);
         let new_buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_response in
         ignore
@@ -758,7 +758,7 @@ module Rpc_expert_test = struct
             : [ `Connection_closed | `Flushed of unit Deferred.t ])
       in
       let handle_unknown_raw () ~rpc_tag ~version responder buf ~pos ~len =
-        Log.debug log "query: %s v%d" rpc_tag version;
+        [%log.debug_format log "query: %s v%d" rpc_tag version];
         assert (
           rpc_tag = Rpc.name unknown_raw_rpc && version = Rpc.version unknown_raw_rpc);
         try
@@ -766,7 +766,7 @@ module Rpc_expert_test = struct
           Deferred.unit
         with
         | e ->
-          Log.debug log !"got exception: %{Exn#mach}" e;
+          [%log.debug_format log !"got exception: %{Exn#mach}" e];
           Rpc.Expert.Responder.write_error responder (Error.of_exn e);
           Deferred.unit
       in
@@ -785,15 +785,17 @@ module Rpc_expert_test = struct
               handle_raw responder buf ~pos ~len;
               Replied)
           ; One_way.implement normal_one_way_rpc (fun () query ->
-              Log.debug log "received one-way RPC message (normal implementation)";
-              Log.debug log "message value = %S" query;
+              [%log.debug_format
+                log "received one-way RPC message (normal implementation)"];
+              [%log.debug_format log "message value = %S" query];
               [%test_result: string] query ~expect:the_query;
               Pipe.write_without_pushback one_way_writer ())
           ; One_way.Expert.implement raw_one_way_rpc (fun () buf ~pos ~len ->
-              Log.debug log "received one-way RPC message (expert implementation)";
+              [%log.debug_format
+                log "received one-way RPC message (expert implementation)"];
               let pos_ref = ref pos in
               let query = String.bin_read_t buf ~pos_ref in
-              Log.debug log "message value = %S" query;
+              [%log.debug_format log "message value = %S" query];
               assert (!pos_ref - pos = len);
               [%test_result: string] query ~expect:the_query;
               Pipe.write_without_pushback one_way_writer ())
@@ -814,12 +816,12 @@ module Rpc_expert_test = struct
             ~how:`Sequential
             [ unknown_raw_rpc; raw_rpc; normal_rpc ]
             ~f:(fun rpc ->
-            Log.debug log "sending %s query normally" (Rpc.name rpc);
+            [%log.debug_format log "sending %s query normally" (Rpc.name rpc)];
             let%bind response = Rpc.dispatch_exn rpc conn the_query in
-            Log.debug log "got response";
+            [%log.debug_format log "got response"];
             [%test_result: string] response ~expect:the_response;
             let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
-            Log.debug log "sending %s query via Expert interface" (Rpc.name rpc);
+            [%log.debug_format log "sending %s query via Expert interface" (Rpc.name rpc)];
             let%map response =
               Deferred.create (fun i ->
                 ignore
@@ -839,12 +841,13 @@ module Rpc_expert_test = struct
                        Deferred.unit)
                     : [ `Connection_closed | `Flushed of unit Deferred.t ]))
             in
-            Log.debug log "got response";
+            [%log.debug_format log "got response"];
             [%test_result: string Or_error.t] response ~expect:(Ok the_response))
         in
         let%bind () =
           let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
-          Log.debug log "sending %s query via Expert interface" custom_io_rpc_tag;
+          [%log.debug_format
+            log "sending %s query via Expert interface" custom_io_rpc_tag];
           let%map response =
             Deferred.create (fun i ->
               ignore
@@ -864,17 +867,18 @@ module Rpc_expert_test = struct
                      Deferred.unit)
                   : [ `Connection_closed | `Flushed of unit Deferred.t ]))
           in
-          Log.debug log "got response";
+          [%log.debug_format log "got response"];
           [%test_result: string Or_error.t] response ~expect:(Ok the_response)
         in
         Deferred.List.iter
           ~how:`Sequential
           [ raw_one_way_rpc; normal_one_way_rpc ]
           ~f:(fun rpc ->
-          Log.debug log "sending %s query normally" (One_way.name rpc);
+          [%log.debug_format log "sending %s query normally" (One_way.name rpc)];
           One_way.dispatch_exn rpc conn the_query;
           let%bind () = assert_one_way_rpc_received () in
-          Log.debug log "sending %s query via Expert.dispatch" (One_way.name rpc);
+          [%log.debug_format
+            log "sending %s query via Expert.dispatch" (One_way.name rpc)];
           let buf = Bin_prot.Utils.bin_dump String.bin_writer_t the_query in
           let pos = 0 in
           let len = Bigstring.length buf in
@@ -882,7 +886,8 @@ module Rpc_expert_test = struct
            | `Ok -> ()
            | `Connection_closed -> assert false);
           let%bind () = assert_one_way_rpc_received () in
-          Log.debug log "sending %s query via Expert.schedule_dispatch" (One_way.name rpc);
+          [%log.debug_format
+            log "sending %s query via Expert.schedule_dispatch" (One_way.name rpc)];
           let%bind () =
             match One_way.Expert.schedule_dispatch rpc conn buf ~pos ~len with
             | `Flushed f -> f

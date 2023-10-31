@@ -25,6 +25,8 @@ module Log = struct
   include Async_log
 end
 
+include Async_log.Ppx_log_syntax
+
 (** {2 Async_command} *)
 
 (* We define [Command] using [struct include ... end] rather than as an alias so that we
@@ -49,4 +51,3 @@ let%test "Async library initialization does not initialize the scheduler" =
 
 module Expect_test_config = Expect_test_config
 module Expect_test_config_or_error = Expect_test_config_or_error
-module Ppx_log_syntax = Async_log.Ppx_syntax

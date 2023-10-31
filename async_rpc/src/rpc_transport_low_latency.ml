@@ -771,13 +771,12 @@ module Writer_internal = struct
       match result with
       | `Result `Ready -> write_everything t
       | `Timeout ->
-        Async_log.Global.sexp
-          ~level:`Error
-          [%message
+        Async_log.Ppx_log_syntax.(
+          [%log.global.error
             "Rpc_transport_low_latency.Writer timed out waiting to write on file \
              descriptor. Closing the writer."
               ~timeout:(t.config.write_timeout : Time_ns.Span.t)
-              (t : t)];
+              (t : t)]);
         finish_close t
       | `Result ((`Bad_fd | `Closed) as result) ->
         raise_s
