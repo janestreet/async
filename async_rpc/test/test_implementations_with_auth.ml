@@ -23,8 +23,7 @@ let with_conn implementations ~f =
 let to_sexp rpc_result sexp_of_content =
   match rpc_result with
   | Ok v -> [%sexp Ok, (sexp_of_content v : Sexp.t)]
-  (* An unauthorized error is converted to Uncaught_exn when it arrives at the client *)
-  | Error (Async_rpc_kernel.Rpc_error.Uncaught_exn exn) ->
+  | Error (Async_rpc_kernel.Rpc_error.Authorization_failure exn) ->
     [%sexp Error, (Uncaught_exn, (exn : Sexp.t))]
   (* Other errors should not happen *)
   | Error _ -> failwith "Unexpected error"

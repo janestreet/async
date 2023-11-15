@@ -39,6 +39,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?identification:Bigstring.t
     -> Reader.t
     -> Writer.t
     -> (t, Exn.t) Result.t Deferred.t
@@ -114,6 +115,7 @@ module Connection : sig
     -> ?on_handshake_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
          (** default is [`Ignore] *)
     -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
+    -> ?identification:Bigstring.t
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
 
@@ -137,6 +139,7 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_handler_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
+    -> ?identification:Bigstring.t
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
@@ -177,6 +180,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?identification:Bigstring.t
     -> _ Tcp.Where_to_connect.t
     -> (t, Exn.t) Result.t Deferred.t
 
@@ -189,6 +193,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?identification:Bigstring.t
     -> 'address Tcp.Where_to_connect.t
     -> ('address * t, Exn.t) Result.t Deferred.t
 
@@ -203,6 +208,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
+    -> ?identification:Bigstring.t
     -> _ Tcp.Where_to_connect.t
     -> (t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t
@@ -216,6 +222,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?identification:Bigstring.t
     -> 'transport Tcp.Where_to_connect.t
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t

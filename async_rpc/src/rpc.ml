@@ -23,6 +23,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?description
+    ?identification
     reader
     writer
     =
@@ -33,6 +34,7 @@ module Connection = struct
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
       ?description
+      ?identification
       (Transport.of_reader_writer reader writer ?max_message_size)
   ;;
 
@@ -110,6 +112,8 @@ module Connection = struct
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
   let serve_with_transport
+    ?identification
+    transport
     ~handshake_timeout
     ~heartbeat_config
     ~implementations
@@ -117,7 +121,6 @@ module Connection = struct
     ~connection_state
     ~on_handshake_error
     ~client_addr
-    transport
     =
     let%bind res =
       collect_errors transport ~f:(fun () ->
@@ -126,6 +129,7 @@ module Connection = struct
             ?handshake_timeout:
               (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
             ?heartbeat_config
+            ?identification
             ~implementations
             ~description
             ~connection_state
@@ -169,6 +173,7 @@ module Connection = struct
     ?auth
     ?(on_handshake_error = default_on_handshake_error)
     ?on_handler_error
+    ?identification
     ()
     =
     serve_with_transport_handler
@@ -190,6 +195,7 @@ module Connection = struct
         ~connection_state:(fun conn -> initial_connection_state client_addr conn)
         ~on_handshake_error
         ~client_addr
+        ?identification
         transport)
   ;;
 
@@ -253,6 +259,7 @@ module Connection = struct
     ?handshake_timeout:(handshake_timeout_float = default_handshake_timeout_float)
     ?heartbeat_config
     ?description
+    ?identification
     where_to_connect
     =
     let handshake_timeout =
@@ -293,6 +300,7 @@ module Connection = struct
             transport
             ~handshake_timeout
             ?heartbeat_config
+            ?identification
             ~implementations
             ~description
             ~connection_state
@@ -301,6 +309,7 @@ module Connection = struct
             transport
             ~handshake_timeout
             ?heartbeat_config
+            ?identification
             ~implementations
             ~description
             ~connection_state
@@ -319,6 +328,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?description
+    ?identification
     where_to_connect
     =
     client'
@@ -328,6 +338,7 @@ module Connection = struct
       ?handshake_timeout
       ?heartbeat_config
       ?description
+      ?identification
       where_to_connect
     >>|? snd
   ;;
@@ -339,6 +350,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?description
+    ?identification
     where_to_connect
     f
     =
@@ -349,6 +361,7 @@ module Connection = struct
       ?handshake_timeout
       ?heartbeat_config
       ?description
+      ?identification
       where_to_connect
     >>=? fun (remote_server, t) ->
     let%bind result =
@@ -364,6 +377,7 @@ module Connection = struct
     ?make_transport
     ?handshake_timeout
     ?heartbeat_config
+    ?identification
     where_to_connect
     f
     =
@@ -373,6 +387,7 @@ module Connection = struct
       ?make_transport
       ?handshake_timeout
       ?heartbeat_config
+      ?identification
       where_to_connect
       (fun ~remote_server:_ -> f)
   ;;

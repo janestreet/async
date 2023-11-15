@@ -3,7 +3,8 @@ open Async
 open Import
 
 (* This test must be in a file by itself because of lazy evaluation of the environment
-   variable *)
+   variable
+*)
 let%expect_test "handshake is too large" =
   Unix.putenv ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE" ~data:"1";
   let make_transport_default_size (fd_r, fd_w) : Rpc.Transport.t =
@@ -30,7 +31,7 @@ let%expect_test "handshake is too large" =
     {|
     (monitor.ml.Error
      ("Message cannot be sent"
-      ((reason (Message_too_big ((size 8) (max_message_size 1))))
+      ((reason (Message_too_big ((size 9) (max_message_size 1))))
        (connection
         ((description <created-directly>)
          (writer
