@@ -865,21 +865,19 @@ module Writer_internal = struct
     ~len
     : _ Send_result.t
     =
-    
-      (let payload_len = writer.size msg + len in
-       let total_len = Header.length + payload_len in
-       if Config.message_size_ok t.config ~payload_len
-       then (
-         ensure_at_least t ~needed:total_len;
-         Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
-         let stop = writer.write t.buf ~pos:(t.pos + Header.length) msg in
-         assert (stop + len = t.pos + total_len);
-         Bigstring.blit ~src:buf ~dst:t.buf ~src_pos:pos ~dst_pos:stop ~len;
-         t.pos <- stop + len;
-         Sent { result = (); bytes = payload_len })
-       else
-         Message_too_big
-           { size = payload_len; max_message_size = t.config.max_message_size })
+    let payload_len = writer.size msg + len in
+    let total_len = Header.length + payload_len in
+    if Config.message_size_ok t.config ~payload_len
+    then (
+      ensure_at_least t ~needed:total_len;
+      Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
+      let stop = writer.write t.buf ~pos:(t.pos + Header.length) msg in
+      assert (stop + len = t.pos + total_len);
+      Bigstring.blit ~src:buf ~dst:t.buf ~src_pos:pos ~dst_pos:stop ~len;
+      t.pos <- stop + len;
+      Sent { result = (); bytes = payload_len })
+    else
+      Message_too_big { size = payload_len; max_message_size = t.config.max_message_size }
   ;;
 
   let should_send_now t =
@@ -902,67 +900,65 @@ module Writer_internal = struct
     ~len
     : _ Send_result.t
     =
-    
-      (if is_closed t
-       then Closed
-       else (
-         Ordered_collection_common.check_pos_len_exn
-           ~pos
-           ~len
-           ~total_length:(Bigstring.length buf);
-         if Connection_state.is_able_to_send_data t.connection_state
-         then (
-           let send_now = should_send_now t in
-           let result =
-             if Bigstring.length t.buf - t.pos < Header.length
-             then slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
-             else (
-               match writer.write t.buf ~pos:(t.pos + Header.length) msg with
-               | exception _ ->
-                 (* It's likely that the exception is due to a buffer overflow, so resize the
-                    internal buffer and try again. Technically we could match on
-                    [Bin_prot.Common.Buffer_short] only, however we can't easily enforce that
-                    custom bin_write_xxx functions raise this particular exception and not
-                    [Invalid_argument] or [Failure] for instance. *)
-                 slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
-               | stop ->
-                 let payload_len = stop - (t.pos + Header.length) + len in
-                 if Config.message_size_ok t.config ~payload_len
-                 then (
-                   Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
-                   t.pos <- stop;
-                   if send_now
-                   then (
-                     let len =
-                       if len < 128
-                       then (
-                         copy_bytes t ~buf ~pos ~len;
-                         0)
-                       else len
-                     in
-                     unsafe_send_bytes t ~buf ~pos ~len)
-                   else copy_bytes t ~buf ~pos ~len;
-                   Sent { result = (); bytes = payload_len })
-                 else
-                   Message_too_big
-                     { size = payload_len; max_message_size = t.config.max_message_size })
-           in
-           if send_now then flush t else schedule_flush t;
-           result)
-         else Sent { result = (); bytes = 0 }))
+    if is_closed t
+    then Closed
+    else (
+      Ordered_collection_common.check_pos_len_exn
+        ~pos
+        ~len
+        ~total_length:(Bigstring.length buf);
+      if Connection_state.is_able_to_send_data t.connection_state
+      then (
+        let send_now = should_send_now t in
+        let result =
+          if Bigstring.length t.buf - t.pos < Header.length
+          then slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
+          else (
+            match writer.write t.buf ~pos:(t.pos + Header.length) msg with
+            | exception _ ->
+              (* It's likely that the exception is due to a buffer overflow, so resize the
+                 internal buffer and try again. Technically we could match on
+                 [Bin_prot.Common.Buffer_short] only, however we can't easily enforce that
+                 custom bin_write_xxx functions raise this particular exception and not
+                 [Invalid_argument] or [Failure] for instance. *)
+              slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
+            | stop ->
+              let payload_len = stop - (t.pos + Header.length) + len in
+              if Config.message_size_ok t.config ~payload_len
+              then (
+                Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
+                t.pos <- stop;
+                if send_now
+                then (
+                  let len =
+                    if len < 128
+                    then (
+                      copy_bytes t ~buf ~pos ~len;
+                      0)
+                    else len
+                  in
+                  unsafe_send_bytes t ~buf ~pos ~len)
+                else copy_bytes t ~buf ~pos ~len;
+                Sent { result = (); bytes = payload_len })
+              else
+                Message_too_big
+                  { size = payload_len; max_message_size = t.config.max_message_size })
+        in
+        if send_now then flush t else schedule_flush t;
+        result)
+      else Sent { result = (); bytes = 0 })
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t writer msg ~buf ~pos ~len =
-    
-      (match send_bin_prot_and_bigstring t writer msg ~buf ~pos ~len with
-       | (Closed | Message_too_big _) as r -> r
-       | Sent { result = (); bytes } -> Sent { result = Deferred.unit; bytes })
+    match send_bin_prot_and_bigstring t writer msg ~buf ~pos ~len with
+    | (Closed | Message_too_big _) as r -> r
+    | Sent { result = (); bytes } -> Sent { result = Deferred.unit; bytes }
   ;;
 
   let dummy_buf = Bigstring.create 0
 
   let send_bin_prot t writer msg =
-     (send_bin_prot_and_bigstring t writer msg ~buf:dummy_buf ~pos:0 ~len:0)
+    send_bin_prot_and_bigstring t writer msg ~buf:dummy_buf ~pos:0 ~len:0
   ;;
 
   let close t =

@@ -1,3 +1,9 @@
-(library (name async_rpc) (public_name async.async_rpc)
- (c_names rpc_transport_low_latency_stubs) (preprocess (pps ppx_jane))
+(library
+ (foreign_stubs
+  (language c)
+  (names rpc_transport_low_latency_stubs))
+ (name async_rpc)
+ (public_name async.async_rpc)
+ (preprocess
+  (pps ppx_jane))
  (libraries async_kernel async_log async_rpc_kernel async_unix core))

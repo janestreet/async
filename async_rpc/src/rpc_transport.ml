@@ -210,52 +210,45 @@ module Unix_writer = struct
   let send_bin_prot_internal t (bin_writer : _ Bin_prot.Type_class.writer) x ~followup_len
     : _ Send_result.t
     =
-    
-      (if not (Writer.is_closed t.t)
-       then (
-         let data_len = bin_writer.size x in
-         let payload_len = data_len + followup_len in
-         if message_size_ok t ~payload_len
-         then (
-           incr_total_bytes t payload_len;
-           Writer.write_bin_prot_no_size_header
-             t.t
-             ~size:Header.length
-             bin_write_payload_length
-             payload_len;
-           Writer.write_bin_prot_no_size_header t.t ~size:data_len bin_writer.write x;
-           Sent { result = (); bytes = payload_len })
-         else
-           Message_too_big { size = payload_len; max_message_size = t.max_message_size })
-       else Closed)
+    if not (Writer.is_closed t.t)
+    then (
+      let data_len = bin_writer.size x in
+      let payload_len = data_len + followup_len in
+      if message_size_ok t ~payload_len
+      then (
+        incr_total_bytes t payload_len;
+        Writer.write_bin_prot_no_size_header
+          t.t
+          ~size:Header.length
+          bin_write_payload_length
+          payload_len;
+        Writer.write_bin_prot_no_size_header t.t ~size:data_len bin_writer.write x;
+        Sent { result = (); bytes = payload_len })
+      else Message_too_big { size = payload_len; max_message_size = t.max_message_size })
+    else Closed
   ;;
 
-  let send_bin_prot t bin_writer x =
-     (send_bin_prot_internal t bin_writer x ~followup_len:0)
-  ;;
+  let send_bin_prot t bin_writer x = send_bin_prot_internal t bin_writer x ~followup_len:0
 
   let send_bin_prot_and_bigstring t bin_writer x ~buf ~pos ~len : _ Send_result.t =
-    
-      (match send_bin_prot_internal t bin_writer x ~followup_len:len with
-       | Sent { result = (); bytes = (_ : int) } as result ->
-         Writer.write_bigstring t.t buf ~pos ~len;
-         result
-       | error -> error)
+    match send_bin_prot_internal t bin_writer x ~followup_len:len with
+    | Sent { result = (); bytes = (_ : int) } as result ->
+      Writer.write_bigstring t.t buf ~pos ~len;
+      result
+    | error -> error
   ;;
 
   let send_bin_prot_and_bigstring_non_copying t bin_writer x ~buf ~pos ~len
     : _ Send_result.t
     =
-    
-      (match send_bin_prot_internal t bin_writer x ~followup_len:len with
-       | Sent { result = (); bytes } ->
-         Writer.schedule_bigstring t.t buf ~pos ~len;
-         Sent
-           { result = Writer.flushed t.t
-           ; bytes
-             (* The response from [send_bin_prot_internal] includes [followup_len] *)
-           }
-       | (Closed | Message_too_big _) as r -> r)
+    match send_bin_prot_internal t bin_writer x ~followup_len:len with
+    | Sent { result = (); bytes } ->
+      Writer.schedule_bigstring t.t buf ~pos ~len;
+      Sent
+        { result = Writer.flushed t.t
+        ; bytes (* The response from [send_bin_prot_internal] includes [followup_len] *)
+        }
+    | (Closed | Message_too_big _) as r -> r
   ;;
 end
 

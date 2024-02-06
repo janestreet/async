@@ -1,3 +1,11 @@
+* Split up async log into kernel and unix-dependent libraries.
+
+* Add additional data to `Async_log.Message_event.t` for async trace information.
+
+* Remove the `reset_scheduler` functionality in Async, which is unused.
+
+* All `Writer` write functions now respect `Writer.set_synchronous_backing_out_channel`.
+
 ## Release v0.16.0
 
 - Update `Async_command.with_options`:

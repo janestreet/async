@@ -4,8 +4,8 @@ open! Import
 open! Require_explicit_time_source
 include Persistent_connection_intf
 
-module Make (Conn : Closable) = struct
-  include Persistent_connection_kernel.Make (Conn)
+module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
+  include Persistent_connection_kernel.Make' (Conn_err) (Conn)
 
   let create
     (type address)
@@ -48,6 +48,18 @@ module Make (Conn : Closable) = struct
       ~address
       get_address
   ;;
+end
+
+module Make (Conn : Closable) = struct
+  include
+    Make'
+      (struct
+        type t = Error.t [@@deriving equal, sexp_of]
+
+        let to_error e = e
+        let of_exception_error e = e
+      end)
+      (Conn)
 end
 
 let create_convenience_wrapper

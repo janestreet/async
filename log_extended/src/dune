@@ -1,3 +1,6 @@
-(library (name log_extended) (public_name async.log_extended)
+(library
+ (name log_extended)
+ (public_name async.log_extended)
  (libraries async textutils.console core_unix.filename_unix core_unix.syslog)
- (preprocess (pps ppx_jane)))
+ (preprocess
+  (pps ppx_jane)))
