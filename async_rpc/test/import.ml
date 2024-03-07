@@ -115,6 +115,7 @@ let replicate_rpc =
     ~version:0
     ~bin_query:[%bin_type_class: int * string]
     ~bin_response:String.bin_t
+    ~include_in_error_count:Only_on_exn
 ;;
 
 let pipe_count_imp =

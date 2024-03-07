@@ -117,13 +117,27 @@ module Protocol = struct
   type query = string [@@deriving bin_io]
   type response = string [@@deriving bin_io]
 
-  let rpc = Rpc.create ~name:"test-rpc-latency" ~version:1 ~bin_query ~bin_response
+  let rpc =
+    Rpc.create
+      ~name:"test-rpc-latency"
+      ~version:1
+      ~bin_query
+      ~bin_response
+      ~include_in_error_count:Only_on_exn
+  ;;
 
   module Quit = struct
     type query = unit [@@deriving bin_io]
     type response = unit [@@deriving bin_io]
 
-    let rpc = Rpc.create ~name:"test-rpc-latency-quit" ~version:1 ~bin_query ~bin_response
+    let rpc =
+      Rpc.create
+        ~name:"test-rpc-latency-quit"
+        ~version:1
+        ~bin_query
+        ~bin_response
+        ~include_in_error_count:Only_on_exn
+    ;;
   end
 end
 

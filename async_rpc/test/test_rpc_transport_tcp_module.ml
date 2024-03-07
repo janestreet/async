@@ -13,6 +13,7 @@ let string_string_rpc =
     ~version:1
     ~bin_query:[%bin_type_class: string]
     ~bin_response:[%bin_type_class: string]
+    ~include_in_error_count:Only_on_exn
 ;;
 
 let implementations =

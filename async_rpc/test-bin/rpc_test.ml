@@ -592,7 +592,14 @@ module Rpc_performance_measurements = struct
   type query = unit [@@deriving bin_io]
   type response = unit [@@deriving bin_io]
 
-  let rpc = Rpc.create ~name:"regular-rpc" ~version:1 ~bin_query ~bin_response
+  let rpc =
+    Rpc.create
+      ~name:"regular-rpc"
+      ~version:1
+      ~bin_query
+      ~bin_response
+      ~include_in_error_count:Only_on_exn
+  ;;
 
   let run_client ~dispatch msgs_per_sec host port ~rpc_impl () =
     let%bind connection = Rpc_impl.make_client rpc_impl host port >>| Result.ok_exn in
@@ -711,7 +718,12 @@ end
 
 module Rpc_expert_test = struct
   let rpc ~name =
-    Rpc.create ~name ~version:0 ~bin_query:bin_string ~bin_response:bin_string
+    Rpc.create
+      ~name
+      ~version:0
+      ~bin_query:bin_string
+      ~bin_response:bin_string
+      ~include_in_error_count:Only_on_exn
   ;;
 
   (* names refer to how they're implemented *)
@@ -914,7 +926,12 @@ module Connection_closing_test = struct
   ;;
 
   let never_returns =
-    Rpc.create ~name:"never-returns" ~version:1 ~bin_query:bin_unit ~bin_response:bin_unit
+    Rpc.create
+      ~name:"never-returns"
+      ~version:1
+      ~bin_query:bin_unit
+      ~bin_response:bin_unit
+      ~include_in_error_count:Only_on_exn
   ;;
 
   let never_returns_impl = Rpc.implement never_returns (fun () () -> Deferred.never ())

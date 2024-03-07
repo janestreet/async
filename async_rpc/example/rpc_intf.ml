@@ -7,6 +7,7 @@ let get_unique_id =
     ~version:0
     ~bin_query:Unit.bin_t
     ~bin_response:Int.bin_t
+    ~include_in_error_count:Only_on_exn
 ;;
 
 let set_id_counter =
@@ -17,6 +18,7 @@ let set_id_counter =
     ~version:1
     ~bin_query:Int.bin_t
     ~bin_response:Unit.bin_t
+    ~include_in_error_count:Only_on_exn
 ;;
 
 (* This type is here only for the purpose of getting the ability to bin_prot an int
@@ -31,6 +33,7 @@ let set_id_counter_v0 =
     ~version:0
     ~bin_query:Int_pair.bin_t
     ~bin_response:Unit.bin_t
+    ~include_in_error_count:Only_on_exn
 ;;
 
 let counter_values =

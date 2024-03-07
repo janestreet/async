@@ -81,7 +81,7 @@ let%expect_test _ =
     rpc-std-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
-    A (pipe_count)    10B (Sent (Response Single_or_streaming_error))
+    A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
     B (<unknown>)     10B (Received (Response Response_finished))
     rpc-std-2
     B (pipe_wait)     21B (Sent Query)
@@ -108,7 +108,7 @@ let%expect_test _ =
     rpc-low-latency-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
-    A (pipe_count)    10B (Sent (Response Single_or_streaming_error))
+    A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
     B (<unknown>)     10B (Received (Response Response_finished))
     rpc-low-latency-2
     B (pipe_wait)     21B (Sent Query)
@@ -164,6 +164,7 @@ let%test_unit "Open dispatches see connection closed error" =
         ~name:"__TEST_Async_rpc.Rpc"
         ~bin_query:bin_t
         ~bin_response:bin_t
+        ~include_in_error_count:Only_on_exn
     in
     let serve () =
       let implementation = Rpc.Rpc.implement rpc (fun () () -> Deferred.never ()) in
@@ -370,6 +371,7 @@ let%test_module "Exception handling" =
             ~name:"__TEST_Async_rpc.Rpc"
             ~bin_query:bin_t
             ~bin_response:bin_t
+            ~include_in_error_count:Only_on_exn
         ;;
 
         let implementation rpc_mode on_exception =

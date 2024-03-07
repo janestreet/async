@@ -37,6 +37,7 @@ let%test_module "RPC" =
         ~version:1
         ~bin_query:[%bin_type_class: int]
         ~bin_response:[%bin_type_class: int]
+        ~include_in_error_count:Only_on_exn
     ;;
 
     let rpc = rpc_with_name ~name:"test-rpc-with-auth"
