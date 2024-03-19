@@ -144,8 +144,8 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
       ]
 ;;
 
-let unpack_into_pipe ~from ~using =
-  let output_reader, output_writer = Pipe.create () in
+let unpack_into_pipe ?size_budget ~from ~using () =
+  let output_reader, output_writer = Pipe.create ?size_budget () in
   let result =
     unpack_all ~from ~to_:(Pipe output_writer) ~using
     >>| fun result ->
@@ -297,7 +297,7 @@ let%test_module _ =
     let setup_string_pipe_reader () =
       let input_r, input_w = Pipe.create () in
       let output, finished =
-        unpack_into_pipe ~from:(Pipe input_r) ~using:(Value.unpack_buffer ())
+        unpack_into_pipe () ~from:(Pipe input_r) ~using:(Value.unpack_buffer ())
       in
       return (input_w, output, finished)
     ;;
@@ -320,6 +320,7 @@ let%test_module _ =
       >>= fun reader ->
       let pipe, finished =
         unpack_into_pipe
+          ()
           ~from:(Reader reader)
           ~using:(Unpack_buffer.create_bin_prot Value.bin_reader_t)
       in

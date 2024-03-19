@@ -148,12 +148,17 @@ module Connection = struct
     Result.ok_exn res
   ;;
 
-  let connection_description ~server_addr ~client_addr =
+  let connection_description ?description ~server_addr ~client_addr () =
     let server_addr = (server_addr :> Socket.Address.t) in
     let client_addr = (client_addr :> Socket.Address.t) in
-    Info.create_s
-      [%message
-        "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
+    let connection_description =
+      Info.create_s
+        [%message
+          "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
+    in
+    match description with
+    | None -> connection_description
+    | Some description -> Info.of_list [ description; connection_description ]
   ;;
 
   let default_on_handshake_error = `Ignore
@@ -174,6 +179,7 @@ module Connection = struct
     ?auth
     ?(on_handshake_error = default_on_handshake_error)
     ?on_handler_error
+    ?description
     ?identification
     ()
     =
@@ -192,7 +198,7 @@ module Connection = struct
         ~handshake_timeout
         ~heartbeat_config
         ~implementations
-        ~description:(connection_description ~server_addr ~client_addr)
+        ~description:(connection_description ?description ~server_addr ~client_addr ())
         ~connection_state:(fun conn -> initial_connection_state client_addr conn)
         ~on_handshake_error
         ~client_addr
@@ -223,6 +229,8 @@ module Connection = struct
     ?auth
     ?(on_handshake_error = default_on_handshake_error)
     ?on_handler_error
+    ?description
+    ?identification
     ()
     =
     Rpc_transport.Tcp.serve_unix
@@ -240,11 +248,12 @@ module Connection = struct
         ~handshake_timeout
         ~heartbeat_config
         ~implementations
-        ~description:(connection_description ~server_addr ~client_addr)
+        ~description:(connection_description ?description ~server_addr ~client_addr ())
         ~connection_state:(fun conn ->
           initial_connection_state client_addr peer_creds conn)
         ~on_handshake_error
         ~client_addr
+        ?identification
         transport)
   ;;
 
@@ -284,11 +293,11 @@ module Connection = struct
             where_to_connect
             [%sexp_of: _ Tcp.Where_to_connect.t]
         | Some desc ->
-          Info.tag_arg
-            desc
-            "via TCP"
-            where_to_connect
-            [%sexp_of: _ Tcp.Where_to_connect.t]
+          Info.of_list
+            [ desc
+            ; Info.create_s
+                [%message "via TCP" ~_:(where_to_connect : _ Tcp.Where_to_connect.t)]
+            ]
       in
       let handshake_timeout = Time_ns.diff finish_handshake_by (Time_ns.now ()) in
       let%bind rpc_connection =
@@ -378,6 +387,7 @@ module Connection = struct
     ?make_transport
     ?handshake_timeout
     ?heartbeat_config
+    ?description
     ?identification
     where_to_connect
     f
@@ -388,6 +398,7 @@ module Connection = struct
       ?make_transport
       ?handshake_timeout
       ?heartbeat_config
+      ?description
       ?identification
       where_to_connect
       (fun ~remote_server:_ -> f)

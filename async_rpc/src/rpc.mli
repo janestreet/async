@@ -116,6 +116,7 @@ module Connection : sig
     -> ?on_handshake_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
          (** default is [`Ignore] *)
     -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
+    -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
@@ -140,6 +141,7 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_handler_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
+    -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
@@ -165,6 +167,8 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_handler_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
+    -> ?description:Info.t
+    -> ?identification:Bigstring.t
     -> unit
     -> Tcp.Server.unix Deferred.t
 
@@ -209,6 +213,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
+    -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> _ Tcp.Where_to_connect.t
     -> (t -> 'a Deferred.t)

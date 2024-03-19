@@ -49,8 +49,10 @@ end
     reader))] because it blits bytes directly from the reader buffer to the unpack buffer,
     without any intervening allocation. *)
 val unpack_into_pipe
-  :  from:Unpack_from.t
+  :  ?size_budget:int
+  -> from:Unpack_from.t
   -> using:'a Unpack_buffer.t
+  -> unit
   -> 'a Pipe.Reader.t * 'a Unpack_result.t Deferred.t
 
 (** [unpack_iter] is a more efficient version of [unpack_into_pipe] that calls [f] on each

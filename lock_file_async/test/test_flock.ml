@@ -31,7 +31,8 @@ let%expect_test "Flock" =
       waiting thread started
       original thread releasing lock
       waiting thread took lock
-      waiting thread released lock |}];
+      waiting thread released lock
+      |}];
     return ())
 ;;
 
@@ -77,6 +78,7 @@ let%expect_test "Symlink" =
       (waiting_thread_sees (lock_taken_by (Ok original-thread)))
       original thread releasing lock
       waiting thread took lock
-      waiting thread released lock |}];
+      waiting thread released lock
+      |}];
     return ())
 ;;

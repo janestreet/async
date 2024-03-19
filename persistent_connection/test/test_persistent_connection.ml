@@ -64,9 +64,9 @@ let%expect_test _ =
   [%expect {| Attempting_to_connect |}];
   let%bind this_conn = Persistent_connection.Rpc.connected unversioned_conn in
   [%expect {|
-        (Obtained_address <elided>)
-        (Connected <opaque>)
-      |}];
+    (Obtained_address <elided>)
+    (Connected <opaque>)
+    |}];
   let%bind () = Rpc.Rpc.dispatch_exn Hello.V1.rpc this_conn () in
   [%expect {| server says hi |}];
   let%bind () = Persistent_connection.Rpc.close unversioned_conn in
@@ -92,13 +92,12 @@ let%expect_test _ =
   [%expect {| Attempting_to_connect |}];
   let%bind this_conn = Persistent_connection.Versioned_rpc.connected versioned_conn in
   [%expect {|
-        (Obtained_address <elided>)
-        (Connected <opaque>)
-      |}];
+    (Obtained_address <elided>)
+    (Connected <opaque>)
+    |}];
   let%bind () = Hello.dispatch_multi this_conn () |> Deferred.Or_error.ok_exn in
   [%expect {| server says hi |}];
   let%bind () = Persistent_connection.Versioned_rpc.close versioned_conn in
-  [%expect {|
-    Disconnected |}];
+  [%expect {| Disconnected |}];
   return ()
 ;;

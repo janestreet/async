@@ -77,12 +77,12 @@ let%expect_test _ =
     B (<unknown>)     10B (Received (Response Partial_response))
     B (<unknown>)     10B (Received (Response Partial_response))
     B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished))
+    B (<unknown>)      8B (Received (Response Response_finished_ok))
     rpc-std-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
     A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
-    B (<unknown>)     10B (Received (Response Response_finished))
+    B (<unknown>)     10B (Received (Response Response_finished_user_defined_error))
     rpc-std-2
     B (pipe_wait)     21B (Sent Query)
     A (pipe_wait)     21B (Received Query)
@@ -104,12 +104,12 @@ let%expect_test _ =
     B (<unknown>)     10B (Received (Response Partial_response))
     B (<unknown>)     10B (Received (Response Partial_response))
     B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished))
+    B (<unknown>)      8B (Received (Response Response_finished_ok))
     rpc-low-latency-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
     A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
-    B (<unknown>)     10B (Received (Response Response_finished))
+    B (<unknown>)     10B (Received (Response Response_finished_user_defined_error))
     rpc-low-latency-2
     B (pipe_wait)     21B (Sent Query)
     A (pipe_wait)     21B (Received Query)
@@ -118,7 +118,8 @@ let%expect_test _ =
     B (<unknown>)      7B (Received (Response Partial_response))
     B (<unknown>)     10B (Received (Response Partial_response))
     A (pipe_wait)     10B (Sent (Response Streaming_update))
-    B (<unknown>)     10B (Received (Response Partial_response)) |}];
+    B (<unknown>)     10B (Received (Response Partial_response))
+    |}];
   return ()
 ;;
 
@@ -151,7 +152,8 @@ let%expect_test "[Connection.create] shouldn't raise" =
         (monitor.ml.Error
          (Failure "unsafe_read_int64: value cannot be represented unboxed!")
          ("<backtrace elided in test>")))
-       <created-directly>))) |}];
+       <created-directly>)))
+    |}];
   return ()
 ;;
 
@@ -182,7 +184,9 @@ let%test_unit "Open dispatches see connection closed error" =
     let client ~port =
       let%bind connection =
         Rpc.Connection.client
-          (Tcp.Where_to_connect.of_host_and_port { host = "localhost"; port })
+          (Tcp.Where_to_connect.of_host_and_port
+             ~show_port_in_test:true
+             { host = "localhost"; port })
         >>| Result.ok_exn
       in
       let res = Rpc.Rpc.dispatch rpc connection () in
@@ -408,7 +412,7 @@ let%test_module "Exception handling" =
                         ~expected:{|"server-side.*rpc.*computation"|})
                    ())
           in
-          [%expect {||}];
+          [%expect {| |}];
           Deferred.unit
         ;;
 
@@ -425,7 +429,7 @@ let%test_module "Exception handling" =
                         ~expected:{|"server-side.*rpc.*computation"|})
                    ())
           in
-          [%expect {||}];
+          [%expect {| |}];
           Deferred.unit
         ;;
 

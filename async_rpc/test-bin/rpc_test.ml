@@ -769,7 +769,16 @@ module Rpc_expert_test = struct
              ~len:(Bigstring.length new_buf)
             : [ `Connection_closed | `Flushed of unit Deferred.t ])
       in
-      let handle_unknown_raw () ~rpc_tag ~version responder buf ~pos ~len =
+      let handle_unknown_raw
+        ()
+        ~rpc_tag
+        ~version
+        ~metadata:(_ : string option)
+        responder
+        buf
+        ~pos
+        ~len
+        =
         [%log.debug_format log "query: %s v%d" rpc_tag version];
         assert (
           rpc_tag = Rpc.name unknown_raw_rpc && version = Rpc.version unknown_raw_rpc);

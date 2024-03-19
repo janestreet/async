@@ -85,7 +85,8 @@ let%expect_test "peeking a message shouldn't result in read offset to change" =
   in
   [%expect {|
     peeked message is: a
-    read message is: a |}];
+    read message is: a
+    |}];
   return ()
 ;;
 
@@ -125,7 +126,8 @@ let%expect_test "peeking a message without buffering - peeking multiple times wi
   in
   [%expect {|
     (first) peeked message is: a
-    (second) peeked message is: a |}];
+    (second) peeked message is: a
+    |}];
   return ()
 ;;
 
@@ -147,7 +149,6 @@ let%expect_test "peeking a message without buffering - trying to peek number of 
       | Error `Closed -> raise_s [%message "Got `Closed error"]
       | Ok _ -> raise_s [%message "Peeking unexpectedly succeeded"])
   in
-  [%expect {|
-    Received Not_enough_data while peeking |}];
+  [%expect {| Received Not_enough_data while peeking |}];
   return ()
 ;;

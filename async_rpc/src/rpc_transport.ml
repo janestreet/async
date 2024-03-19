@@ -39,19 +39,22 @@ let%expect_test " " =
     {|
     ((proposed_max ()) (effective_max 104857600))
     ((proposed_max (1)) (effective_max 1))
-    ((proposed_max (209715200)) (effective_max 209715200)) |}];
+    ((proposed_max (209715200)) (effective_max 209715200))
+    |}];
   test ~max_message_size_from_environment:(Some 1024);
   [%expect
     {|
     ((proposed_max ()) (effective_max 1024))
     ((proposed_max (1)) (effective_max 1024))
-    ((proposed_max (209715200)) (effective_max 209715200)) |}];
+    ((proposed_max (209715200)) (effective_max 209715200))
+    |}];
   test ~max_message_size_from_environment:(Some (300 * 1024 * 1024));
   [%expect
     {|
     ((proposed_max ()) (effective_max 314572800))
     ((proposed_max (1)) (effective_max 314572800))
-    ((proposed_max (209715200)) (effective_max 314572800)) |}]
+    ((proposed_max (209715200)) (effective_max 314572800))
+    |}]
 ;;
 
 let effective_max_message_size ~proposed_max =

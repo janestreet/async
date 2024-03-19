@@ -37,5 +37,6 @@ let%expect_test "handshake is too large" =
          (writer
           ((t ((file_descr _) (info (writer "rpc_test 1")) (kind Fifo)))
            (max_message_size 1) (total_bytes 0)))))))
-     ("<backtrace elided in test>")) |}]
+     ("<backtrace elided in test>"))
+    |}]
 ;;

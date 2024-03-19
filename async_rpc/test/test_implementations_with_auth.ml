@@ -66,9 +66,10 @@ let%test_module "RPC" =
         print_s (to_sexp response [%sexp_of: int]);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side rpc authorization") (exn "query negative"))))
+          |}];
         let%bind response = Rpc.Rpc.dispatch' rpc' conn 125 in
         print_s (to_sexp response [%sexp_of: int]);
         [%expect {| (Ok 125) |}];
@@ -76,9 +77,10 @@ let%test_module "RPC" =
         print_s (to_sexp response [%sexp_of: int]);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side rpc authorization") (exn "query negative"))))
+          |}];
         Deferred.unit)
     ;;
   end)
@@ -137,9 +139,10 @@ let%test_module "pipe-rpc" =
         print_s (to_sexp response sexp_first_update);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side pipe_rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side pipe_rpc authorization") (exn "query negative"))))
+          |}];
         let%bind response = Rpc.Pipe_rpc.dispatch' rpc_direct conn 129 in
         print_s (to_sexp response sexp_first_update);
         [%expect {| (Ok 129) |}];
@@ -147,9 +150,10 @@ let%test_module "pipe-rpc" =
         print_s (to_sexp response sexp_first_update);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side pipe_rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side pipe_rpc authorization") (exn "query negative"))))
+          |}];
         Deferred.unit)
     ;;
   end)
@@ -209,9 +213,10 @@ let%test_module "state-rpc" =
         print_s (to_sexp response sexp_state_and_first_update);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side pipe_rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side pipe_rpc authorization") (exn "query negative"))))
+          |}];
         let%bind response = Rpc.State_rpc.dispatch' rpc_direct conn 133 in
         print_s (to_sexp response sexp_state_and_first_update);
         [%expect {| (Ok ((state 133) ("Pipe.read_now_exn pipe" 133))) |}];
@@ -219,9 +224,10 @@ let%test_module "state-rpc" =
         print_s (to_sexp response sexp_state_and_first_update);
         [%expect
           {|
-            (Error
-             (Uncaught_exn
-              ((location "server-side pipe_rpc authorization") (exn "query negative")))) |}];
+          (Error
+           (Uncaught_exn
+            ((location "server-side pipe_rpc authorization") (exn "query negative"))))
+          |}];
         Deferred.unit)
     ;;
   end)

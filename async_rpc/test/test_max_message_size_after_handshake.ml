@@ -131,7 +131,8 @@ let%expect_test "Query too large" =
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed")) |}];
+    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    |}];
   let%map () =
     triangle_query ~kind:`Pipe ~n:1 ~str_length:(env_var_max_message_size + 1)
   in
@@ -142,7 +143,8 @@ let%expect_test "Query too large" =
      (connection_description <created-directly>) (rpc_name pipe_tri)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed")) |}]
+    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "response and error too large" =
@@ -152,13 +154,14 @@ let%expect_test "response and error too large" =
     B (replicate)     27B (Sent Query)
     A (replicate)     27B (Received Query)
     A (replicate)    209B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     63B (Received (Response Response_finished))
+    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
     ((rpc_error
       (Write_error (Message_too_big ((size 209) (max_message_size 123)))))
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed")) |}]
+    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "response too large" =
@@ -175,13 +178,14 @@ let%expect_test "response too large" =
     B (replicate)     28B (Sent Query)
     A (replicate)     28B (Received Query)
     A (replicate)    1109B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     64B (Received (Response Response_finished))
+    B (<unknown>)     64B (Received (Response Response_finished_rpc_error_or_exn))
     ((rpc_error
       (Write_error (Message_too_big ((size 1109) (max_message_size 200)))))
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed")) |}]
+    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "responses small enough" =
@@ -199,10 +203,11 @@ let%expect_test "responses small enough" =
     B (<unknown>)      7B (Received (Response Partial_response))
     B (<unknown>)     51B (Received (Response Partial_response))
     B (<unknown>)     92B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished))
+    B (<unknown>)      8B (Received (Response Response_finished_ok))
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed")) |}]
+    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "last entry too large" =
@@ -222,13 +227,14 @@ let%expect_test "last entry too large" =
     B (<unknown>)      7B (Received (Response Partial_response))
     B (<unknown>)     51B (Received (Response Partial_response))
     B (<unknown>)     92B (Received (Response Partial_response))
-    B (<unknown>)     63B (Received (Response Response_finished))
+    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
     (Result
      (("Rpc message handling loop stopped"
        (Write_error (Message_too_big ((size 135) (max_message_size 123)))))
-      "EOF or connection closed")) |}]
+      "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "multiple entries too large" =
@@ -248,13 +254,14 @@ let%expect_test "multiple entries too large" =
     B (<unknown>)     40B (Received (Response Partial_response))
     B (<unknown>)     70B (Received (Response Partial_response))
     B (<unknown>)    100B (Received (Response Partial_response))
-    B (<unknown>)     63B (Received (Response Response_finished))
+    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
     (pipe_closed (num_results 3))
     (client, server) connection close reasons:
     (Result
      (("Rpc message handling loop stopped"
        (Write_error (Message_too_big ((size 130) (max_message_size 123)))))
-      "EOF or connection closed")) |}]
+      "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "query too big for callee" =
@@ -284,7 +291,8 @@ let%expect_test "query too big for callee" =
         ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
          ((Message_size 8027) (Max_message_size 8000))
          lib/async_rpc/core/src/rpc_transport.ml:LOC)
-        ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))) |}]
+        ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))))
+    |}]
 ;;
 
 let%expect_test "response too big for caller" =
@@ -319,7 +327,8 @@ let%expect_test "response too big for caller" =
          ((Message_size 9809) (Max_message_size 8000))
          lib/async_rpc/core/src/rpc_transport.ml:LOC)
         ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
-      "EOF or connection closed")) |}]
+      "EOF or connection closed"))
+    |}]
 ;;
 
 let%expect_test "pipe response too big for caller" =
@@ -351,5 +360,6 @@ let%expect_test "pipe response too big for caller" =
          ((Message_size 9816) (Max_message_size 8000))
          lib/async_rpc/core/src/rpc_transport.ml:LOC)
         ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
-      "EOF or connection closed")) |}]
+      "EOF or connection closed"))
+    |}]
 ;;

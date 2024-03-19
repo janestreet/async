@@ -16,6 +16,7 @@ let test () =
     Unpack_sequence.unpack_into_pipe
       ~from:(Reader (Reader.create reader_fd))
       ~using:(Unpack_buffer.create Unpack_buffer.Unpack_one.sexp)
+      ()
   in
   (* write all the sexps at a single go. *)
   List.iter sexps ~f:(fun sexp -> Writer.write string_writer (Sexp.to_string sexp));

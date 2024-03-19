@@ -20,7 +20,8 @@ let%expect_test "[~examples] are tested first" =
     Generated value
     Generated value
     Generated value
-    Generated value |}];
+    Generated value
+    |}];
   let%bind result =
     Async_quickcheck.async_test_or_error ~trials ~examples generator ~f:(fun string ->
       print_endline string;
@@ -36,7 +37,8 @@ let%expect_test "[~examples] are tested first" =
     Generated value
     Generated value
     Generated value
-    Generated value |}];
+    Generated value
+    |}];
   return ()
 ;;
 
@@ -86,7 +88,7 @@ let%expect_test "shrinkers are applied" =
         ~f:(fun (_ : _) -> assert false))
   in
   [%expect
-    {| ("random input" SHRUNKEN "Assert_failure test_async_quickcheck.ml:86:27") |}];
+    {| ("random input" SHRUNKEN "Assert_failure test_async_quickcheck.ml:88:27") |}];
   let%map () =
     Expect_test_helpers_async.require_does_raise_async [%here] (fun () ->
       let%map result =
@@ -103,5 +105,5 @@ let%expect_test "shrinkers are applied" =
         Error.tag_arg error "random input" input String.sexp_of_t |> Error.raise)
   in
   [%expect
-    {| ("random input" SHRUNKEN "Assert_failure test_async_quickcheck.ml:98:29") |}]
+    {| ("random input" SHRUNKEN "Assert_failure test_async_quickcheck.ml:100:29") |}]
 ;;
