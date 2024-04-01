@@ -154,7 +154,10 @@ let%expect_test "response and error too large" =
     B (replicate)     27B (Sent Query)
     A (replicate)     27B (Received Query)
     A (replicate)    209B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
+    B (<unknown>)     63B (Received
+     (Response
+      (Response_finished_rpc_error_or_exn
+       (Write_error (Message_too_big ((size 209) (max_message_size 123)))))))
     ((rpc_error
       (Write_error (Message_too_big ((size 209) (max_message_size 123)))))
      (connection_description <created-directly>) (rpc_name replicate)
@@ -178,7 +181,10 @@ let%expect_test "response too large" =
     B (replicate)     28B (Sent Query)
     A (replicate)     28B (Received Query)
     A (replicate)    1109B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     64B (Received (Response Response_finished_rpc_error_or_exn))
+    B (<unknown>)     64B (Received
+     (Response
+      (Response_finished_rpc_error_or_exn
+       (Write_error (Message_too_big ((size 1109) (max_message_size 200)))))))
     ((rpc_error
       (Write_error (Message_too_big ((size 1109) (max_message_size 200)))))
      (connection_description <created-directly>) (rpc_name replicate)
@@ -227,7 +233,10 @@ let%expect_test "last entry too large" =
     B (<unknown>)      7B (Received (Response Partial_response))
     B (<unknown>)     51B (Received (Response Partial_response))
     B (<unknown>)     92B (Received (Response Partial_response))
-    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
+    B (<unknown>)     63B (Received
+     (Response
+      (Response_finished_rpc_error_or_exn
+       (Write_error (Message_too_big ((size 135) (max_message_size 123)))))))
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
     (Result
@@ -254,7 +263,10 @@ let%expect_test "multiple entries too large" =
     B (<unknown>)     40B (Received (Response Partial_response))
     B (<unknown>)     70B (Received (Response Partial_response))
     B (<unknown>)    100B (Received (Response Partial_response))
-    B (<unknown>)     63B (Received (Response Response_finished_rpc_error_or_exn))
+    B (<unknown>)     63B (Received
+     (Response
+      (Response_finished_rpc_error_or_exn
+       (Write_error (Message_too_big ((size 130) (max_message_size 123)))))))
     (pipe_closed (num_results 3))
     (client, server) connection close reasons:
     (Result

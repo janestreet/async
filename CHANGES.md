@@ -1,3 +1,10 @@
+* Added `Async_quickcheck.async_result`, for getting a `Result.t` with the failing input
+and the error when the test fails.
+
+* Fixed a segfault which occasionally manifests in Async Pingpong benchmark.
+
+* Recognise rpcs that return application-specific errors
+
 * Split up async log into kernel and unix-dependent libraries.
 
 * Add additional data to `Async_log.Message_event.t` for async trace information.
