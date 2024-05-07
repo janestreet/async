@@ -1,17 +1,48 @@
-* Added `Async_quickcheck.async_result`, for getting a `Result.t` with the failing input
-and the error when the test fails.
+## Release v0.17.0
 
-* Fixed a segfault which occasionally manifests in Async Pingpong benchmark.
+- Changes in `Async`:
+  * Fix a segfault that occasionally manifests in the pingpong benchmark
 
-* Recognise rpcs that return application-specific errors
+- Changes in `Async_rpc`:
+  * Add a new version of the `Async_rpc` wire protocol:
+    * Clients and servers now exchange `Versioned_rpc` menus up-front instead of needing
+      to request it via a special RPC, and bin shape digests are included in the menu to
+      allow for clients and servers to check compatibility at runtime.
+    * Clients and servers can exchange a user-provided identification string
+    * `Authorization_failure` was added as an additional structured RPC error type, as
+      well as `Unknown` to cover future cases
+  * Add an argument to rpc creator functions to specify how `Async_rpc` should determine
+    whether the result of the RPC was a success or error. This information is exposed in
+    `Tracing_event.t`'s via `Async_rpc_kernel.Async_rpc_kernel_private.Connection.events`,
+    which is intended to be used by observability libraries to generate metrics and traces
+    from RPC activity.
+  * Add a note in `Rpc_transport` pointing out that reducing reader/writer buffer sizes
+    can have unexpected effects due to differences in how the the buffers get allocated if
+    they're under or over the threshold to use mmap.
+  * Add `Connection.serve_unix` for serving specifically on unix domain sockets which
+    supports extracting the peer's credentials for authentication.
+  * Add the ability to enable dumping RPC message buffers on deserialization errors. This
+    functionality is intended to help debugging cases where invalid messages are being
+    received on an RPC connection and where it's unclear where the corruption is
+    happening.
+  * Mention the `ASYNC_RPC_MAX_MESSAGE_SIZE` env var in the error messages for overly
+    large messages.
+  * Fix a bug where an exception getting raised from trying to write an response would get
+    caught and attempted to be written again as an error instead of allowing it to
+    propagate to close the connection.
 
-* Split up async log into kernel and unix-dependent libraries.
+- Changes in `Async_quickcheck`:
+  * Added `Async_quickcheck.async_test_or_error, for getting a `Result.t` with the failing
+    input and the error when the test fails.
 
-* Add additional data to `Async_log.Message_event.t` for async trace information.
+- Changes in `Persistent_connection`:
+  * Take `Event` out of the functor and parameterize it so that it's easier to write
+    generic functions that operate on events.
+  * Add `Make'` which allows for using a custom error type instead of `Error.t`.
 
-* Remove the `reset_scheduler` functionality in Async, which is unused.
-
-* All `Writer` write functions now respect `Writer.set_synchronous_backing_out_channel`.
+- Changes in `Unpack_sequence`:
+  * Allow specifying a `size_budget` for the pipe when calling
+    `Unpack_sequence.unpack_into_pipe`.
 
 ## Release v0.16.0
 
