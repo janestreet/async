@@ -7,14 +7,26 @@ module Rpcs = struct
     type t = string [@@deriving bin_io, sexp]
 
     let rpc = Rpc.One_way.create ~name:"from-server" ~version:0 ~bin_msg:bin_t
-    let impl = Rpc.One_way.implement rpc (fun _ _ -> Thread.delay 0.0001)
+
+    let impl =
+      Rpc.One_way.implement
+        rpc
+        (fun _ _ -> Thread.delay 0.0001)
+        ~on_exception:Close_connection
+    ;;
   end
 
   module From_client = struct
     type t = string [@@deriving bin_io, sexp]
 
     let rpc = Rpc.One_way.create ~name:"from-client" ~version:0 ~bin_msg:bin_t
-    let impl = Rpc.One_way.implement rpc (fun _ _ -> Thread.delay 0.0001)
+
+    let impl =
+      Rpc.One_way.implement
+        rpc
+        (fun _ _ -> Thread.delay 0.0001)
+        ~on_exception:Close_connection
+    ;;
   end
 end
 
@@ -70,7 +82,8 @@ let run_server ~port ~closing_mode ~use_regular_transport =
       ~implementations:
         (Rpc.Implementations.create_exn
            ~implementations:[ Rpcs.From_client.impl ]
-           ~on_unknown_rpc:`Raise)
+           ~on_unknown_rpc:`Raise
+           ~on_exception:Log_on_background_exn)
       ~heartbeat_config
       ~initial_connection_state:(fun _ conn ->
         Ivar.fill_exn client_conn conn;
@@ -105,6 +118,7 @@ let run_client ~host ~port ~use_regular_transport =
                Rpc.Implementations.create_exn
                  ~implementations:[ Rpcs.From_server.impl ]
                  ~on_unknown_rpc:`Raise
+                 ~on_exception:Log_on_background_exn
            })
       ~heartbeat_config
       ?make_transport:(make_transport ~use_regular_transport)

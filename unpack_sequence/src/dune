@@ -3,4 +3,4 @@
  (public_name async.unpack_sequence)
  (preprocess
   (pps ppx_jane))
- (libraries async async_kernel.eager_deferred core_kernel.unpack_buffer))
+ (libraries async core async_kernel.eager_deferred core_kernel.unpack_buffer))

@@ -1,6 +1,6 @@
 (executables
  (modes byte exe)
  (names profile_rpc rpc_client rpc_server)
- (libraries async bin_prot core_unix.command_unix ocaml_value_size)
+ (libraries async bin_prot core_unix.command_unix core ocaml_value_size)
  (preprocess
   (pps ppx_jane)))

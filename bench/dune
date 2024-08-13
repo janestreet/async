@@ -1,6 +1,7 @@
 (executables
  (modes byte exe)
  (names handlers loop nanos_per_job queens squash tco try_with)
- (libraries async core_unix.command_unix core core_bench ocaml_value_size)
+ (libraries async async_kernel core_unix.command_unix core core_bench
+   ocaml_value_size)
  (preprocess
   (pps ppx_jane)))

@@ -15,7 +15,7 @@ external writev2
   -> len2:int
   -> Unix.Syscall_result.Int.t
   = "async_extra_rpc_writev2_byte" "async_extra_rpc_writev2"
-  [@@noalloc]
+[@@noalloc]
 
 module Config = struct
   (* Same as the default value of [buffer_age_limit] for [Async_unix.Writer] *)
@@ -434,7 +434,7 @@ module Reader_internal = struct
                 let peek_len =
                   (* [Fd.syscall_exn] catches EINTR and retries the function. This is better
                       than calling [recv_peek_assume_fd_is_nonblocking] directly.
-                   *)
+                  *)
                   Fd.syscall_exn t.reader.fd (fun file_descr ->
                     Bigstring_unix.recv_peek_assume_fd_is_nonblocking
                       file_descr
@@ -674,7 +674,7 @@ module Writer_internal = struct
     if t.pos = 0
     then Deferred.unit
     else if not (Connection_state.is_able_to_send_data t.connection_state)
-    then Deferred.never ()
+    then Deferred.unit
     else (
       let flush =
         { pos = Int63.( + ) t.bytes_written (Int63.of_int t.pos); ivar = Ivar.create () }

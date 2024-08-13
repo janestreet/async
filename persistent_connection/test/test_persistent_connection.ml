@@ -13,14 +13,14 @@ module Hello = struct
   include Versioned_rpc.Caller_converts.Rpc.Make (Model)
 
   module V1 = Register (struct
-    let version = 1
+      let version = 1
 
-    type query = unit [@@deriving bin_io]
-    type response = unit [@@deriving bin_io]
+      type query = unit [@@deriving bin_io]
+      type response = unit [@@deriving bin_io]
 
-    let query_of_model = Fn.id
-    let model_of_response = Fn.id
-  end)
+      let query_of_model = Fn.id
+      let model_of_response = Fn.id
+    end)
 end
 
 let%expect_test _ =
@@ -33,6 +33,7 @@ let%expect_test _ =
                printf "server says hi\n";
                return ())
            ])
+      ~on_exception:Log_on_background_exn
   in
   let%bind server =
     Rpc.Connection.serve
@@ -63,7 +64,8 @@ let%expect_test _ =
   in
   [%expect {| Attempting_to_connect |}];
   let%bind this_conn = Persistent_connection.Rpc.connected unversioned_conn in
-  [%expect {|
+  [%expect
+    {|
     (Obtained_address <elided>)
     (Connected <opaque>)
     |}];
@@ -91,7 +93,8 @@ let%expect_test _ =
   in
   [%expect {| Attempting_to_connect |}];
   let%bind this_conn = Persistent_connection.Versioned_rpc.connected versioned_conn in
-  [%expect {|
+  [%expect
+    {|
     (Obtained_address <elided>)
     (Connected <opaque>)
     |}];

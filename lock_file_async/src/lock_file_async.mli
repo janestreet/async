@@ -44,7 +44,9 @@ val is_locked : string -> bool Deferred.t
     renamed [waiting_create] to avoid the impression that it blocks Async. *)
 module Nfs : sig
   val create : ?message:string -> string -> unit Deferred.Or_error.t
+  val create_v2 : ?message:string -> string -> unit Deferred.Or_error.t
   val create_exn : ?message:string -> string -> unit Deferred.t
+  val create_v2_exn : ?message:string -> string -> unit Deferred.t
 
   val waiting_create
     :  ?abort:unit Deferred.t (** default is [Deferred.never ()]. *)
@@ -141,7 +143,7 @@ module Symlink : sig
     :  lock_path:string
     -> metadata:string
     -> [ `Somebody_else_took_it of string Or_error.t | `We_took_it of t ]
-       Deferred.Or_error.t
+         Deferred.Or_error.t
 
   val unlock_exn : t -> unit Deferred.t
   val unlock : t -> unit Deferred.Or_error.t

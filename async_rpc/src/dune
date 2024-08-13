@@ -6,4 +6,5 @@
  (public_name async.async_rpc)
  (preprocess
   (pps ppx_jane))
- (libraries async_kernel async_log async_rpc_kernel async_unix core))
+ (libraries async_kernel async_log async_rpc_kernel async_unix
+   core_unix.bigstring_unix core core_unix core_unix.linux_ext))

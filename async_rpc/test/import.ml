@@ -9,18 +9,18 @@ let print_trace (conn : Rpc.Connection.t) source =
     (Async_rpc_kernel.Async_rpc_kernel_private.Connection.events conn)
     [%here]
     ~f:(fun (event : Async_rpc_kernel.Tracing_event.t) ->
-    let%tydi { event; rpc; id = _; payload_bytes } = event in
-    let name =
-      match rpc with
-      | None -> "<unknown>"
-      | Some { name; version = _ } -> String.globalize name
-    in
-    let header = sprintf !"%s (%s)" source name in
-    Core.printf
-      !"%-16s %3dB %{sexp: Async_rpc_kernel.Tracing_event.Event.t}\n%!"
-      header
-      payload_bytes
-      ([%globalize: Async_rpc_kernel.Tracing_event.Event.t] event))
+      let%tydi { event; rpc; id = _; payload_bytes } = event in
+      let name =
+        match rpc with
+        | None -> "<unknown>"
+        | Some { name; version = _ } -> String.globalize name
+      in
+      let header = sprintf !"%s (%s)" source name in
+      Core.printf
+        !"%-16s %3dB %{sexp: Async_rpc_kernel.Tracing_event.Event.t}\n%!"
+        header
+        payload_bytes
+        ([%globalize: Async_rpc_kernel.Tracing_event.Event.t] event))
 ;;
 
 let test ~trace ~make_transport ~make_transport2 ~imp1 ~imp2 ~state1 ~state2 ~f () =
@@ -34,7 +34,8 @@ let test ~trace ~make_transport ~make_transport2 ~imp1 ~imp2 ~state1 ~state2 ~f 
       Some
         (Rpc.Implementations.create_exn
            ~implementations:imp
-           ~on_unknown_rpc:`Close_connection)
+           ~on_unknown_rpc:`Close_connection
+           ~on_exception:Log_on_background_exn)
     else None
   in
   let s1 = s imp1 in

@@ -7,19 +7,21 @@
 
 open! Core
 open! Import
-module Transport = Rpc_transport
-module Low_latency_transport = Rpc_transport_low_latency
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
 module How_to_recognise_errors = Rpc_kernel.How_to_recognise_errors
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
+module Low_latency_transport = Rpc_transport_low_latency
 module On_exception = Rpc_kernel.On_exception
 module One_way = Rpc_kernel.One_way
+module Or_not_authorized = Async_rpc_kernel.Or_not_authorized
+module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
 module Pipe_rpc = Rpc_kernel.Pipe_rpc
 module Rpc = Rpc_kernel.Rpc
 module State_rpc = Rpc_kernel.State_rpc
-module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
+module Tracing_event = Async_rpc_kernel.Tracing_event
+module Transport = Rpc_transport
 
 module Connection : sig
   include module type of struct

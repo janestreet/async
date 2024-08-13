@@ -1,18 +1,20 @@
 open Core
 open Import
-module Transport = Rpc_transport
-module Low_latency_transport = Rpc_transport_low_latency
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
 module How_to_recognise_errors = Rpc_kernel.How_to_recognise_errors
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
+module Low_latency_transport = Rpc_transport_low_latency
 module On_exception = Rpc_kernel.On_exception
 module One_way = Rpc_kernel.One_way
+module Or_not_authorized = Async_rpc_kernel.Or_not_authorized
+module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
 module Pipe_rpc = Rpc_kernel.Pipe_rpc
 module Rpc = Rpc_kernel.Rpc
 module State_rpc = Rpc_kernel.State_rpc
-module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
+module Tracing_event = Async_rpc_kernel.Tracing_event
+module Transport = Rpc_transport
 
 module Connection = struct
   include Rpc_kernel.Connection
@@ -101,11 +103,7 @@ module Connection = struct
     choose
       [ choice (Monitor.get_next_error monitor) (fun e -> Error e)
       ; choice
-          (Monitor.try_with
-             ~run:`Schedule
-             ~rest:`Log
-             ~name:"Rpc.Connection.collect_errors"
-             f)
+          (Monitor.try_with_local ~rest:`Log ~name:"Rpc.Connection.collect_errors" f)
           Fn.id
       ]
   ;;
@@ -194,16 +192,16 @@ module Connection = struct
       ?auth
       ?on_handler_error
       (fun ~client_addr ~server_addr transport ->
-      serve_with_transport
-        ~handshake_timeout
-        ~heartbeat_config
-        ~implementations
-        ~description:(connection_description ?description ~server_addr ~client_addr ())
-        ~connection_state:(fun conn -> initial_connection_state client_addr conn)
-        ~on_handshake_error
-        ~client_addr
-        ?identification
-        transport)
+         serve_with_transport
+           ~handshake_timeout
+           ~heartbeat_config
+           ~implementations
+           ~description:(connection_description ?description ~server_addr ~client_addr ())
+           ~connection_state:(fun conn -> initial_connection_state client_addr conn)
+           ~on_handshake_error
+           ~client_addr
+           ?identification
+           transport)
   ;;
 
   (* eta-expand [implementations] to avoid value restriction. *)
@@ -244,17 +242,17 @@ module Connection = struct
       ?auth
       ?on_handler_error
       (fun ~client_addr ~server_addr peer_creds transport ->
-      serve_with_transport
-        ~handshake_timeout
-        ~heartbeat_config
-        ~implementations
-        ~description:(connection_description ?description ~server_addr ~client_addr ())
-        ~connection_state:(fun conn ->
-          initial_connection_state client_addr peer_creds conn)
-        ~on_handshake_error
-        ~client_addr
-        ?identification
-        transport)
+         serve_with_transport
+           ~handshake_timeout
+           ~heartbeat_config
+           ~implementations
+           ~description:(connection_description ?description ~server_addr ~client_addr ())
+           ~connection_state:(fun conn ->
+             initial_connection_state client_addr peer_creds conn)
+           ~on_handshake_error
+           ~client_addr
+           ?identification
+           transport)
   ;;
 
   let default_handshake_timeout_float =
@@ -374,9 +372,7 @@ module Connection = struct
       ?identification
       where_to_connect
     >>=? fun (remote_server, t) ->
-    let%bind result =
-      Monitor.try_with ~run:`Schedule ~rest:`Log (fun () -> f ~remote_server t)
-    in
+    let%bind result = Monitor.try_with_local ~rest:`Log (fun () -> f ~remote_server t) in
     let%map () = close t ~reason:(Info.of_string "Rpc.Connection.with_client finished") in
     result
   ;;
@@ -463,7 +459,7 @@ module For_debugging = struct
      | None -> ()
      | Some override -> path_override := Some override);
     Async_rpc_kernel.Async_rpc_kernel_private.Util.dumper_for_deserialization_errors
-      := dump_deserialization_error
+    := dump_deserialization_error
   ;;
 
   let () =

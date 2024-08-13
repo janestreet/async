@@ -29,7 +29,7 @@ let () =
        (Tcp.Where_to_listen.of_port 55_555)
        ~on_handler_error:`Ignore
        handler
-      : Tcp.Server.inet Deferred.t)
+     : Tcp.Server.inet Deferred.t)
 ;;
 
 let () = never_returns (Scheduler.go ())

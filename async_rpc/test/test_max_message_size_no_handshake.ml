@@ -31,7 +31,7 @@ let%expect_test "handshake is too large" =
     {|
     (monitor.ml.Error
      ("Message cannot be sent"
-      ((reason (Message_too_big ((size 9) (max_message_size 1))))
+      ((reason (Message_too_big ((size 10) (max_message_size 1))))
        (connection
         ((description <created-directly>)
          (writer

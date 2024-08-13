@@ -29,7 +29,10 @@ let implementations =
 let main ~port =
   let counter = ref 0 in
   let implementations =
-    Rpc.Implementations.create ~implementations ~on_unknown_rpc:`Close_connection
+    Rpc.Implementations.create
+      ~implementations
+      ~on_unknown_rpc:`Close_connection
+      ~on_exception:Log_on_background_exn
   in
   match implementations with
   | Error (`Duplicate_implementations (_ : Rpc.Description.t list)) -> assert false
@@ -39,12 +42,12 @@ let main ~port =
         (Tcp.Where_to_listen.of_port port)
         ~on_handler_error:`Ignore
         (fun (_ : Socket.Address.Inet.t) reader writer ->
-        Rpc.Connection.server_with_close
-          reader
-          writer
-          ~implementations
-          ~connection_state:(fun (_ : Rpc.Connection.t) -> counter)
-          ~on_handshake_error:`Ignore)
+           Rpc.Connection.server_with_close
+             reader
+             writer
+             ~implementations
+             ~connection_state:(fun (_ : Rpc.Connection.t) -> counter)
+             ~on_handshake_error:`Ignore)
     in
     ignore (server : (Socket.Address.Inet.t, int) Tcp.Server.t Deferred.t);
     never ()

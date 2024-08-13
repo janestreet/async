@@ -22,7 +22,7 @@ let direct_impl =
     incr query_counter;
     ignore
       (Rpc.Pipe_rpc.Direct_stream_writer.write_without_pushback writer 0
-        : [ `Ok | `Closed ]);
+       : [ `Ok | `Closed ]);
     return (Ok ()))
 ;;
 
@@ -37,6 +37,7 @@ let server_cmd =
          Rpc.Implementations.create
            ~on_unknown_rpc:`Close_connection
            ~implementations:[ direct_impl ]
+           ~on_exception:Log_on_background_exn
        in
        let words_when_conn_created = ref 0 in
        match implementations with
@@ -47,12 +48,12 @@ let server_cmd =
              (Tcp.Where_to_listen.of_port port)
              ~on_handler_error:`Ignore
              (fun _addr reader writer ->
-             Rpc.Connection.server_with_close
-               reader
-               writer
-               ~implementations
-               ~connection_state:(fun _ -> words_when_conn_created := words ())
-               ~on_handshake_error:`Ignore)
+                Rpc.Connection.server_with_close
+                  reader
+                  writer
+                  ~implementations
+                  ~connection_state:(fun _ -> words_when_conn_created := words ())
+                  ~on_handshake_error:`Ignore)
          in
          ignore (server : (_, _) Tcp.Server.t Deferred.t);
          Clock.every (Time_float.Span.of_sec 5.) (fun () ->

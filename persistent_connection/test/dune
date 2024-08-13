@@ -1,5 +1,5 @@
 (library
  (name persistent_connection_test)
- (libraries persistent_connection)
+ (libraries async core persistent_connection)
  (preprocess
   (pps ppx_jane)))

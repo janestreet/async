@@ -202,7 +202,7 @@ module Unix_writer = struct
   let bytes_to_write t = Writer.bytes_to_write t.t
   let bytes_written t = t.total_bytes
   let stopped t = Deferred.any [ Writer.close_started t.t; Writer.consumer_left t.t ]
-  let flushed t = Writer.flushed t.t
+  let flushed t = Writer.flushed_or_failed_unit t.t
   let ready_to_write = flushed
 
   let bin_write_payload_length buf ~pos x =
@@ -318,24 +318,24 @@ module Tcp = struct
       ~on_handler_error
       where_to_listen
       (fun client_addr socket ->
-      match auth client_addr with
-      | false -> return ()
-      | true ->
-        let max_message_size = effective_max_message_size ~proposed_max in
-        let fd = Socket.fd socket in
-        let transport = make_transport ~max_message_size fd in
-        let%bind result =
-          Monitor.try_with ~run:`Schedule ~rest:`Raise (fun () ->
-            handle_transport
-              fd
-              ~client_addr
-              ~server_addr:(Socket.getsockname socket)
-              transport)
-        in
-        let%bind () = close transport in
-        (match result with
-         | Ok () -> return ()
-         | Error exn -> raise exn))
+         match auth client_addr with
+         | false -> return ()
+         | true ->
+           let max_message_size = effective_max_message_size ~proposed_max in
+           let fd = Socket.fd socket in
+           let transport = make_transport ~max_message_size fd in
+           let%bind result =
+             Monitor.try_with_local ~rest:`Raise (fun () ->
+               handle_transport
+                 fd
+                 ~client_addr
+                 ~server_addr:(Socket.getsockname socket)
+                 transport)
+           in
+           let%bind () = close transport in
+           (match result with
+            | Ok () -> return ()
+            | Error exn -> raise exn))
   ;;
 
   let make_serve_func
@@ -363,7 +363,7 @@ module Tcp = struct
       ?auth
       ?on_handler_error
       (fun (_ : Fd.t) ~client_addr ~server_addr transport ->
-      handle_transport ~client_addr ~server_addr transport)
+         handle_transport ~client_addr ~server_addr transport)
   ;;
 
   (* eta-expand [where_to_listen] to avoid value restriction. *)
@@ -398,13 +398,13 @@ module Tcp = struct
       ?auth
       ?on_handler_error
       (fun fd ~client_addr ~server_addr transport ->
-      let peer_credentials =
-        Or_error.try_with (fun () ->
-          (ok_exn Linux_ext.peer_credentials) (Fd.file_descr_exn fd))
-        |> Or_error.tag ~tag:"Error getting peer credentials of unix socket"
-        |> ok_exn
-      in
-      handle_transport ~client_addr ~server_addr peer_credentials transport)
+         let peer_credentials =
+           Or_error.try_with (fun () ->
+             (ok_exn Linux_ext.peer_credentials) (Fd.file_descr_exn fd))
+           |> Or_error.tag ~tag:"Error getting peer credentials of unix socket"
+           |> ok_exn
+         in
+         handle_transport ~client_addr ~server_addr peer_credentials transport)
   ;;
 
   let connect

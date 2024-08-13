@@ -2,7 +2,7 @@
  (name async)
  (public_name async)
  (libraries async_command async_kernel async_log async_quickcheck async_rpc
-   async_unix core)
+   async_unix core ppx_expect.config_types)
  (preprocess
   (pps ppx_jane)))
 

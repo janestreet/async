@@ -314,7 +314,10 @@ module Server = struct
 
   let main ~port ~rpc_impl () =
     let implementations =
-      Implementations.create_exn ~implementations ~on_unknown_rpc:`Raise
+      Implementations.create_exn
+        ~implementations
+        ~on_unknown_rpc:`Raise
+        ~on_exception:Log_on_background_exn
     in
     let%bind _server =
       Rpc_impl.make_server

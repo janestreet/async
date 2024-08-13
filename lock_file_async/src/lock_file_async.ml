@@ -35,9 +35,9 @@ let fail_on_abort path ~held_by = function
       "Lock_file timed out waiting for existing lock"
       path
       (fun path ->
-      match held_by with
-      | None -> [%sexp (path : string)]
-      | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
+         match held_by with
+         | None -> [%sexp (path : string)]
+         | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
 ;;
 
 let waiting_create
@@ -67,7 +67,15 @@ module Nfs = struct
     In_thread.run (fun () -> Lock_file_blocking.Nfs.create ?message path)
   ;;
 
+  let create_v2 ?message path =
+    In_thread.run (fun () -> Lock_file_blocking.Nfs.create_v2 ?message path)
+  ;;
+
   let create_exn ?message path =
+    In_thread.run (fun () -> Lock_file_blocking.Nfs.create_exn ?message path)
+  ;;
+
+  let create_v2_exn ?message path =
     In_thread.run (fun () -> Lock_file_blocking.Nfs.create_exn ?message path)
   ;;
 

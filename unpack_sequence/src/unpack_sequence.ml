@@ -109,12 +109,12 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
           | Error error -> return (`Stop (Unpack_result.Unpack_error error))
           | Ok () -> unpack_all_available ()))
       >>| (function
-      | Error exn -> Unpack_result.Unpack_error (Error.of_exn exn)
-      | Ok (`Stopped result) -> result
-      | Ok `Eof -> Unpack_result.eof unpack_buffer
-      | Ok (`Eof_with_unconsumed_data _) ->
-        (* not possible since we always consume everithing *)
-        assert false)
+       | Error exn -> Unpack_result.Unpack_error (Error.of_exn exn)
+       | Ok (`Stopped result) -> result
+       | Ok `Eof -> Unpack_result.eof unpack_buffer
+       | Ok (`Eof_with_unconsumed_data _) ->
+         (* not possible since we always consume everithing *)
+         assert false)
     | Pipe input ->
       Deferred.repeat_until_finished () (fun () ->
         Pipe.read' input
@@ -132,8 +132,8 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
            | () ->
              unpack_all_available ()
              >>| (function
-             | `Continue -> `Repeat ()
-             | `Stop z -> `Finished z)))
+              | `Continue -> `Repeat ()
+              | `Stop z -> `Finished z)))
   in
   match to_ with
   | Iter _ -> finished_with_input
@@ -283,12 +283,12 @@ let%test_module _ =
       let timeout = sec 10. in
       Clock.with_timeout timeout deferred
       >>| (function
-            | `Timeout ->
-              failwithf
-                !"unpack_sequence.ml: Deferred took more than %{Time_float.Span}"
-                timeout
-                ()
-            | `Result result -> result)
+             | `Timeout ->
+               failwithf
+                 !"unpack_sequence.ml: Deferred took more than %{Time_float.Span}"
+                 timeout
+                 ()
+             | `Result result -> result)
       >>= f
     ;;
 
@@ -411,8 +411,8 @@ let%test_module _ =
           [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
           finished
           >>| (function
-          | Unpack_error _ -> ()
-          | _ -> assert false))
+           | Unpack_error _ -> ()
+           | _ -> assert false))
     ;;
   end)
 ;;

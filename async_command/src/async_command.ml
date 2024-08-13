@@ -83,8 +83,14 @@ let in_async ?(behave_nicely_in_pipeline = true) ?extract_exn param on_result ki
                    a "shutdown forced" message and exit 1 if [prev ()] finished first. *)
                 [ prev (); (before_shutdown () >>= fun () -> after (sec 1.)) ]);
          upon
-           (Deferred.Or_error.try_with ~run:`Schedule ~rest:`Log ?extract_exn (fun () ->
-              main `Scheduler_started))
+           (Deferred.Or_error.try_with
+            (* NOTE: We are passing [Lexing.dummy_pos] here to hide this location from
+               appearing in error messages. *)
+              ~here:Lexing.dummy_pos
+              ~run:`Schedule
+              ~rest:`Log
+              ?extract_exn
+              (fun () -> main `Scheduler_started))
            on_result;
          (never_returns (Scheduler.go ()) : unit)))
 ;;
@@ -188,11 +194,15 @@ module For_testing = struct
           | None -> return (Ok ())
           | Some (Error _ as e) -> return e
           | Some (Ok kind) ->
-            Monitor.try_with_join_or_error (fun () ->
-              match kind with
-              | Unit thunk ->
-                let%map.Deferred () = thunk `Scheduler_started in
-                Ok ()
-              | Or_error thunk -> thunk `Scheduler_started)))
+            Monitor.try_with_join_or_error
+            (* NOTE: We are passing [Lexing.dummy_pos] here to hide this location from
+                 appearing in error messages. *)
+              ~here:Lexing.dummy_pos
+              (fun () ->
+                 match kind with
+                 | Unit thunk ->
+                   let%map.Deferred () = thunk `Scheduler_started in
+                   Ok ()
+                 | Or_error thunk -> thunk `Scheduler_started)))
   ;;
 end

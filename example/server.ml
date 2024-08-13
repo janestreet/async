@@ -11,18 +11,18 @@ let server =
     (Tcp.Where_to_listen.of_port port)
     ~on_handler_error:`Raise
     (fun _ reader writer ->
-    Deferred.create (fun finished ->
-      let rec loop () =
-        upon (Reader.read_line reader) (function
-          | `Ok query ->
-            message (sprintf "Server got query: %s\n" query);
-            Writer.write writer (sprintf "Response to %s\n" query);
-            loop ()
-          | `Eof ->
-            Ivar.fill_exn finished ();
-            message "Server got EOF\n")
-      in
-      loop ()))
+       Deferred.create (fun finished ->
+         let rec loop () =
+           upon (Reader.read_line reader) (function
+             | `Ok query ->
+               message (sprintf "Server got query: %s\n" query);
+               Writer.write writer (sprintf "Response to %s\n" query);
+               loop ()
+             | `Eof ->
+               Ivar.fill_exn finished ();
+               message "Server got EOF\n")
+         in
+         loop ()))
 ;;
 
 let () = Core.eprintf "TOP\n%!"

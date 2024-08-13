@@ -1,5 +1,6 @@
 (library
  (name async_rpc_test)
- (libraries async expect_test_helpers_async re2 sexp_select)
+ (libraries async async_rpc_kernel core_kernel.bus core core_unix
+   expect_test_helpers_async core_unix.linux_ext re2 sexp_select)
  (preprocess
   (pps ppx_jane)))
