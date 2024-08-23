@@ -864,7 +864,7 @@ module Writer_internal = struct
     ~pos
     ~len
     : _ Send_result.t
-    =
+    = exclave_
     let payload_len = writer.size msg + len in
     let total_len = Header.length + payload_len in
     if Config.message_size_ok t.config ~payload_len
@@ -899,7 +899,7 @@ module Writer_internal = struct
     ~pos
     ~len
     : _ Send_result.t
-    =
+    = exclave_
     if is_closed t
     then Closed
     else (
@@ -949,7 +949,7 @@ module Writer_internal = struct
       else Sent { result = (); bytes = 0 })
   ;;
 
-  let send_bin_prot_and_bigstring_non_copying t writer msg ~buf ~pos ~len =
+  let send_bin_prot_and_bigstring_non_copying t writer msg ~buf ~pos ~len = exclave_
     match send_bin_prot_and_bigstring t writer msg ~buf ~pos ~len with
     | (Closed | Message_too_big _) as r -> r
     | Sent { result = (); bytes } -> Sent { result = Deferred.unit; bytes }
@@ -957,7 +957,7 @@ module Writer_internal = struct
 
   let dummy_buf = Bigstring.create 0
 
-  let send_bin_prot t writer msg =
+  let send_bin_prot t writer msg = exclave_
     send_bin_prot_and_bigstring t writer msg ~buf:dummy_buf ~pos:0 ~len:0
   ;;
 

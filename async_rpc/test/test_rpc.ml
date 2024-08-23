@@ -142,7 +142,7 @@ let%expect_test "[Connection.create] shouldn't raise" =
   (* We must write at least [Header.length] (8) bytes. *)
   Writer.write writer1 "failfail";
   let%bind () = Writer.flushed writer1 in
-  let%bind result = result in
+  let%bind result in
   print_s [%message "" ~_:(result : [ `Raised of Exn.t | `Returned of Exn.t ])];
   [%expect
     {|
@@ -290,7 +290,7 @@ let%test_module "Exception handling" =
           else Ivar.read callback_triggered
         in
         let%bind () = Scheduler.yield_until_no_jobs_remain () in
-        let%bind res = res in
+        let%bind res in
         Option.iter client_received_response ~f:(Fn.flip Ivar.fill_exn ());
         let%bind () = Scheduler.yield_until_no_jobs_remain () in
         if not expect_close_connection

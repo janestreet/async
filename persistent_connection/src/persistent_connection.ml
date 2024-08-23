@@ -51,15 +51,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
 end
 
 module Make (Conn : Closable) = struct
-  include
-    Make'
-      (struct
-        type t = Error.t [@@deriving equal, sexp_of]
-
-        let to_error e = e
-        let of_exception_error e = e
-      end)
-      (Conn)
+  include Make' (Persistent_connection_kernel.Default_connection_error) (Conn)
 end
 
 let create_convenience_wrapper
@@ -106,14 +98,7 @@ let create_convenience_wrapper
 ;;
 
 module Versioned_rpc = struct
-  include Make (struct
-      type t = Versioned_rpc.Connection_with_menu.t
-
-      let rpc_connection = Versioned_rpc.Connection_with_menu.connection
-      let close t = Rpc.Connection.close (rpc_connection t)
-      let is_closed t = Rpc.Connection.is_closed (rpc_connection t)
-      let close_finished t = Rpc.Connection.close_finished (rpc_connection t)
-    end)
+  include Make (Async_rpc_kernel.Persistent_connection.Versioned_rpc_conn)
 
   let create' ~server_name =
     create_convenience_wrapper
@@ -124,13 +109,7 @@ module Versioned_rpc = struct
 end
 
 module Rpc = struct
-  include Make (struct
-      type t = Rpc.Connection.t
-
-      let close t = Rpc.Connection.close t
-      let is_closed t = Rpc.Connection.is_closed t
-      let close_finished t = Rpc.Connection.close_finished t
-    end)
+  include Make (Async_rpc_kernel.Persistent_connection.Rpc_conn)
 
   let create' ~server_name =
     create_convenience_wrapper

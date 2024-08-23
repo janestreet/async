@@ -63,11 +63,26 @@ module type Persistent_connection = sig
   module type S' = S'
   module type S_rpc = S_rpc
 
-  module Make (Conn : Closable) : S with type conn = Conn.t
+  module Make (Conn : Closable) :
+    S with type conn = Conn.t and type t = Persistent_connection_kernel.Make(Conn).t
 
   module Make' (Conn_err : Connection_error) (Conn : Closable) :
-    S' with type conn = Conn.t and type conn_error = Conn_err.t
+    S'
+    with type conn = Conn.t
+     and type conn_error = Conn_err.t
+     and type t = Persistent_connection_kernel.Make'(Conn_err)(Conn).t
 
-  module Rpc : S_rpc with type conn = Rpc.Connection.t
-  module Versioned_rpc : S_rpc with type conn = Versioned_rpc.Connection_with_menu.t
+  module Rpc :
+    S_rpc
+    with type conn = Rpc.Connection.t
+     and type t =
+      Persistent_connection_kernel.Make(Async_rpc_kernel.Persistent_connection.Rpc_conn).t
+
+  module Versioned_rpc :
+    S_rpc
+    with type conn = Versioned_rpc.Connection_with_menu.t
+     and type t =
+      Persistent_connection_kernel.Make
+        (Async_rpc_kernel.Persistent_connection.Versioned_rpc_conn)
+      .t
 end
