@@ -6,7 +6,7 @@ let max_message_size = 1_000_000
 
 let print_trace (conn : Rpc.Connection.t) source =
   Bus.iter_exn
-    (Async_rpc_kernel.Async_rpc_kernel_private.Connection.events conn)
+    (Async_rpc_kernel.Async_rpc_kernel_private.Connection.tracing_events conn)
     [%here]
     ~f:(fun (event : Async_rpc_kernel.Tracing_event.t) ->
       let%tydi { event; rpc; id = _; payload_bytes } = event in
