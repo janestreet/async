@@ -304,7 +304,7 @@ module Tcp = struct
     ?time_source
     ?max_message_size:proposed_max
     ?(make_transport = default_transport_maker)
-    ?(auth = fun _ -> true)
+    ?(auth = fun _ -> Deferred.return true)
     ?(on_handler_error = `Ignore)
     handle_transport
     =
@@ -318,7 +318,7 @@ module Tcp = struct
       ~on_handler_error
       where_to_listen
       (fun client_addr socket ->
-         match auth client_addr with
+         match%bind auth client_addr with
          | false -> return ()
          | true ->
            let max_message_size = effective_max_message_size ~proposed_max in

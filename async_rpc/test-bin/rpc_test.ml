@@ -1,5 +1,4 @@
 open Core
-open Poly
 open Async
 open Rpc
 module Limiter = Limiter_async.Token_bucket
@@ -129,7 +128,7 @@ module Pipe_simple_test = struct
 
   module Client = struct
     let _is_the_right_string msg_size string =
-      String.length string = msg_size && String.for_all string ~f:(( = ) 'A')
+      String.length string = msg_size && String.for_all string ~f:([%equal: char] 'A')
     ;;
 
     let main bytes msgs_per_sec host port ~rpc_impl () =
@@ -306,11 +305,11 @@ module Pipe_closing_test = struct
         let%bind pipe, id = Pipe_rpc.dispatch_exn rpc conn `Dont_close in
         Pipe.close_read pipe;
         let%bind reason = Pipe_rpc.close_reason id in
-        assert (reason = Closed_locally);
+        assert ([%compare.equal: Pipe_close_reason.t] reason Closed_locally);
         let%bind pipe, id = Pipe_rpc.dispatch_exn rpc conn `Do_close in
         let%bind reason = Pipe_rpc.close_reason id in
         assert (Pipe.is_closed pipe);
-        assert (reason = Closed_remotely);
+        assert ([%compare.equal: Pipe_close_reason.t] reason Closed_remotely);
         let%bind pipe, id = Pipe_rpc.dispatch_exn rpc conn `Dont_close in
         let%bind () = Connection.close conn in
         let%bind reason = Pipe_rpc.close_reason id in
@@ -485,7 +484,7 @@ module Pipe_direct_test = struct
         let%bind l = Pipe.to_list pipe in
         [%test_result: int list] l ~expect:output;
         let%bind reason = Pipe_rpc.close_reason md in
-        assert (reason = Closed_remotely);
+        assert ([%compare.equal: Pipe_close_reason.t] reason Closed_remotely);
         let%bind pipe, md = Pipe_rpc.dispatch_exn rpc conn (`Expect_auto_close 0) in
         let%bind result = Pipe.read_exactly pipe ~num_values:10 in
         let l =
@@ -496,7 +495,7 @@ module Pipe_direct_test = struct
         Pipe.close_read pipe;
         [%test_result: int list] l ~expect:output;
         let%bind reason = Pipe_rpc.close_reason md in
-        assert (reason = Closed_locally);
+        assert ([%compare.equal: Pipe_close_reason.t] reason Closed_locally);
         let%bind was_ok = Ivar.read auto_close_was_ok.(0) in
         assert was_ok;
         let%bind pipe, md = Pipe_rpc.dispatch_exn rpc conn (`Expect_auto_close 1) in
@@ -554,7 +553,7 @@ module Pipe_rpc_performance_measurements = struct
           (Pipe.iter_without_pushback (Cpu_usage.samples ()) ~f:(fun percent ->
              let percentage = Percent.to_percentage percent in
              incr sample_to_collect_and_exit;
-             if percentage > 100.
+             if Float.(percentage > 100.)
              then (
                Print.printf "CPU pegged (%f). This test is not good.\n" percentage;
                Shutdown.shutdown 1);
@@ -672,7 +671,7 @@ module Rpc_performance_measurements = struct
                !sample
                (!ratio_acc /. Float.of_int !sample)
                (!percentage_acc /. Float.of_int !sample);
-             if percentage > 100.
+             if Float.(percentage > 100.)
              then Print.printf "CPU pegged (%f). This test may not good.\n" percentage
              else (
                if !sample >= 0
@@ -795,7 +794,8 @@ module Rpc_expert_test = struct
         =
         [%log.debug_format log "query: %s v%d" rpc_tag version];
         assert (
-          rpc_tag = Rpc.name unknown_raw_rpc && version = Rpc.version unknown_raw_rpc);
+          [%equal: string] rpc_tag (Rpc.name unknown_raw_rpc)
+          && version = Rpc.version unknown_raw_rpc);
         try
           handle_raw responder buf ~pos ~len;
           Deferred.unit
