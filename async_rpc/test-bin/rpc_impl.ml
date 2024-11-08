@@ -94,12 +94,19 @@ let spec =
   let standard _netkit_ifname = Async standard_mt in
   let low_latency _netkit_ifname = Async low_latency_mt in
   let network ifname =
-    match Netkit.Network.find ~name:ifname with
+    match
+      Netkit.Network.This_is_the_wrong_api_for_creating_or_retrieving_a_network.find
+        ~name:ifname
+    with
     | Some network -> network
     | None ->
       let network = Netkit_sockets.create ~ifname () in
-      Netkit.Network.add_exn ~name:ifname (module Netkit_sockets) network;
-      Netkit.Network.find_exn ~name:ifname
+      Netkit.Network.This_is_the_wrong_api_for_creating_or_retrieving_a_network.add_exn
+        ~name:ifname
+        (module Netkit_sockets)
+        network;
+      Netkit.Network.This_is_the_wrong_api_for_creating_or_retrieving_a_network.find_exn
+        ~name:ifname
   in
   let netkit netkit_ifname = Netkit (network netkit_ifname) in
   let typ =

@@ -12,31 +12,29 @@ let%expect_test "handshake is too large" =
     ; writer = Writer.create fd_w |> Rpc.Transport.Writer.of_writer
     }
   in
-  let%map () =
-    match%map
-      Monitor.try_with (fun () ->
-        test1
-          ~trace:true
-          ~make_transport:make_transport_default_size
-          ~make_client_transport:make_transport_default_size
-          ~imp:[ pipe_count_imp ]
-          ~state:()
-          ~f:(fun _ conn -> Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn 1)
-          ())
-    with
-    | Error exn -> print_s ([%sexp_of: Exn.t] exn)
-    | _ -> ()
+  let handshake_exn = Ivar.create () in
+  let on_handshake_error exn =
+    Ivar.fill_if_empty handshake_exn exn;
+    return ()
   in
+  let%bind _ =
+    test1
+      ~trace:true
+      ~on_handshake_error:(`Call on_handshake_error)
+      ~make_transport:make_transport_default_size
+      ~make_client_transport:make_transport_default_size
+      ~imp:[ pipe_count_imp ]
+      ~state:()
+      ~f:(fun _ conn ->
+        Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn 1 |> Deferred.ignore_m)
+      ()
+  in
+  let%bind exn = Ivar.read handshake_exn in
+  print_s [%sexp (exn : exn)];
   [%expect
     {|
-    (monitor.ml.Error
-     ("Message cannot be sent"
-      ((reason (Message_too_big ((size 10) (max_message_size 1))))
-       (connection
-        ((description <created-directly>)
-         (writer
-          ((t ((file_descr _) (info (writer "rpc_test 1")) (kind Fifo)))
-           (max_message_size 1) (total_bytes 0)))))))
-     ("<backtrace elided in test>"))
-    |}]
+    (handshake_error.ml.Handshake_error
+     ((Message_too_big ((size 12) (max_message_size 1))) <created-directly>))
+    |}];
+  return ()
 ;;

@@ -177,242 +177,238 @@ let unpack_iter_with_pushback ~from ~using ~f ~pushback =
   unpack_iter_internal ~from ~using ~f ~pushback
 ;;
 
-let%test_module _ =
-  (module struct
-    module Unpack_result = struct
-      include Unpack_result
+module%test _ = struct
+  module Unpack_result = struct
+    include Unpack_result
 
-      let compare _compare_a t1 t2 =
-        match t1, t2 with
-        | Input_closed, Input_closed -> 0
-        | Input_closed_in_the_middle_of_data _, Input_closed_in_the_middle_of_data _ -> 0
-        | Output_closed, Output_closed -> 0
-        | Unpack_error e_l, Unpack_error e_r -> Error.compare e_l e_r
-        | ( ( Input_closed
-            | Input_closed_in_the_middle_of_data _
-            | Output_closed
-            | Unpack_error _ )
-          , _ ) -> -1
-      ;;
-    end
+    let compare _compare_a t1 t2 =
+      match t1, t2 with
+      | Input_closed, Input_closed -> 0
+      | Input_closed_in_the_middle_of_data _, Input_closed_in_the_middle_of_data _ -> 0
+      | Output_closed, Output_closed -> 0
+      | Unpack_error e_l, Unpack_error e_r -> Error.compare e_l e_r
+      | ( ( Input_closed
+          | Input_closed_in_the_middle_of_data _
+          | Output_closed
+          | Unpack_error _ )
+        , _ ) -> -1
+    ;;
+  end
 
-    let pack bin_writer values =
-      List.map values ~f:(fun value ->
-        Bin_prot.Utils.bin_dump ~header:true bin_writer value |> Bigstring.to_string)
-      |> String.concat
+  let pack bin_writer values =
+    List.map values ~f:(fun value ->
+      Bin_prot.Utils.bin_dump ~header:true bin_writer value |> Bigstring.to_string)
+    |> String.concat
+  ;;
+
+  let break_into_pieces string ~of_size =
+    let rec loop start_idx =
+      if start_idx < String.length string
+      then (
+        let next_idx = Int.min (start_idx + of_size) (String.length string) in
+        let this_slice = String.slice string start_idx next_idx in
+        this_slice :: loop next_idx)
+      else []
+    in
+    loop 0
+  ;;
+
+  let%test_unit _ =
+    [%test_result: string list]
+      (break_into_pieces "foobarx" ~of_size:2)
+      ~expect:[ "fo"; "ob"; "ar"; "x" ]
+  ;;
+
+  module Value = struct
+    type t =
+      { a : string
+      ; b : int
+      }
+    [@@deriving bin_io, compare, sexp]
+
+    let unpack_buffer () = Unpack_buffer.create_bin_prot bin_reader_t
+
+    (* Create a value unique to the seed. *)
+    let create seed =
+      let char = Char.of_int_exn (seed + Char.to_int 'a') in
+      { a = String.make seed char; b = seed }
     ;;
 
-    let break_into_pieces string ~of_size =
-      let rec loop start_idx =
-        if start_idx < String.length string
-        then (
-          let next_idx = Int.min (start_idx + of_size) (String.length string) in
-          let this_slice = String.slice string start_idx next_idx in
-          this_slice :: loop next_idx)
-        else []
+    let pack ts = pack bin_writer_t ts
+
+    (* Bogus bin prot data that we know will *fail* when unpacked as a [Value.t]. *)
+    let bogus_data =
+      let bogus_size = 10 in
+      let buf =
+        Bigstring.init (Bin_prot.Utils.size_header_length + bogus_size) ~f:(const '\000')
       in
-      loop 0
+      ignore (Bin_prot.Utils.bin_write_size_header buf ~pos:0 bogus_size : int);
+      Bigstring.to_string buf
     ;;
 
     let%test_unit _ =
-      [%test_result: string list]
-        (break_into_pieces "foobarx" ~of_size:2)
-        ~expect:[ "fo"; "ob"; "ar"; "x" ]
+      let unpack_buffer = unpack_buffer () in
+      ok_exn (Unpack_buffer.feed_string unpack_buffer bogus_data);
+      let q = Queue.create () in
+      match Unpack_buffer.unpack_into unpack_buffer q with
+      | Ok () -> assert false
+      | Error _ -> assert (Queue.is_empty q)
     ;;
 
-    module Value = struct
-      type t =
-        { a : string
-        ; b : int
-        }
-      [@@deriving bin_io, compare, sexp]
-
-      let unpack_buffer () = Unpack_buffer.create_bin_prot bin_reader_t
-
-      (* Create a value unique to the seed. *)
-      let create seed =
-        let char = Char.of_int_exn (seed + Char.to_int 'a') in
-        { a = String.make seed char; b = seed }
-      ;;
-
-      let pack ts = pack bin_writer_t ts
-
-      (* Bogus bin prot data that we know will *fail* when unpacked as a [Value.t]. *)
-      let bogus_data =
-        let bogus_size = 10 in
-        let buf =
-          Bigstring.init
-            (Bin_prot.Utils.size_header_length + bogus_size)
-            ~f:(const '\000')
-        in
-        ignore (Bin_prot.Utils.bin_write_size_header buf ~pos:0 bogus_size : int);
-        Bigstring.to_string buf
-      ;;
-
-      let%test_unit _ =
-        let unpack_buffer = unpack_buffer () in
-        ok_exn (Unpack_buffer.feed_string unpack_buffer bogus_data);
-        let q = Queue.create () in
-        match Unpack_buffer.unpack_into unpack_buffer q with
-        | Ok () -> assert false
-        | Error _ -> assert (Queue.is_empty q)
-      ;;
-
-      (* A partial [Value.t] bin prot, which will cause [Unpack_buffer] to expect more data
+    (* A partial [Value.t] bin prot, which will cause [Unpack_buffer] to expect more data
          when unpacked. *)
-      let partial_data =
-        (* The size header should be more than 1 byte, so this is enough to make unpack
+    let partial_data =
+      (* The size header should be more than 1 byte, so this is enough to make unpack
            wait for more data. *)
-        String.make 1 ' '
-      ;;
-
-      let%test_unit _ =
-        let unpack_buffer = unpack_buffer () in
-        ok_exn (Unpack_buffer.feed_string unpack_buffer partial_data);
-        let q = Queue.create () in
-        match Unpack_buffer.unpack_into unpack_buffer q with
-        | Ok () -> assert (Queue.is_empty q)
-        | Error _ -> assert false
-      ;;
-    end
-
-    let values n = List.init n ~f:Value.create
-    let test_size = 50
-
-    let ( >>= ) deferred f =
-      let timeout = sec 10. in
-      Clock.with_timeout timeout deferred
-      >>| (function
-             | `Timeout ->
-               failwithf
-                 !"unpack_sequence.ml: Deferred took more than %{Time_float.Span}"
-                 timeout
-                 ()
-             | `Result result -> result)
-      >>= f
+      String.make 1 ' '
     ;;
 
-    let ( >>| ) deferred f = deferred >>= fun x -> return (f x)
-
-    let setup_string_pipe_reader () =
-      let input_r, input_w = Pipe.create () in
-      let output, finished =
-        unpack_into_pipe () ~from:(Pipe input_r) ~using:(Value.unpack_buffer ())
-      in
-      return (input_w, output, finished)
+    let%test_unit _ =
+      let unpack_buffer = unpack_buffer () in
+      ok_exn (Unpack_buffer.feed_string unpack_buffer partial_data);
+      let q = Queue.create () in
+      match Unpack_buffer.unpack_into unpack_buffer q with
+      | Ok () -> assert (Queue.is_empty q)
+      | Error _ -> assert false
     ;;
+  end
 
-    let setup_iter () =
-      let input_r, input_w = Pipe.create () in
-      let output_r, output_w = Pipe.create () in
-      let finished =
-        unpack_iter ~from:(Pipe input_r) ~using:(Value.unpack_buffer ()) ~f:(fun a ->
-          Pipe.write_without_pushback output_w a)
-        >>| Unpack_result.of_unpack_iter_result
-      in
-      return (input_w, output_r, finished)
-    ;;
+  let values n = List.init n ~f:Value.create
+  let test_size = 50
 
-    let setup_reader () =
-      let pipe_info = Info.of_string "unpack sequence test" in
-      let input_r, input_w = Pipe.create () in
-      Reader.of_pipe pipe_info input_r
-      >>= fun reader ->
-      let pipe, finished =
-        unpack_into_pipe
-          ()
-          ~from:(Reader reader)
-          ~using:(Unpack_buffer.create_bin_prot Value.bin_reader_t)
-      in
-      return (input_w, pipe, finished)
-    ;;
+  let ( >>= ) deferred f =
+    let timeout = sec 10. in
+    Clock.with_timeout timeout deferred
+    >>| (function
+           | `Timeout ->
+             failwithf
+               !"unpack_sequence.ml: Deferred took more than %{Time_float.Span}"
+               timeout
+               ()
+           | `Result result -> result)
+    >>= f
+  ;;
 
-    let run_tests ?(only_supports_output_to_pipe = false) test_fn =
-      Thread_safe.block_on_async_exn (fun () ->
-        Deferred.List.iter
-          ~how:`Sequential
-          ([ setup_reader; setup_string_pipe_reader ]
-           @ if only_supports_output_to_pipe then [] else [ setup_iter ])
-          ~f:(fun setup ->
-            setup () >>= fun (input, output, finished) -> test_fn input output finished))
-    ;;
+  let ( >>| ) deferred f = deferred >>= fun x -> return (f x)
 
-    let%test_unit "test various full reads" =
-      run_tests (fun input output finished ->
-        Deferred.repeat_until_finished (values test_size) (fun values ->
-          match values with
-          | [] ->
-            Pipe.close input;
-            finished
-            >>= fun result ->
-            [%test_result: Value.t Unpack_result.t]
-              result
-              ~expect:Unpack_result.Input_closed;
-            return (`Finished ())
-          | _ :: rest ->
-            let data = Value.pack values in
-            Deferred.repeat_until_finished 1 (fun of_size ->
-              if of_size >= String.length data
-              then return (`Finished ())
-              else (
-                let pieces = break_into_pieces data ~of_size in
-                Pipe.transfer_in_without_pushback input ~from:(Queue.of_list pieces);
-                Pipe.read_exactly output ~num_values:(List.length values)
-                >>| function
-                | `Eof | `Fewer _ -> assert false
-                | `Exactly queue ->
-                  [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
-                  `Repeat (of_size + 1)))
-            >>= fun () -> return (`Repeat rest)))
-    ;;
+  let setup_string_pipe_reader () =
+    let input_r, input_w = Pipe.create () in
+    let output, finished =
+      unpack_into_pipe () ~from:(Pipe input_r) ~using:(Value.unpack_buffer ())
+    in
+    return (input_w, output, finished)
+  ;;
 
-    let%test_unit "input closed in middle of read" =
-      run_tests (fun input output finished ->
-        let values = values test_size in
-        let buffer = Value.pack values ^ Value.partial_data in
-        Pipe.write_without_pushback input buffer;
-        Pipe.read_exactly output ~num_values:(List.length values)
-        >>= function
-        | `Eof | `Fewer _ -> assert false
-        | `Exactly queue ->
-          [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
+  let setup_iter () =
+    let input_r, input_w = Pipe.create () in
+    let output_r, output_w = Pipe.create () in
+    let finished =
+      unpack_iter ~from:(Pipe input_r) ~using:(Value.unpack_buffer ()) ~f:(fun a ->
+        Pipe.write_without_pushback output_w a)
+      >>| Unpack_result.of_unpack_iter_result
+    in
+    return (input_w, output_r, finished)
+  ;;
+
+  let setup_reader () =
+    let pipe_info = Info.of_string "unpack sequence test" in
+    let input_r, input_w = Pipe.create () in
+    Reader.of_pipe pipe_info input_r
+    >>= fun reader ->
+    let pipe, finished =
+      unpack_into_pipe
+        ()
+        ~from:(Reader reader)
+        ~using:(Unpack_buffer.create_bin_prot Value.bin_reader_t)
+    in
+    return (input_w, pipe, finished)
+  ;;
+
+  let run_tests ?(only_supports_output_to_pipe = false) test_fn =
+    Thread_safe.block_on_async_exn (fun () ->
+      Deferred.List.iter
+        ~how:`Sequential
+        ([ setup_reader; setup_string_pipe_reader ]
+         @ if only_supports_output_to_pipe then [] else [ setup_iter ])
+        ~f:(fun setup ->
+          setup () >>= fun (input, output, finished) -> test_fn input output finished))
+  ;;
+
+  let%test_unit "test various full reads" =
+    run_tests (fun input output finished ->
+      Deferred.repeat_until_finished (values test_size) (fun values ->
+        match values with
+        | [] ->
           Pipe.close input;
           finished
           >>= fun result ->
           [%test_result: Value.t Unpack_result.t]
             result
-            ~expect:(Input_closed_in_the_middle_of_data (Value.unpack_buffer ()));
-          Deferred.unit)
-    ;;
+            ~expect:Unpack_result.Input_closed;
+          return (`Finished ())
+        | _ :: rest ->
+          let data = Value.pack values in
+          Deferred.repeat_until_finished 1 (fun of_size ->
+            if of_size >= String.length data
+            then return (`Finished ())
+            else (
+              let pieces = break_into_pieces data ~of_size in
+              Pipe.transfer_in_without_pushback input ~from:(Queue.of_list pieces);
+              Pipe.read_exactly output ~num_values:(List.length values)
+              >>| function
+              | `Eof | `Fewer _ -> assert false
+              | `Exactly queue ->
+                [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
+                `Repeat (of_size + 1)))
+          >>= fun () -> return (`Repeat rest)))
+  ;;
 
-    let%test_unit "output pipe closed" =
-      (* This test relies on detecting that the output pipe has been closed. *)
-      run_tests ~only_supports_output_to_pipe:true (fun _input output finished ->
-        Pipe.close_read output;
-        Pipe.read' output
-        >>= function
-        | `Ok _ -> assert false
-        | `Eof ->
-          finished
-          >>= fun result ->
-          [%test_result: Value.t Unpack_result.t] result ~expect:Output_closed;
-          Deferred.unit)
-    ;;
+  let%test_unit "input closed in middle of read" =
+    run_tests (fun input output finished ->
+      let values = values test_size in
+      let buffer = Value.pack values ^ Value.partial_data in
+      Pipe.write_without_pushback input buffer;
+      Pipe.read_exactly output ~num_values:(List.length values)
+      >>= function
+      | `Eof | `Fewer _ -> assert false
+      | `Exactly queue ->
+        [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
+        Pipe.close input;
+        finished
+        >>= fun result ->
+        [%test_result: Value.t Unpack_result.t]
+          result
+          ~expect:(Input_closed_in_the_middle_of_data (Value.unpack_buffer ()));
+        Deferred.unit)
+  ;;
 
-    let%test_unit "bad bin-io data" =
-      run_tests (fun input output finished ->
-        let values = values test_size in
-        let buffer = Value.pack values ^ Value.bogus_data in
-        Pipe.write_without_pushback input buffer;
-        Pipe.read_exactly output ~num_values:(List.length values)
-        >>= function
-        | `Eof | `Fewer _ -> assert false
-        | `Exactly queue ->
-          [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
-          finished
-          >>| (function
-           | Unpack_error _ -> ()
-           | _ -> assert false))
-    ;;
-  end)
-;;
+  let%test_unit "output pipe closed" =
+    (* This test relies on detecting that the output pipe has been closed. *)
+    run_tests ~only_supports_output_to_pipe:true (fun _input output finished ->
+      Pipe.close_read output;
+      Pipe.read' output
+      >>= function
+      | `Ok _ -> assert false
+      | `Eof ->
+        finished
+        >>= fun result ->
+        [%test_result: Value.t Unpack_result.t] result ~expect:Output_closed;
+        Deferred.unit)
+  ;;
+
+  let%test_unit "bad bin-io data" =
+    run_tests (fun input output finished ->
+      let values = values test_size in
+      let buffer = Value.pack values ^ Value.bogus_data in
+      Pipe.write_without_pushback input buffer;
+      Pipe.read_exactly output ~num_values:(List.length values)
+      >>= function
+      | `Eof | `Fewer _ -> assert false
+      | `Exactly queue ->
+        [%test_result: Value.t list] (Queue.to_list queue) ~expect:values;
+        finished
+        >>| (function
+         | Unpack_error _ -> ()
+         | _ -> assert false))
+  ;;
+end

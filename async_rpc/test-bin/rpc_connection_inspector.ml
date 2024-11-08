@@ -1,5 +1,4 @@
 open Core
-open Poly
 open Async
 open Deferred.Let_syntax
 module P = Async_rpc_kernel.Async_rpc_kernel_private.Protocol
@@ -19,22 +18,26 @@ let copy conn_number desc reader writer =
           let header = P.Header.bin_read_t buf ~pos_ref in
           assert (!pos_ref = pos + len);
           assert (
-            T.Writer.send_bin_prot writer P.Header.bin_writer_t header
-            = Sent { result = (); bytes = len });
+            [%compare.equal: unit T.Send_result.t]
+              ([%globalize: unit T.Send_result.t]
+                 (T.Writer.send_bin_prot writer P.Header.bin_writer_t header))
+              (Sent { result = (); bytes = len }));
           [%sexp Header (header : P.Header.t)])
         else (
           let msg = P.Message.bin_read_nat0_t buf ~pos_ref in
           let left = len - (!pos_ref - pos) in
           assert (left >= 0);
           assert (
-            T.Writer.send_bin_prot_and_bigstring
-              writer
-              P.Message.bin_writer_nat0_t
-              msg
-              ~buf
-              ~pos:!pos_ref
-              ~len:left
-            = Sent { result = (); bytes = len });
+            [%compare.equal: unit T.Send_result.t]
+              ([%globalize: unit T.Send_result.t]
+                 (T.Writer.send_bin_prot_and_bigstring
+                    writer
+                    P.Message.bin_writer_nat0_t
+                    msg
+                    ~buf
+                    ~pos:!pos_ref
+                    ~len:left))
+              (Sent { result = (); bytes = len }));
           let sexp_of_data len =
             let len = (len : Bin_prot.Nat0.t :> int) in
             let disp_len = min 16 len in

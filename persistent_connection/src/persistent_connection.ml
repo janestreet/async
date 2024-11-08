@@ -1,5 +1,8 @@
 open! Core
-open! Async
+open Async_kernel
+open Async_log_kernel
+open Async_rpc_kernel
+open Async_unix
 open! Import
 open! Require_explicit_time_source
 include Persistent_connection_intf
@@ -28,6 +31,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
       Option.iter log ~f:(fun log ->
         if Log.would_log log (Some (Persistent_connection_kernel.Event.log_level event))
         then
+          let open Ppx_log_syntax in
           [%log.sexp
             log (event : Address.t Event.t) [@@tags
                                               [ "persistent-connection-to", server_name ]]
@@ -73,7 +77,7 @@ let create_convenience_wrapper
   =
   let connect host_and_port =
     let%bind.Deferred.Or_error conn =
-      Rpc.Connection.client
+      Async_rpc.Rpc.Connection.client
         (Tcp.Where_to_connect.of_host_and_port ?bind_to_address host_and_port)
         ?implementations
         ?max_message_size

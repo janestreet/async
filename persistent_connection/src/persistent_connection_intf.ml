@@ -1,5 +1,8 @@
 open! Core
-open! Async
+open Async_kernel
+open Async_log_kernel
+open Async_rpc_kernel
+open Async_unix
 open! Import
 
 module type Address = Persistent_connection_kernel.Address
@@ -46,7 +49,7 @@ module type S_rpc = sig
     -> ?bind_to_address:Unix.Inet_addr.t
     -> ?implementations:Rpc.Connection.Client_implementations.t
     -> ?max_message_size:int
-    -> ?make_transport:Rpc.Connection.transport_maker
+    -> ?make_transport:Async_rpc.Rpc.Connection.transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Rpc.Connection.Heartbeat_config.t
     -> (unit -> Host_and_port.t Or_error.t Deferred.t)
