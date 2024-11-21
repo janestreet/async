@@ -27,7 +27,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     reader
     writer
     =
@@ -39,7 +39,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
-      ?always_provide_rpc_shapes
+      ?provide_rpc_shapes
       (Transport.of_reader_writer reader writer ?max_message_size)
   ;;
 
@@ -114,7 +114,7 @@ module Connection = struct
 
   let serve_with_transport
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     transport
     ~handshake_timeout
     ~heartbeat_config
@@ -132,7 +132,7 @@ module Connection = struct
               (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
             ?heartbeat_config
             ?identification
-            ?always_provide_rpc_shapes
+            ?provide_rpc_shapes
             ~implementations
             ~description
             ~connection_state
@@ -183,7 +183,7 @@ module Connection = struct
     ?on_handler_error
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     ()
     =
     serve_with_transport_handler
@@ -206,7 +206,7 @@ module Connection = struct
            ~on_handshake_error
            ~client_addr
            ?identification
-           ?always_provide_rpc_shapes
+           ?provide_rpc_shapes
            transport)
   ;;
 
@@ -235,7 +235,7 @@ module Connection = struct
     ?on_handler_error
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     ()
     =
     Rpc_transport.Tcp.serve_unix
@@ -259,7 +259,7 @@ module Connection = struct
            ~on_handshake_error
            ~client_addr
            ?identification
-           ?always_provide_rpc_shapes
+           ?provide_rpc_shapes
            transport)
   ;;
 
@@ -276,7 +276,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     where_to_connect
     =
     let handshake_timeout =
@@ -318,7 +318,7 @@ module Connection = struct
             ~handshake_timeout
             ?heartbeat_config
             ?identification
-            ?always_provide_rpc_shapes
+            ?provide_rpc_shapes
             ~implementations
             ~description
             ~connection_state
@@ -328,7 +328,7 @@ module Connection = struct
             ~handshake_timeout
             ?heartbeat_config
             ?identification
-            ?always_provide_rpc_shapes
+            ?provide_rpc_shapes
             ~implementations
             ~description
             ~connection_state
@@ -348,7 +348,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     where_to_connect
     =
     client'
@@ -359,7 +359,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
-      ?always_provide_rpc_shapes
+      ?provide_rpc_shapes
       where_to_connect
     >>|? snd
   ;;
@@ -372,7 +372,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     where_to_connect
     f
     =
@@ -384,7 +384,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
-      ?always_provide_rpc_shapes
+      ?provide_rpc_shapes
       where_to_connect
     >>=? fun (remote_server, t) ->
     let%bind result = Monitor.try_with_local ~rest:`Log (fun () -> f ~remote_server t) in
@@ -400,7 +400,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
-    ?always_provide_rpc_shapes
+    ?provide_rpc_shapes
     where_to_connect
     f
     =
@@ -412,7 +412,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
-      ?always_provide_rpc_shapes
+      ?provide_rpc_shapes
       where_to_connect
       (fun ~remote_server:_ -> f)
   ;;

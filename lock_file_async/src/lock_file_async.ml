@@ -76,16 +76,19 @@ module Nfs = struct
   ;;
 
   let create_v2_exn ?message path =
-    In_thread.run (fun () -> Lock_file_blocking.Nfs.create_exn ?message path)
+    In_thread.run (fun () -> Lock_file_blocking.Nfs.create_v2_exn ?message path)
   ;;
 
-  let waiting_create ?(abort = Deferred.never ()) ?message path =
+  let waiting_create_impl ~create_fn ?(abort = Deferred.never ()) ?message path =
     repeat_with_abort ~abort ~f:(fun () ->
-      match%map create ?message path with
+      match%map create_fn ?message path with
       | Ok () -> true
       | Error _ -> false)
     >>| fail_on_abort path ~held_by:None
   ;;
+
+  let waiting_create = waiting_create_impl ~create_fn:create
+  let waiting_create_v2 = waiting_create_impl ~create_fn:create_v2
 
   let critical_section ?message path ~abort ~f =
     let%bind () = waiting_create ~abort ?message path in

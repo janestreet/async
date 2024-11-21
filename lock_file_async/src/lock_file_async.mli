@@ -54,6 +54,12 @@ module Nfs : sig
     -> string
     -> unit Deferred.t
 
+  val waiting_create_v2
+    :  ?abort:unit Deferred.t (** default is [Deferred.never ()]. *)
+    -> ?message:string
+    -> string
+    -> unit Deferred.t
+
   val unlock_exn : string -> unit Deferred.t
   val unlock : string -> unit Deferred.Or_error.t
 

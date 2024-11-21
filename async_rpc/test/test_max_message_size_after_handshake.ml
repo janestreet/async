@@ -2,11 +2,19 @@ open! Core
 open Async
 open Import
 
-let env_var_max_message_size = 123
+let env_var_max_message_size = 125
 
 (* These tests must be in a file by themselves because of lazy evaluation of the environment
    variable *)
-let triangle_query' ~kind ~base_max_message_size ~client_message_size ~n ~str =
+let triangle_query'
+  ?filter_events
+  ~kind
+  ~base_max_message_size
+  ~client_message_size
+  ~n
+  ~str
+  ()
+  =
   (* We set the env var to the same value in every test, but do so here as it causes
      problems for other tests when it is a toplevel operation *)
   Unix.putenv
@@ -43,7 +51,9 @@ let triangle_query' ~kind ~base_max_message_size ~client_message_size ~n ~str =
   let client_conn = Ivar.create () in
   let%bind test_result =
     test1
+      ?filter_events
       ~trace:true
+      ~on_handshake_error:`Raise
       ~make_client_transport
       ~make_transport
       ~imp:[ replicate_imp; pipe_triangle_imp ]
@@ -114,10 +124,11 @@ let triangle_query' ~kind ~base_max_message_size ~client_message_size ~n ~str =
 
 let triangle_query ~n ~str_length =
   triangle_query'
-    ~base_max_message_size:123
+    ~base_max_message_size:125
     ~client_message_size:None
     ~n
     ~str:(String.make str_length 'A')
+    ()
 ;;
 
 let%expect_test "Query too large" =
@@ -126,8 +137,8 @@ let%expect_test "Query too large" =
   in
   [%expect
     {|
-    B (replicate)    141B (Failed_to_send Query Too_large)
-    ((rpc_error (Message_too_big ((size 141) (max_message_size 123))))
+    B (replicate)    145B (Failed_to_send Query Too_large)
+    ((rpc_error (Message_too_big ((size 145) (max_message_size 125))))
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
@@ -138,8 +149,8 @@ let%expect_test "Query too large" =
   in
   [%expect
     {|
-    B (pipe_tri)     147B (Failed_to_send Query Too_large)
-    ((rpc_error (Message_too_big ((size 147) (max_message_size 123))))
+    B (pipe_tri)     151B (Failed_to_send Query Too_large)
+    ((rpc_error (Message_too_big ((size 151) (max_message_size 125))))
      (connection_description <created-directly>) (rpc_name pipe_tri)
      (rpc_version 0))
     (client, server) connection close reasons:
@@ -154,12 +165,12 @@ let%expect_test "response and error too large" =
     B (replicate)     27B (Sent Query)
     A (replicate)     27B (Received Query)
     A (replicate)    209B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     63B (Received
+    B (replicate)     63B (Received
      (Response
       (Response_finished_rpc_error_or_exn
-       (Write_error (Message_too_big ((size 209) (max_message_size 123)))))))
+       (Write_error (Message_too_big ((size 209) (max_message_size 125)))))))
     ((rpc_error
-      (Write_error (Message_too_big ((size 209) (max_message_size 123)))))
+      (Write_error (Message_too_big ((size 209) (max_message_size 125)))))
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
@@ -175,13 +186,14 @@ let%expect_test "response too large" =
       ~kind:`Rpc
       ~n:100
       ~str:"some string"
+      ()
   in
   [%expect
     {|
     B (replicate)     28B (Sent Query)
     A (replicate)     28B (Received Query)
     A (replicate)    1109B (Failed_to_send (Response Single_succeeded) Too_large)
-    B (<unknown>)     64B (Received
+    B (replicate)     64B (Received
      (Response
       (Response_finished_rpc_error_or_exn
        (Write_error (Message_too_big ((size 1109) (max_message_size 200)))))))
@@ -206,10 +218,10 @@ let%expect_test "responses small enough" =
     A (pipe_tri)      51B (Sent (Response Streaming_update))
     A (pipe_tri)      92B (Sent (Response Streaming_update))
     A (pipe_tri)       8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     51B (Received (Response Partial_response))
-    B (<unknown>)     92B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished_ok))
+    B (pipe_tri)       7B (Received (Response Partial_response))
+    B (pipe_tri)      51B (Received (Response Partial_response))
+    B (pipe_tri)      92B (Received (Response Partial_response))
+    B (pipe_tri)       8B (Received (Response Response_finished_ok))
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
     (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
@@ -230,16 +242,16 @@ let%expect_test "last entry too large" =
     A (pipe_tri)      92B (Sent (Response Streaming_update))
     A (pipe_tri)     135B (Failed_to_send (Response Streaming_update) Too_large)
     A (pipe_tri)       8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     51B (Received (Response Partial_response))
-    B (<unknown>)     92B (Received (Response Partial_response))
+    B (pipe_tri)       7B (Received (Response Partial_response))
+    B (pipe_tri)      51B (Received (Response Partial_response))
+    B (pipe_tri)      92B (Received (Response Partial_response))
     B (pipe_tri)      18B (Sent Abort_streaming_rpc_query)
     B (pipe_tri)      18B (Received (Response One_way_so_no_response))
-    B (<unknown>)     63B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received
+    B (pipe_tri)      63B (Received (Response Partial_response))
+    B (pipe_tri)       8B (Received
      (Response
       (Response_finished_rpc_error_or_exn
-       (Write_error (Message_too_big ((size 135) (max_message_size 123)))))))
+       (Write_error (Message_too_big ((size 135) (max_message_size 125)))))))
     A (pipe_tri)      18B (Received Abort_streaming_rpc_query)
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
@@ -260,18 +272,18 @@ let%expect_test "multiple entries too large" =
     A (pipe_tri)     130B (Failed_to_send (Response Streaming_update) Too_large)
     A (pipe_tri)     166B (Failed_to_send (Response Streaming_update) Too_large)
     A (pipe_tri)       8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     40B (Received (Response Partial_response))
-    B (<unknown>)     70B (Received (Response Partial_response))
-    B (<unknown>)    100B (Received (Response Partial_response))
+    B (pipe_tri)       7B (Received (Response Partial_response))
+    B (pipe_tri)      40B (Received (Response Partial_response))
+    B (pipe_tri)      70B (Received (Response Partial_response))
+    B (pipe_tri)     100B (Received (Response Partial_response))
     B (pipe_tri)      18B (Sent Abort_streaming_rpc_query)
     B (pipe_tri)      18B (Received (Response One_way_so_no_response))
-    B (<unknown>)     63B (Received (Response Partial_response))
-    B (<unknown>)     63B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received
+    B (pipe_tri)      63B (Received (Response Partial_response))
+    B (pipe_tri)      63B (Received (Response Partial_response))
+    B (pipe_tri)       8B (Received
      (Response
       (Response_finished_rpc_error_or_exn
-       (Write_error (Message_too_big ((size 130) (max_message_size 123)))))))
+       (Write_error (Message_too_big ((size 130) (max_message_size 125)))))))
     A (pipe_tri)      18B (Received Abort_streaming_rpc_query)
     (pipe_closed (num_results 3))
     (client, server) connection close reasons:
@@ -291,6 +303,7 @@ let%expect_test "query too big for callee" =
       ~client_message_size:(Some 10_000)
       ~n:1
       ~str:(String.init base_max_message_size ~f:(Fn.const 'x'))
+      ()
   in
   [%expect
     {|
@@ -333,6 +346,7 @@ let%expect_test "response too big for caller" =
       ~client_message_size:(Some 8_000)
       ~n:2
       ~str:(String.init ((server_message_size / 2) - 100) ~f:(Fn.const 'x'))
+      ()
   in
   [%expect
     {|
@@ -370,11 +384,19 @@ let%expect_test "pipe response too big for caller" =
   let%map () =
     let server_message_size = 10_000 in
     triangle_query'
+    (* Filter the [Streaming_closed] message to remove nondeterminism in message ordering *)
+      ~filter_events:(fun event ->
+        let open Async_rpc_kernel.Tracing_event in
+        match event with
+        | { event = Event.Sent (Kind.Response Sent_response_kind.Streaming_closed); _ } ->
+          true
+        | _ -> false)
       ~kind:`Pipe
       ~base_max_message_size:server_message_size
       ~client_message_size:(Some 8_000)
       ~n:2
       ~str:(String.init ((server_message_size / 2) - 100) ~f:(Fn.const 'x'))
+      ()
   in
   [%expect
     {|
@@ -383,9 +405,8 @@ let%expect_test "pipe response too big for caller" =
     A (pipe_tri)       7B (Sent (Response Streaming_initial))
     A (pipe_tri)     4916B (Sent (Response Streaming_update))
     A (pipe_tri)     9816B (Sent (Response Streaming_update))
-    A (pipe_tri)       8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)    4916B (Received (Response Partial_response))
+    B (pipe_tri)       7B (Received (Response Partial_response))
+    B (pipe_tri)     4916B (Received (Response Partial_response))
     (pipe_closed (num_results 1))
     (client, server) connection close reasons:
     (Result

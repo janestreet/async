@@ -4,7 +4,12 @@ open! Import
 
 let make_tests ~trace ~make_transport ~transport_name =
   let test1 =
-    test1 ~trace ~state:() ~make_transport ~make_client_transport:make_transport
+    test1
+      ~trace
+      ~on_handshake_error:`Raise
+      ~state:()
+      ~make_transport
+      ~make_client_transport:make_transport
   in
   List.mapi
     ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
@@ -72,25 +77,25 @@ let%expect_test _ =
     A (pipe_count)    10B (Sent (Response Streaming_update))
     A (pipe_count)    10B (Sent (Response Streaming_update))
     A (pipe_count)     8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished_ok))
+    B (pipe_count)     7B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)     8B (Received (Response Response_finished_ok))
     rpc-std-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
     A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
-    B (<unknown>)     10B (Received (Response Response_finished_user_defined_error))
+    B (pipe_count)    10B (Received (Response Response_finished_user_defined_error))
     rpc-std-2
     B (pipe_wait)     21B (Sent Query)
     A (pipe_wait)     21B (Received Query)
     A (pipe_wait)      7B (Sent (Response Streaming_initial))
     A (pipe_wait)     10B (Sent (Response Streaming_update))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
+    B (pipe_wait)      7B (Received (Response Partial_response))
+    B (pipe_wait)     10B (Received (Response Partial_response))
     A (pipe_wait)     10B (Sent (Response Streaming_update))
-    B (<unknown>)     10B (Received (Response Partial_response))
+    B (pipe_wait)     10B (Received (Response Partial_response))
     rpc-low-latency-0
     B (pipe_count)    22B (Sent Query)
     A (pipe_count)    22B (Received Query)
@@ -99,25 +104,25 @@ let%expect_test _ =
     A (pipe_count)    10B (Sent (Response Streaming_update))
     A (pipe_count)    10B (Sent (Response Streaming_update))
     A (pipe_count)     8B (Sent (Response Streaming_closed))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
-    B (<unknown>)      8B (Received (Response Response_finished_ok))
+    B (pipe_count)     7B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)    10B (Received (Response Partial_response))
+    B (pipe_count)     8B (Received (Response Response_finished_ok))
     rpc-low-latency-1
     B (pipe_count)    23B (Sent Query)
     A (pipe_count)    23B (Received Query)
     A (pipe_count)    10B (Sent (Response Single_or_streaming_user_defined_error))
-    B (<unknown>)     10B (Received (Response Response_finished_user_defined_error))
+    B (pipe_count)    10B (Received (Response Response_finished_user_defined_error))
     rpc-low-latency-2
     B (pipe_wait)     21B (Sent Query)
     A (pipe_wait)     21B (Received Query)
     A (pipe_wait)      7B (Sent (Response Streaming_initial))
     A (pipe_wait)     10B (Sent (Response Streaming_update))
-    B (<unknown>)      7B (Received (Response Partial_response))
-    B (<unknown>)     10B (Received (Response Partial_response))
+    B (pipe_wait)      7B (Received (Response Partial_response))
+    B (pipe_wait)     10B (Received (Response Partial_response))
     A (pipe_wait)     10B (Sent (Response Streaming_update))
-    B (<unknown>)     10B (Received (Response Partial_response))
+    B (pipe_wait)     10B (Received (Response Partial_response))
     |}];
   return ()
 ;;
@@ -146,7 +151,7 @@ let%expect_test "[Connection.create] shouldn't raise" =
   [%expect
     {|
     (Returned
-     (connection.ml.Handshake_error.Handshake_error
+     (handshake_error.ml.Handshake_error
       ((Reading_header_failed
         (monitor.ml.Error
          (Failure "unsafe_read_int64: value cannot be represented unboxed!")
