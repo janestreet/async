@@ -1,13 +1,12 @@
 open Core
 open Async
 
-let () = Backtrace.elide := true
+let () = Dynamic.set_root Backtrace.elide true
 let max_message_size = 1_000_000
 
 let print_trace (conn : Rpc.Connection.t) ?filter_events source =
-  Bus.iter_exn
+  Bus.subscribe_permanently_exn
     (Async_rpc_kernel.Async_rpc_kernel_private.Connection.tracing_events conn)
-    [%here]
     ~f:(fun (local_ (event : Async_rpc_kernel.Tracing_event.t)) ->
       match filter_events with
       | Some matches_filter when matches_filter event -> ()

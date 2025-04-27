@@ -163,7 +163,6 @@ let unpack_iter_internal ~from ~using ~f ~pushback =
   | Unpack_error x -> Unpack_error x
   | Output_closed as t ->
     failwiths
-      ~here:[%here]
       "Unpack_sequence.unpack_iter got unexpected value"
       t
       [%sexp_of: _ Unpack_result.t]

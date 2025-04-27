@@ -55,12 +55,7 @@ module Config = struct
        || t.buffering_threshold_in_bytes < 0
        || t.start_batching_after_num_messages < 0
        || Time_ns.Span.( <= ) t.write_timeout Time_ns.Span.zero
-    then
-      failwiths
-        ~here:[%here]
-        "Rpc_transport_low_latency.Config.validate: invalid config"
-        t
-        sexp_of_t;
+    then failwiths "Rpc_transport_low_latency.Config.validate: invalid config" t sexp_of_t;
     t
   ;;
 
@@ -478,19 +473,10 @@ module Reader_internal = struct
 
   let read_or_peek_dispatcher t ~dispatcher_impl ~caller_name =
     if t.closed
-    then
-      failwiths
-        ~here:[%here]
-        "Rpc_transport_low_latency.Reader: reader closed"
-        ""
-        [%sexp_of: string];
+    then failwiths "Rpc_transport_low_latency.Reader: reader closed" "" [%sexp_of: string];
     if t.reading
     then
-      failwiths
-        ~here:[%here]
-        "Rpc_transport_low_latency.Reader: already reading"
-        ""
-        [%sexp_of: string];
+      failwiths "Rpc_transport_low_latency.Reader: already reading" "" [%sexp_of: string];
     t.reading <- true;
     Monitor.protect
       ~run:`Now

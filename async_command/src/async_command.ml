@@ -5,6 +5,11 @@ include Core.Command
 type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> 'a
 
 let shutdown_with_error e =
+  (* This logging is best-effort because if [shutdown] has already been called, there's no
+     guarantee that the log lines will flush. *)
+  Async_log.Global.error_from_async_command
+    "%s"
+    (Error.to_string_mach e) [@alert "-private_async_log_function"];
   Stdlib.at_exit (fun () ->
     (* We use [Core] printing rather than [Async] printing, because the program may
        already be shutting down, which could cause the error to be omitted because
@@ -56,7 +61,7 @@ let in_async ?(behave_nicely_in_pipeline = true) ?extract_exn param on_result ki
     if behave_nicely_in_pipeline then Writer.behave_nicely_in_pipeline ();
     let main = Or_error.try_with (fun () -> unstage (staged_main ())) in
     match !recursive_invocation with
-    | Some r -> Set_once.set_exn r [%here] (Or_error.map ~f:kind main)
+    | Some r -> Set_once.set_exn r (Or_error.map ~f:kind main)
     | None ->
       (match main with
        | Error e ->

@@ -21,7 +21,7 @@ depends: [
   "ppx_expect"
   "ppx_jane"
   "textutils"
-  "dune"             {>= "3.11.0"}
+  "dune"             {>= "3.17.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Monadic concurrency library"

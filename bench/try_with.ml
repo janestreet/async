@@ -4,7 +4,7 @@ open! Async_kernel
 let print_sexp sexp = Printf.printf "%s\n" (sexp |> Sexp.to_string_hum)
 
 let () =
-  Int_conversions.sexp_of_int_style := `Underscores;
+  Dynamic.set_root Int_conversions.sexp_of_int_style `Underscores;
   let _info = Info.of_string "foo" in
   let ivars = ref [] in
   let num_iters = 1_000 in

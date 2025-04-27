@@ -2,6 +2,7 @@
  (name persistent_connection)
  (public_name async.persistent_connection)
  (libraries async_kernel async_log.kernel async_rpc async_rpc_kernel
-   async_unix core async_kernel.persistent_connection_kernel)
+   async_unix core async_kernel.persistent_connection_kernel
+   core_kernel.sexp_hidden_in_test)
  (preprocess
   (pps ppx_jane)))

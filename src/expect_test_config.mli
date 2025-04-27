@@ -1,6 +1,6 @@
 (** The default expect test config in code which has [open Async].
 
-    [%expect] has type [unit] rather than [unit Deferred.t].  This lets one write:
+    [%expect] has type [unit] rather than [unit Deferred.t]. This lets one write:
 
     {[
       [%expect {| |};

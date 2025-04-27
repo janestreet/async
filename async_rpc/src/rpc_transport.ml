@@ -101,7 +101,6 @@ end = struct
     if not (message_size_ok t ~payload_len)
     then
       failwiths
-        ~here:[%here]
         [%string
           "Rpc_transport: message is too large or has negative size. Try increasing the \
            size limit by setting the %{max_message_size_env_var} env var"]

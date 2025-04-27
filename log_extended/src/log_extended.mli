@@ -11,9 +11,8 @@ module Console : sig
       to display debug messages in yellow, error messages in red, and info messages
       without any additional styling.
 
-      [create] doesn't take a [format] argument because colorized output should be read
-      by humans.
-  *)
+      [create] doesn't take a [format] argument because colorized output should be read by
+      humans. *)
   val output
     :  ?debug:Console.Ansi.attr list
     -> ?info:Console.Ansi.attr list

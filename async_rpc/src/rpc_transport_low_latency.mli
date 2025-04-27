@@ -7,7 +7,7 @@ module Config : sig
   type t [@@deriving sexp]
 
   (** - [max_message_size] is the maximum message size a reader/writer will accept to
-      receive/send.
+        receive/send.
 
       - [max_buffer_size] is the maximum size the internal reader/writer's buffer will
         ever grow.
@@ -27,8 +27,7 @@ module Config : sig
 
       Note that [start_batching_after_num_messages] and [buffering_threshold_in_bytes]
       have somewhat opposite meanings: the former determines when to start batching and
-      the latter determines when to write data that has been batched.
-  *)
+      the latter determines when to write data that has been batched. *)
   val create
     :  ?max_message_size:int (** default Int.max_value *)
     -> ?initial_buffer_size:int (** default 64 KB *)
@@ -45,8 +44,7 @@ end
 
     The rationale for this is that [max_message_size] is more a property of the protocol
     and should be specified by the programmer, while other configuration parameters are
-    for tuning purposes.
-*)
+    for tuning purposes. *)
 
 module Reader : sig
   include module type of struct
@@ -63,9 +61,9 @@ module Reader : sig
     val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
     val transport_reader : t -> transport_reader
 
-    (** This function is like [Rpc_kernel.Transport.Reader.read_one_message_bin_prot]
-        but does not to read more bytes than the single bin prot message from the
-        underlying fd. *)
+    (** This function is like [Rpc_kernel.Transport.Reader.read_one_message_bin_prot] but
+        does not to read more bytes than the single bin prot message from the underlying
+        fd. *)
     val read_one_message_bin_prot_without_buffering
       :  t
       -> 'a Bin_prot.Type_class.reader
@@ -76,11 +74,11 @@ module Reader : sig
       -> 'a Bin_prot.Type_class.reader
       -> ('a, [ `Closed | `Eof ]) Result.t Deferred.t
 
-    (** [peek_once_without_buffering_from_socket] peeks [len] from [t]'s underlying
-        fd. The fd *must* be a socket. It doesn't pull in any bytes, from the socket,
-        into the transport's internal buffer. After
-        [peek_available_without_buffering_from_socket] is complete, any other code that
-        reads from the socket will see the bytes that were peeked here.
+    (** [peek_once_without_buffering_from_socket] peeks [len] from [t]'s underlying fd.
+        The fd *must* be a socket. It doesn't pull in any bytes, from the socket, into the
+        transport's internal buffer. After [peek_available_without_buffering_from_socket]
+        is complete, any other code that reads from the socket will see the bytes that
+        were peeked here.
 
         It doesn't wait for [len] number of bytes to appear; hence [_once_] in the name.
         As soon as there's any data available on the socket, it tries to peek [len] bytes.

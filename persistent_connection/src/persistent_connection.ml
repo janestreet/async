@@ -12,6 +12,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
 
   let create
     (type address)
+    ~(created_at : [%call_pos])
     ~server_name
     ?log
     ?(on_event = fun _ -> Deferred.unit)
@@ -29,17 +30,20 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
     in
     let on_event event =
       Option.iter log ~f:(fun log ->
-        if Log.would_log log (Some (Persistent_connection_kernel.Event.log_level event))
-        then
-          let open Ppx_log_syntax in
-          [%log.sexp
-            log (event : Address.t Event.t) [@@tags
-                                              [ "persistent-connection-to", server_name ]]
-                                            [@@level
-                                              Some
-                                                (Persistent_connection_kernel.Event
-                                                 .log_level
-                                                   event)]]);
+        let open Ppx_log_syntax in
+        let created_at =
+          if Source_code_position.equal created_at Lexing.dummy_pos
+          then None
+          else Some created_at
+        in
+        [%log
+          log
+            (Persistent_connection_kernel.Event.Variants.to_name event)
+            (event : Address.t Event.t)
+            ~persistent_connection_to:(server_name : string)
+            (created_at
+             : (Source_code_position.t Sexp_hidden_in_test.t option[@sexp.option]))
+          [@@level Some (Persistent_connection_kernel.Event.log_level event)]]);
       on_event event
     in
     create
@@ -59,9 +63,10 @@ module Make (Conn : Closable) = struct
 end
 
 let create_convenience_wrapper
-  ~create
+  ~(create : created_at:[%call_pos] -> server_name:string -> _)
   ~connection_of_rpc_connection
   ~server_name
+  ~created_at
   ?log
   ?on_event
   ?retry_delay
@@ -98,16 +103,18 @@ let create_convenience_wrapper
     ?time_source
     ~connect
     ~address:(module Host_and_port : Address with type t = Host_and_port.t)
+    ~created_at
     get_address
 ;;
 
 module Versioned_rpc = struct
   include Make (Async_rpc_kernel.Persistent_connection.Versioned_rpc_conn)
 
-  let create' ~server_name =
+  let create' ~(created_at : [%call_pos]) ~server_name =
     create_convenience_wrapper
       ~server_name
       ~create
+      ~created_at
       ~connection_of_rpc_connection:Versioned_rpc.Connection_with_menu.create
   ;;
 end
@@ -115,10 +122,11 @@ end
 module Rpc = struct
   include Make (Async_rpc_kernel.Persistent_connection.Rpc_conn)
 
-  let create' ~server_name =
+  let create' ~(created_at : [%call_pos]) ~server_name =
     create_convenience_wrapper
       ~server_name
       ~create
+      ~created_at
       ~connection_of_rpc_connection:Deferred.Or_error.return
   ;;
 end

@@ -1,13 +1,13 @@
 (** [Lock_file_async] is a wrapper that provides Async equivalents for
-    {{!Lock_file_blocking}[Lock_file_blocking]}. *)
+    {{!Lock_file_blocking} [Lock_file_blocking]}. *)
 
 open! Core
 open! Async
 
 (** [create ?message path] tries to create a file at [path] containing the text [message],
-    pid if none provided.  It returns true on success, false on failure.  Note: there is
-    no way to release the lock or the fd created inside!  It will only be released when
-    the process dies. *)
+    pid if none provided. It returns true on success, false on failure. Note: there is no
+    way to release the lock or the fd created inside! It will only be released when the
+    process dies. *)
 val create
   :  ?message:string
   -> ?close_on_exec:bool (** default is [true] *)
@@ -25,7 +25,7 @@ val create_exn
   -> unit Deferred.t
 
 (** [waiting_create path] repeatedly tries to lock [path], becoming determined when [path]
-    is locked or raising when [abort] becomes determined.  Similar to
+    is locked or raising when [abort] becomes determined. Similar to
     {!Lock_file_blocking.create}. *)
 val waiting_create
   :  ?abort:unit Deferred.t (** default is [Deferred.never ()] *)
@@ -39,9 +39,9 @@ val waiting_create
     otherwise. *)
 val is_locked : string -> bool Deferred.t
 
-(** [Nfs] has analogs of functions in {!Lock_file_blocking.Nfs}; see
-    there for documentation.  In addition to adding [Deferred]'s, [blocking_create] was
-    renamed [waiting_create] to avoid the impression that it blocks Async. *)
+(** [Nfs] has analogs of functions in {!Lock_file_blocking.Nfs}; see there for
+    documentation. In addition to adding [Deferred]'s, [blocking_create] was renamed
+    [waiting_create] to avoid the impression that it blocks Async. *)
 module Nfs : sig
   val create : ?message:string -> string -> unit Deferred.Or_error.t
   val create_v2 : ?message:string -> string -> unit Deferred.Or_error.t
@@ -49,6 +49,12 @@ module Nfs : sig
   val create_v2_exn : ?message:string -> string -> unit Deferred.t
 
   val waiting_create
+    :  ?abort:unit Deferred.t (** default is [Deferred.never ()]. *)
+    -> ?message:string
+    -> string
+    -> unit Deferred.t
+
+  val waiting_create_v2
     :  ?abort:unit Deferred.t (** default is [Deferred.never ()]. *)
     -> ?message:string
     -> string
@@ -69,9 +75,8 @@ module Nfs : sig
 end
 
 module Flock : sig
-  (** [Flock] has async analogues of functions in
-      {{!Lock_file_blocking.Flock}[Lock_file_blocking.Flock]}; see there for
-      documentation.
+  (** [Flock] has async analogues of functions in {{!Lock_file_blocking.Flock}
+      [Lock_file_blocking.Flock]}; see there for documentation.
 
       Additionally, here we:
 
@@ -124,9 +129,8 @@ module Flock : sig
 end
 
 module Symlink : sig
-  (** [Symlink] has async analogues of functions in
-      {{!Lock_file_blocking.Symlink}[Lock_file_blocking.Symlink]}; see there for
-      documentation.
+  (** [Symlink] has async analogues of functions in {{!Lock_file_blocking.Symlink}
+      [Lock_file_blocking.Symlink]}; see there for documentation.
 
       Additionally, here we:
 

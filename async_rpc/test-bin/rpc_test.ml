@@ -1018,7 +1018,7 @@ module Connection_closing_test = struct
     (* Kill the connection after dispatching the RPC. *)
     let%bind conn = connect () in
     let%bind response_deferred = dispatch_never_returns conn in
-    let server_conn = Option.value_exn ~here:[%here] !most_recent_server_conn in
+    let server_conn = Option.value_exn !most_recent_server_conn in
     let%bind () = Connection.close server_conn in
     let%bind () = check_response_is_error [%here] conn response_deferred in
     (* Call an unknown one-way RPC while the connection is open. This causes somewhat

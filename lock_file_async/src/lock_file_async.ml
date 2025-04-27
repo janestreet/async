@@ -8,7 +8,7 @@ let create ?message ?close_on_exec ?unlink_on_exit path =
 
 let create_exn ?message ?close_on_exec ?unlink_on_exit path =
   let%map b = create ?message ?close_on_exec ?unlink_on_exit path in
-  if not b then failwiths ~here:[%here] "Lock_file.create" path [%sexp_of: string]
+  if not b then failwiths "Lock_file.create" path [%sexp_of: string]
 ;;
 
 let random = lazy (Random.State.make_self_init ~allow_in_tests:true ())
@@ -30,14 +30,10 @@ let repeat_with_abort ~abort ~f =
 let fail_on_abort path ~held_by = function
   | `Ok -> ()
   | `Aborted ->
-    failwiths
-      ~here:[%here]
-      "Lock_file timed out waiting for existing lock"
-      path
-      (fun path ->
-         match held_by with
-         | None -> [%sexp (path : string)]
-         | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
+    failwiths "Lock_file timed out waiting for existing lock" path (fun path ->
+      match held_by with
+      | None -> [%sexp (path : string)]
+      | Some held_by -> [%sexp { lock : string = path; held_by : Sexp.t }])
 ;;
 
 let waiting_create
@@ -79,13 +75,16 @@ module Nfs = struct
     In_thread.run (fun () -> Lock_file_blocking.Nfs.create_v2_exn ?message path)
   ;;
 
-  let waiting_create ?(abort = Deferred.never ()) ?message path =
+  let waiting_create_impl ~create_fn ?(abort = Deferred.never ()) ?message path =
     repeat_with_abort ~abort ~f:(fun () ->
-      match%map create ?message path with
+      match%map create_fn ?message path with
       | Ok () -> true
       | Error _ -> false)
     >>| fail_on_abort path ~held_by:None
   ;;
+
+  let waiting_create = waiting_create_impl ~create_fn:create
+  let waiting_create_v2 = waiting_create_impl ~create_fn:create_v2
 
   let critical_section ?message path ~abort ~f =
     let%bind () = waiting_create ~abort ?message path in
@@ -132,12 +131,12 @@ module Flock = struct
       repeat_with_abort ~abort ~f:(fun () ->
         match%map lock_exn ?lock_owner_uid ?exclusive ?close_on_exec () ~lock_path with
         | `We_took_it t ->
-          Set_once.set_exn lock_handle [%here] t;
+          Set_once.set_exn lock_handle t;
           true
         | `Somebody_else_took_it -> false)
       >>| fail_on_abort lock_path ~held_by:None
     in
-    Set_once.get_exn lock_handle [%here]
+    Set_once.get_exn lock_handle
   ;;
 
   let wait_for_lock ?abort ?lock_owner_uid ?exclusive ?close_on_exec ~lock_path () =
@@ -167,7 +166,7 @@ module Symlink = struct
       repeat_with_abort ~abort ~f:(fun () ->
         match%map lock_exn ~lock_path ~metadata with
         | `We_took_it t ->
-          Set_once.set_exn lock_handle [%here] t;
+          Set_once.set_exn lock_handle t;
           true
         | `Somebody_else_took_it other_party_info ->
           last_lock_holder := Some other_party_info;
@@ -179,7 +178,7 @@ module Symlink = struct
                 | Ok s -> Sexp.Atom s
                 | Error e -> [%sexp Error (e : Error.t)]))
     in
-    Set_once.get_exn lock_handle [%here]
+    Set_once.get_exn lock_handle
   ;;
 
   let wait_for_lock ?abort ~lock_path ~metadata () =

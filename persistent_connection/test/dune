@@ -1,5 +1,6 @@
 (library
  (name persistent_connection_test)
- (libraries async core persistent_connection)
+ (libraries async core expect_test_helpers_core.expect_test_helpers_base
+   persistent_connection)
  (preprocess
   (pps ppx_jane)))
