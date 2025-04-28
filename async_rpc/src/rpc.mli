@@ -1,9 +1,8 @@
 (** This module just re-exports lots of modules from [Async_rpc_kernel] and adds some
-    Unix-specific wrappers in [Connection] (for using [Reader], [Writer], and [Tcp]).  For
-    documentation, see {{!Async_rpc_kernel.Rpc}[Rpc]} and
-    {{!Async_rpc_kernel__.Connection_intf}[Connection_intf]} in the
-    {{!Async_rpc_kernel}[Async_rpc_kernel]} library.
-*)
+    Unix-specific wrappers in [Connection] (for using [Reader], [Writer], and [Tcp]). For
+    documentation, see {{!Async_rpc_kernel.Rpc} [Rpc]} and
+    {{!Async_rpc_kernel__.Connection_intf} [Connection_intf]} in the {{!Async_rpc_kernel}
+    [Async_rpc_kernel]} library. *)
 
 open! Core
 open! Import
@@ -32,8 +31,8 @@ module Connection : sig
       [Async_rpc_kernel.Rpc.Connection]; see [Connection_intf] in that library for
       documentation. The differences are that:
 
-      - they take an [Async_unix.Reader.t], [Async_unix.Writer.t] and
-        [max_message_size] instead of a [Transport.t]
+      - they take an [Async_unix.Reader.t], [Async_unix.Writer.t] and [max_message_size]
+        instead of a [Transport.t]
       - they use [Time] instead of [Time_ns] *)
   val create
     :  ?implementations:'s Implementations.t
@@ -49,13 +48,12 @@ module Connection : sig
     -> (t, Exn.t) Result.t Deferred.t
 
   (** As of Feb 2017, the RPC protocol started to contain a magic number so that one can
-      identify RPC communication.  The bool returned by [contains_magic_prefix] says
+      identify RPC communication. The bool returned by [contains_magic_prefix] says
       whether this magic number was observed.
 
       This operation is a "peek" that does not advance any pointers associated with the
-      reader.  In particular, it makes sense to call [create] on a reader after calling
-      this function.
-  *)
+      reader. In particular, it makes sense to call [create] on a reader after calling
+      this function. *)
   val contains_magic_prefix : Reader.t -> bool Deferred.t
 
   val with_close
@@ -92,17 +90,15 @@ module Connection : sig
       {[
         ~make_transport:(fun fd ~max_message_size ->
           Rpc.Transport.of_fd fd ~max_message_size ~buffer_age_limit:`Unlimited)
-      ]}
-  *)
+      ]} *)
   type transport_maker = Fd.t -> max_message_size:int -> Transport.t
 
   (** [serve implementations ~port ?on_handshake_error ()] starts a server with the given
-      implementation on [port].  The optional auth function will be called on all incoming
+      implementation on [port]. The optional auth function will be called on all incoming
       connections with the address info of the client and will disconnect the client
-      immediately if it returns false.  This auth mechanism is generic and does nothing
+      immediately if it returns false. This auth mechanism is generic and does nothing
       other than disconnect the client -- any logging or record of the reasons is the
-      responsibility of the auth function itself.
-  *)
+      responsibility of the auth function itself. *)
   val serve
     :  implementations:'s Implementations.t
     -> initial_connection_state:('address -> t -> 's)
@@ -213,7 +209,7 @@ module Connection : sig
   (** [with_client where_to_connect f] connects to the server at [where_to_connect] and
       runs f until an exception is thrown or until the returned Deferred is fulfilled.
 
-      NOTE:  As with [with_close], you should be careful when using this with [Pipe_rpc].
+      NOTE: As with [with_close], you should be careful when using this with [Pipe_rpc].
       See [with_close] for more information. *)
   val with_client
     :  ?implementations:Client_implementations.t

@@ -33,7 +33,7 @@ let%expect_test "basic functionality" =
       (* [server_addr] should be correct... *)
       [%test_eq: Socket.Address.Inet.t]
         server_addr
-        (Set_once.get_exn server_listening_on_set_once [%here]);
+        (Set_once.get_exn server_listening_on_set_once);
       (* the [client_addr] should be distinct (we don't have any easy way of checking
          whether or not is correct). *)
       assert (not ([%compare.equal: Socket.Address.Inet.t] server_addr client_addr));
@@ -48,7 +48,7 @@ let%expect_test "basic functionality" =
       Rpc.Connection.close_finished connection)
   in
   let server_listening_on = Tcp.Server.listening_on_address server in
-  Set_once.set_exn server_listening_on_set_once [%here] server_listening_on;
+  Set_once.set_exn server_listening_on_set_once server_listening_on;
   (* we can connect to the server *)
   let%bind client_transport =
     Rpc.Transport.Tcp.connect (Tcp.Where_to_connect.of_inet_address server_listening_on)

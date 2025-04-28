@@ -13,17 +13,18 @@ module type S' = sig
   include Persistent_connection_kernel.S'
 
   val create
-    :  server_name:string
+    :  ?created_at:Stdlib.Lexing.position
+    -> server_name:string
     -> ?log:Log.t
-         (** If [~log] is supplied then all events that would be passed to [on_event] will be
-        written there as well, with a "persistent-connection-to" tag value of
-        [server_name], which should be the name of the server we are connecting to. *)
+         (** If [~log] is supplied then all events that would be passed to [on_event] will
+             be written there as well, with a "persistent-connection-to" tag value of
+             [server_name], which should be the name of the server we are connecting to. *)
     -> ?on_event:('address Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
          (** If a [~random_state] is supplied, randomization is applied to the result of
-        [retry_delay] after each call; if not, no randomization will be applied. The
-        default is [`State Random.State.default]. *)
+             [retry_delay] after each call; if not, no randomization will be applied. The
+             default is [`State Random.State.default]. *)
     -> ?time_source:Time_source.t
     -> connect:('address -> (conn, conn_error) Result.t Deferred.t)
     -> address:(module Address with type t = 'address)
@@ -40,7 +41,8 @@ module type S_rpc = sig
       where there is an obvious default for [connect] -- with a handful of extra optional
       parameters to pass to the [Rpc.Connection] functions. *)
   val create'
-    :  server_name:string
+    :  ?created_at:Stdlib.Lexing.position
+    -> server_name:string
     -> ?log:Log.t
     -> ?on_event:(Host_and_port.t Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)

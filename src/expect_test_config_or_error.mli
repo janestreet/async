@@ -1,5 +1,5 @@
 (** An alternative to [Async.Deferred_or_error_expect_test_config] in which [%expect] has
-    type [unit] rather than [unit Deferred.Or_error.t].  This lets one write:
+    type [unit] rather than [unit Deferred.Or_error.t]. This lets one write:
 
     {[
       [%expect {| |};
