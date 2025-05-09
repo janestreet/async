@@ -1,8 +1,8 @@
 (rule
- (alias runtest)
  (deps qtest.exe)
  (action
-  (bash ./qtest.exe)))
+  (bash ./qtest.exe))
+ (alias runtest))
 
 (executables
  (modes byte exe)

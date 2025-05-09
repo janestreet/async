@@ -28,11 +28,10 @@ let%expect_test _ =
     Rpc.Implementations.create_exn
       ~on_unknown_rpc:`Close_connection
       ~implementations:
-        (Versioned_rpc.Menu.add
-           [ Rpc.Rpc.implement Hello.V1.rpc (fun () () ->
-               printf "server says hi\n";
-               return ())
-           ])
+        [ Rpc.Rpc.implement Hello.V1.rpc (fun () () ->
+            printf "server says hi\n";
+            return ())
+        ]
       ~on_exception:Log_on_background_exn
   in
   let%bind server =

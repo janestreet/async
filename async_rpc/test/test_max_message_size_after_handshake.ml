@@ -142,7 +142,10 @@ let%expect_test "Query too large" =
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}];
   let%map () =
     triangle_query ~kind:`Pipe ~n:1 ~str_length:(env_var_max_message_size + 1)
@@ -154,7 +157,10 @@ let%expect_test "Query too large" =
      (connection_description <created-directly>) (rpc_name pipe_tri)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -174,7 +180,10 @@ let%expect_test "response and error too large" =
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -202,7 +211,10 @@ let%expect_test "response too large" =
      (connection_description <created-directly>) (rpc_name replicate)
      (rpc_version 0))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -224,7 +236,10 @@ let%expect_test "responses small enough" =
     B (pipe_tri)      10B (Received (Response Response_finished_ok))
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -255,7 +270,10 @@ let%expect_test "last entry too large" =
     A (pipe_tri)      18B (Received Abort_streaming_rpc_query)
     (pipe_closed (num_results 2))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -287,7 +305,10 @@ let%expect_test "multiple entries too large" =
     A (pipe_tri)      18B (Received Abort_streaming_rpc_query)
     (pipe_closed (num_results 3))
     (client, server) connection close reasons:
-    (Result ("Rpc.Connection.with_close finished" "EOF or connection closed"))
+    (Result
+     ((("Connection closed by local side:" "Rpc.Connection.with_close finished")
+       (connection_description <created-directly>))
+      ("EOF or connection closed" (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -310,30 +331,34 @@ let%expect_test "query too big for callee" =
     B (pipe_tri)     8027B (Sent Query)
     ((rpc_error
       (Connection_closed
-       (("Connection closed by peer:"
-         ("exn raised in RPC connection loop"
-          (monitor.ml.Error
-           ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
-            ((Message_size 8027) (Max_message_size 8000))
-            lib/async_rpc/core/src/rpc_transport.ml:LOC)
-           ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))))))
+       ((("Connection closed by remote side:"
+          ("exn raised in RPC connection loop"
+           (monitor.ml.Error
+            ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
+             ((Message_size 8027) (Max_message_size 8000))
+             lib/async_rpc/core/src/rpc_transport.ml:LOC)
+            ("<backtrace elided in test>"
+             "Caught by monitor RPC connection loop"))))
+         (connection_description <created-directly>)))))
      (connection_description <created-directly>) (rpc_name pipe_tri)
      (rpc_version 0))
     (client, server) connection close reasons:
     (Result
-     (("Connection closed by peer:"
-       ("exn raised in RPC connection loop"
+     ((("Connection closed by remote side:"
+        ("exn raised in RPC connection loop"
+         (monitor.ml.Error
+          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
+           ((Message_size 8027) (Max_message_size 8000))
+           lib/async_rpc/core/src/rpc_transport.ml:LOC)
+          ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))
+       (connection_description <created-directly>))
+      (("exn raised in RPC connection loop"
         (monitor.ml.Error
          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
           ((Message_size 8027) (Max_message_size 8000))
           lib/async_rpc/core/src/rpc_transport.ml:LOC)
-         ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))
-      ("exn raised in RPC connection loop"
-       (monitor.ml.Error
-        ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
-         ((Message_size 8027) (Max_message_size 8000))
-         lib/async_rpc/core/src/rpc_transport.ml:LOC)
-        ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))))
+         ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
+       (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -364,19 +389,21 @@ let%expect_test "response too big for caller" =
      (rpc_version 0))
     (client, server) connection close reasons:
     (Result
-     (("exn raised in RPC connection loop"
-       (monitor.ml.Error
-        ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
-         ((Message_size 9811) (Max_message_size 8000))
-         lib/async_rpc/core/src/rpc_transport.ml:LOC)
-        ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
-      ("Connection closed by peer:"
-       ("exn raised in RPC connection loop"
+     ((("exn raised in RPC connection loop"
         (monitor.ml.Error
          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
           ((Message_size 9811) (Max_message_size 8000))
           lib/async_rpc/core/src/rpc_transport.ml:LOC)
-         ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))))
+         ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
+       (connection_description <created-directly>))
+      (("Connection closed by remote side:"
+        ("exn raised in RPC connection loop"
+         (monitor.ml.Error
+          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
+           ((Message_size 9811) (Max_message_size 8000))
+           lib/async_rpc/core/src/rpc_transport.ml:LOC)
+          ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))
+       (connection_description <created-directly>))))
     |}]
 ;;
 
@@ -410,18 +437,20 @@ let%expect_test "pipe response too big for caller" =
     (pipe_closed (num_results 1))
     (client, server) connection close reasons:
     (Result
-     (("exn raised in RPC connection loop"
-       (monitor.ml.Error
-        ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
-         ((Message_size 9818) (Max_message_size 8000))
-         lib/async_rpc/core/src/rpc_transport.ml:LOC)
-        ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
-      ("Connection closed by peer:"
-       ("exn raised in RPC connection loop"
+     ((("exn raised in RPC connection loop"
         (monitor.ml.Error
          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
           ((Message_size 9818) (Max_message_size 8000))
           lib/async_rpc/core/src/rpc_transport.ml:LOC)
-         ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))))
+         ("<backtrace elided in test>" "Caught by monitor RPC connection loop")))
+       (connection_description <created-directly>))
+      (("Connection closed by remote side:"
+        ("exn raised in RPC connection loop"
+         (monitor.ml.Error
+          ("Rpc_transport: message is too large or has negative size. Try increasing the size limit by setting the ASYNC_RPC_MAX_MESSAGE_SIZE env var"
+           ((Message_size 9818) (Max_message_size 8000))
+           lib/async_rpc/core/src/rpc_transport.ml:LOC)
+          ("<backtrace elided in test>" "Caught by monitor RPC connection loop"))))
+       (connection_description <created-directly>))))
     |}]
 ;;
