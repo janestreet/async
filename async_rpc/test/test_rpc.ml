@@ -201,9 +201,14 @@ let%test_unit "Open dispatches see connection closed error" =
       | Error err ->
         [%test_eq: string]
           (sprintf
-             "((rpc_error (Connection_closed (Rpc.Connection.close)))\n\
+             "((rpc_error\n\
+             \  (Connection_closed\n\
+             \   (((\"Connection closed by local side:\" Rpc.Connection.close)\n\
+             \     (connection_description (\"Client connected via TCP\" (localhost \
+              %d)))))))\n\
              \ (connection_description (\"Client connected via TCP\" (localhost %d)))\n\
              \ (rpc_name __TEST_Async_rpc.Rpc) (rpc_version 1))"
+             port
              port)
           (Error.to_string_hum err)
     in

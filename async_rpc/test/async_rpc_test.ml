@@ -1,0 +1,13 @@
+module Import = Import
+module Test_implemenations_sexp = Test_implemenations_sexp
+module Test_implementations_with_auth = Test_implementations_with_auth
+module Test_low_latency_transport_peek_bin_prot = Test_low_latency_transport_peek_bin_prot
+
+module Test_low_latency_transport_read_one_message_bin_prot_without_buffering =
+  Test_low_latency_transport_read_one_message_bin_prot_without_buffering
+
+module Test_max_message_size_after_handshake = Test_max_message_size_after_handshake
+module Test_max_message_size_no_handshake = Test_max_message_size_no_handshake
+module Test_rpc = Test_rpc
+module Test_rpc_transport_tcp_module = Test_rpc_transport_tcp_module
+module Test_transport = Test_transport

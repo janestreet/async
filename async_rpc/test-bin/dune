@@ -1,8 +1,8 @@
 (rule
- (alias runtest)
  (deps rpc_test.exe)
  (action
-  (bash "./rpc_test.exe regression")))
+  (bash "./rpc_test.exe regression"))
+ (alias runtest))
 
 (executables
  (modes byte exe)

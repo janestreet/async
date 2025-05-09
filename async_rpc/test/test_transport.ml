@@ -33,7 +33,9 @@ let%expect_test "regression test: [flushed] becomes determined even if the conne
   [%expect
     {|
     (Error
-     ((rpc_error (Connection_closed ("EOF or connection closed")))
+     ((rpc_error
+       (Connection_closed
+        (("EOF or connection closed" (connection_description <created-directly>)))))
       (connection_description <created-directly>) (rpc_name test-rpc)
       (rpc_version 1)))
     |}];
