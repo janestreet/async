@@ -786,7 +786,7 @@ module Rpc_expert_test = struct
         ()
         ~rpc_tag
         ~version
-        ~metadata:(_ : string option)
+        ~metadata:(_ : Async_rpc_kernel.Rpc_metadata.V1.t option)
         responder
         buf
         ~pos
