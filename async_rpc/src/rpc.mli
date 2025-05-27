@@ -18,6 +18,7 @@ module Or_not_authorized = Async_rpc_kernel.Or_not_authorized
 module Pipe_close_reason = Rpc_kernel.Pipe_close_reason
 module Pipe_rpc = Rpc_kernel.Pipe_rpc
 module Rpc = Rpc_kernel.Rpc
+module Rpc_metadata = Async_rpc_kernel.Rpc_metadata
 module State_rpc = Rpc_kernel.State_rpc
 module Tracing_event = Async_rpc_kernel.Tracing_event
 module Transport = Rpc_transport

@@ -1,9 +1,9 @@
-(*open Core*)
+open Core
 open Async
 open Core_bench
 
 (* Reset the Ivar to the empty state *)
-let reset_ivar ivar = Obj.set_field (Obj.repr ivar) 0 (Obj.repr 0)
+let reset_ivar ivar = Obj.Expert.set_field (Obj.repr ivar) 0 (Obj.repr 0)
 let bench_create () = ignore (Ivar.create () : unit Ivar.t)
 
 let bench_1handler =
