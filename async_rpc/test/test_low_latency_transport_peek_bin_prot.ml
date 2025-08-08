@@ -7,7 +7,7 @@ let message = 'a'
 
 let create_reader fd =
   let reader_transport =
-    Rpc.Low_latency_transport.With_internal_reader.create ~max_message_size fd
+    Rpc.Low_latency_transport.With_internal.create ~max_message_size fd
   in
   reader_transport.reader_with_internal_reader
 ;;

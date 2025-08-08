@@ -623,7 +623,9 @@ module Writer_internal = struct
     ; connection_state : Connection_state.t
     ; mutable writing : bool
     ; mutable buf : (Bigstring.t[@sexp.opaque])
-    ; mutable pos : int
+    ; mutable flushed_pos : int (** Index into [buf] of the start of buffered data *)
+    ; mutable writer_pos : int
+    (** Index into [buf] of the next byte to write for buffering *)
     ; mutable bytes_written : Int63.t
     ; monitor : Monitor.t
     ; flushes : flush Queue.t (* the job number of the job when we last sent data *)
@@ -639,7 +641,8 @@ module Writer_internal = struct
     ; writing = false
     ; connection_state = Connection_state.create ()
     ; buf = Bigstring.create config.initial_buffer_size
-    ; pos = 0
+    ; flushed_pos = 0
+    ; writer_pos = 0
     ; bytes_written = Int63.zero
     ; monitor = Monitor.create ()
     ; flushes = Queue.create ()
@@ -653,17 +656,19 @@ module Writer_internal = struct
   ;;
 
   let close_finished t = Connection_state.close_finished t.connection_state
-  let bytes_to_write t = t.pos
+  let bytes_to_write t = t.writer_pos - t.flushed_pos
   let stopped t = Connection_state.stopped t.connection_state
 
   let flushed t =
-    if t.pos = 0
+    if bytes_to_write t = 0
     then Deferred.unit
     else if not (Connection_state.is_able_to_send_data t.connection_state)
     then Deferred.unit
     else (
       let flush =
-        { pos = Int63.( + ) t.bytes_written (Int63.of_int t.pos); ivar = Ivar.create () }
+        { pos = Int63.( + ) t.bytes_written (Int63.of_int (bytes_to_write t))
+        ; ivar = Ivar.create ()
+        }
       in
       Queue.enqueue t.flushes flush;
       Ivar.read flush.ivar)
@@ -680,13 +685,33 @@ module Writer_internal = struct
     done
   ;;
 
-  (* Discard the [n] first bytes of [t.buf] *)
+  (** Copies the buffered data to the front of the buffer *)
+  let compact t =
+    let existing_data_len = bytes_to_write t in
+    if existing_data_len = 0
+    then (
+      t.flushed_pos <- 0;
+      t.writer_pos <- 0)
+    else (
+      Bigstring.blit
+        ~src:t.buf
+        ~dst:t.buf
+        ~src_pos:t.flushed_pos
+        ~dst_pos:0
+        ~len:existing_data_len;
+      t.flushed_pos <- 0;
+      t.writer_pos <- existing_data_len)
+  ;;
+
+  let should_compact t =
+    bytes_to_write t = 0 || t.flushed_pos > Bigstring.length t.buf / 2
+  ;;
+
+  (* Discard the [n] first bytes of [t.buf] starting at [t.flushed_pos] *)
   let discard t n =
-    assert (n >= 0 && n <= t.pos);
-    let remaining = t.pos - n in
-    if remaining > 0
-    then Bigstring.blit ~src:t.buf ~dst:t.buf ~src_pos:n ~dst_pos:0 ~len:remaining;
-    t.pos <- remaining;
+    assert (n >= 0 && n <= bytes_to_write t);
+    t.flushed_pos <- t.flushed_pos + n;
+    if should_compact t then compact t;
     t.bytes_written <- Int63.( + ) t.bytes_written (Int63.of_int n);
     dequeue_flushes t
   ;;
@@ -719,8 +744,8 @@ module Writer_internal = struct
       Bigstring_unix.write_assume_fd_is_nonblocking
         (Fd.file_descr_exn t.fd)
         t.buf
-        ~pos:0
-        ~len:t.pos
+        ~pos:t.flushed_pos
+        ~len:(bytes_to_write t)
     with
     | n ->
       discard t n;
@@ -742,7 +767,7 @@ module Writer_internal = struct
     match single_write t with
     | Stop -> finish_close t
     | Continue ->
-      if t.pos = 0
+      if bytes_to_write t = 0
       then (
         t.writing <- false;
         if is_closed t then finish_close t)
@@ -772,42 +797,63 @@ module Writer_internal = struct
   ;;
 
   let flush t =
-    if (not t.writing) && t.pos > 0
+    if (not t.writing) && bytes_to_write t > 0
     then (
       t.writing <- true;
       Scheduler.within ~monitor:t.monitor (fun () -> write_everything t))
   ;;
 
   let schedule_flush t =
-    if (not t.writing) && t.pos > 0
+    if (not t.writing) && bytes_to_write t > 0
     then (
       t.writing <- true;
       Scheduler.within ~monitor:t.monitor (fun () -> wait_and_write_everything t))
   ;;
 
+  (** [ensure_at_least t ~needed] ensures that there is at least [needed] bytes free to
+      write to in [t.buf] starting from [t.writer_pos] or throws if the required buffer
+      size is too large.
+
+      [t.buf] will still resize in case where there isn't enough room at the end of the
+      buffer, but there would be enough space if the buffer is compacted. This guarantees
+      that compaction will only copy as many bytes as we've written (ignoring resizes).
+      Otherwise, there can be pathological cases where a compaction occurs on every write
+      with the buffer ~almost full, leading to significant performance degredation. *)
   let ensure_at_least t ~needed =
-    if Bigstring.length t.buf - t.pos < needed
+    let buf_len = Bigstring.length t.buf in
+    let existing_data_len = bytes_to_write t in
+    let out_of_free_space = buf_len - t.writer_pos < needed in
+    if out_of_free_space
     then (
-      let new_size_request = t.pos + needed in
-      t.buf <- Config.grow_buffer t.config t.buf ~new_size_request)
+      (* This max is since we need to request a size larger than the current buffer, and
+         [existing_data_len + needed] might not be larger if we are wasting space in the
+         beginning of the buffer. *)
+      let new_size_request = Int.max (buf_len + 1) (existing_data_len + needed) in
+      t.buf <- Config.grow_buffer t.config t.buf ~new_size_request;
+      (* Since we are already doing an expensive operation by resizing the buffer, we
+         also compact here. *)
+      compact t)
   ;;
 
+  (** [copy_bytes t ~buf ~pos ~len] copies [len] bytes from [buf] at [pos] into [t.buf],
+      resizing [t.buf] if necessary *)
   let copy_bytes t ~buf ~pos ~len =
     if len > 0
     then (
       ensure_at_least t ~needed:len;
-      Bigstring.blit ~src:buf ~dst:t.buf ~src_pos:pos ~dst_pos:t.pos ~len;
-      t.pos <- t.pos + len)
+      Bigstring.blit ~src:buf ~dst:t.buf ~src_pos:pos ~dst_pos:t.writer_pos ~len;
+      t.writer_pos <- t.writer_pos + len)
   ;;
 
   (* Write what's in the internal buffer + bytes denoted by [(buf, pos, len)] *)
   let unsafe_send_bytes t ~buf ~pos ~len =
+    let existing_data_len = bytes_to_write t in
     let result =
       writev2
         (Fd.file_descr_exn t.fd)
         ~buf1:t.buf
-        ~pos1:0
-        ~len1:t.pos
+        ~pos1:t.flushed_pos
+        ~len1:existing_data_len
         ~buf2:buf
         ~pos2:pos
         ~len2:len
@@ -815,16 +861,21 @@ module Writer_internal = struct
     if Unix.Syscall_result.Int.is_ok result
     then (
       let n = Unix.Syscall_result.Int.ok_exn result in
-      if n <= t.pos
+      if n <= existing_data_len
       then (
         (* We wrote less than what's in the internal buffer, discard what was written and
            copy in the other buffer. *)
         discard t n;
         copy_bytes t ~buf ~pos ~len)
       else (
-        let written_from_other_buf = n - t.pos in
+        let written_from_other_buf = n - existing_data_len in
         let remaining_in_other_buf = len - written_from_other_buf in
-        discard t t.pos;
+        discard t existing_data_len;
+        (* [discard] advanced [bytes_written] by [existing_data_len] but we want to
+           advance [n] in this case, so we manually advance by [written_from_other_buf =
+           n - existing_data_len] *)
+        t.bytes_written
+        <- Int63.( + ) t.bytes_written (Int63.of_int written_from_other_buf);
         if remaining_in_other_buf > 0
         then
           copy_bytes
@@ -856,11 +907,11 @@ module Writer_internal = struct
     if Config.message_size_ok t.config ~payload_len
     then (
       ensure_at_least t ~needed:total_len;
-      Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
-      let stop = writer.write t.buf ~pos:(t.pos + Header.length) msg in
-      assert (stop + len = t.pos + total_len);
+      Header.unsafe_set_payload_length t.buf ~pos:t.writer_pos payload_len;
+      let stop = writer.write t.buf ~pos:(t.writer_pos + Header.length) msg in
+      assert (stop + len = t.writer_pos + total_len);
       Bigstring.blit ~src:buf ~dst:t.buf ~src_pos:pos ~dst_pos:stop ~len;
-      t.pos <- stop + len;
+      t.writer_pos <- stop + len;
       Sent { result = (); bytes = payload_len })
     else
       Message_too_big { size = payload_len; max_message_size = t.config.max_message_size }
@@ -873,7 +924,7 @@ module Writer_internal = struct
     else (
       t.last_send_job <- current_job;
       t.sends_in_this_job <- 1);
-    t.pos >= t.config.buffering_threshold_in_bytes
+    bytes_to_write t >= t.config.buffering_threshold_in_bytes
     || t.sends_in_this_job <= t.config.start_batching_after_num_messages
   ;;
 
@@ -897,10 +948,10 @@ module Writer_internal = struct
       then (
         let send_now = should_send_now t in
         let result =
-          if Bigstring.length t.buf - t.pos < Header.length
+          if Bigstring.length t.buf - t.writer_pos < Header.length
           then slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
           else (
-            match writer.write t.buf ~pos:(t.pos + Header.length) msg with
+            match writer.write t.buf ~pos:(t.writer_pos + Header.length) msg with
             | exception _ ->
               (* It's likely that the exception is due to a buffer overflow, so resize the
                  internal buffer and try again. Technically we could match on
@@ -909,11 +960,11 @@ module Writer_internal = struct
                  [Invalid_argument] or [Failure] for instance. *)
               slow_write_bin_prot_and_bigstring t writer msg ~buf ~pos ~len
             | stop ->
-              let payload_len = stop - (t.pos + Header.length) + len in
+              let payload_len = stop - (t.writer_pos + Header.length) + len in
               if Config.message_size_ok t.config ~payload_len
               then (
-                Header.unsafe_set_payload_length t.buf ~pos:t.pos payload_len;
-                t.pos <- stop;
+                Header.unsafe_set_payload_length t.buf ~pos:t.writer_pos payload_len;
+                t.writer_pos <- stop;
                 if send_now
                 then (
                   let len =
@@ -1007,11 +1058,33 @@ end
 module Writer = struct
   include Kernel_transport.Writer
 
-  let create_internal fd config =
-    pack (module Writer_internal) (Writer_internal.create fd config)
-  ;;
+  module With_internal_writer = struct
+    type t =
+      { internal_writer : Writer_internal.t
+      ; writer : Kernel_transport.Writer.t
+      }
 
-  let create = make_create create_internal
+    let create_internal fd config =
+      let internal_writer = Writer_internal.create fd config in
+      let writer = pack (module Writer_internal) internal_writer in
+      { internal_writer; writer }
+    ;;
+
+    let create = make_create create_internal
+    let transport_writer t = t.writer
+
+    module For_testing = struct
+      let buffer_capacity t = Bigstring.length t.internal_writer.buf
+      let buffer_flushed_pos t = t.internal_writer.flushed_pos
+    end
+  end
+
+  let create ?config ~max_message_size fd =
+    let internal =
+      make_create With_internal_writer.create_internal ?config ~max_message_size fd
+    in
+    internal.writer
+  ;;
 end
 
 type t = Kernel_transport.t =
@@ -1020,15 +1093,15 @@ type t = Kernel_transport.t =
   }
 [@@deriving sexp_of]
 
-module With_internal_reader = struct
+module With_internal = struct
   type t =
     { reader_with_internal_reader : Reader.With_internal_reader.t
-    ; writer : Writer.t
+    ; writer_with_internal_writer : Writer.With_internal_writer.t
     }
 
   let create_internal fd config =
     { reader_with_internal_reader = Reader.With_internal_reader.create_internal fd config
-    ; writer = Writer.create_internal fd config
+    ; writer_with_internal_writer = Writer.With_internal_writer.create_internal fd config
     }
   ;;
 
@@ -1038,8 +1111,8 @@ end
 let close = Kernel_transport.close
 
 let create ?config ~max_message_size fd =
-  let internal =
-    make_create With_internal_reader.create_internal ?config ~max_message_size fd
-  in
-  { reader = internal.reader_with_internal_reader.reader; writer = internal.writer }
+  let internal = make_create With_internal.create_internal ?config ~max_message_size fd in
+  { reader = internal.reader_with_internal_reader.reader
+  ; writer = internal.writer_with_internal_writer.writer
+  }
 ;;

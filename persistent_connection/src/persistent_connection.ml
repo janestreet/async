@@ -36,7 +36,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
           then None
           else Some created_at
         in
-        [%log
+        [%log.t
           log
             (Persistent_connection_kernel.Event.Variants.to_name event)
             (event : Address.t Event.t)

@@ -44,6 +44,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> Reader.t
     -> Writer.t
     -> (t, Exn.t) Result.t Deferred.t
@@ -63,6 +67,10 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> connection_state:(t -> 's)
     -> Reader.t
     -> Writer.t
@@ -75,6 +83,10 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> Reader.t
     -> Writer.t
     -> implementations:'s Implementations.t
@@ -119,6 +131,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> unit
     -> ('address, 'listening_on) Tcp.Server.t Deferred.t
 
@@ -145,6 +161,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> unit
     -> (Socket.Address.Inet.t, int) Tcp.Server.t
 
@@ -172,6 +192,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> unit
     -> Tcp.Server.unix Deferred.t
 
@@ -190,6 +214,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> _ Tcp.Where_to_connect.t
     -> (t, Exn.t) Result.t Deferred.t
 
@@ -204,6 +232,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> 'address Tcp.Where_to_connect.t
     -> ('address * t, Exn.t) Result.t Deferred.t
 
@@ -221,6 +253,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> _ Tcp.Where_to_connect.t
     -> (t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t
@@ -236,6 +272,10 @@ module Connection : sig
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
+    -> ?validate_connection:
+         (identification_from_peer:Bigstring.t option
+          -> unit Or_not_authorized.t Deferred.t)
     -> 'transport Tcp.Where_to_connect.t
     -> (remote_server:'transport -> t -> 'a Deferred.t)
     -> ('a, Exn.t) Result.t Deferred.t

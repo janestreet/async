@@ -152,10 +152,11 @@ let%expect_test "[Connection.create] shouldn't raise" =
     {|
     (Returned
      (handshake_error.ml.Handshake_error
-      ((Reading_header_failed
-        (monitor.ml.Error
-         (Failure "unsafe_read_int64: value cannot be represented unboxed!")
-         ("<backtrace elided in test>")))
+      ((Reading_message_failed_during_step (step Header)
+        (parse_error
+         (monitor.ml.Error
+          (Failure "unsafe_read_int64: value cannot be represented unboxed!")
+          ("<backtrace elided in test>"))))
        <created-directly>)))
     |}];
   return ()
