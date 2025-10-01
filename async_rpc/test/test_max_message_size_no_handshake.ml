@@ -6,7 +6,9 @@ open Import
    variable
 *)
 let%expect_test "handshake is too large" =
-  Unix.putenv ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE" ~data:"1";
+  (Unix.putenv [@ocaml.alert "-unsafe_multidomain"])
+    ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE"
+    ~data:"1";
   let make_transport_default_size (fd_r, fd_w) : Rpc.Transport.t =
     { reader = Reader.create fd_r |> Rpc.Transport.Reader.of_reader
     ; writer = Writer.create fd_w |> Rpc.Transport.Writer.of_writer
