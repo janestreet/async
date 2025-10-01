@@ -95,7 +95,21 @@ module Writer : sig
     include Rpc_kernel.Transport.Writer
   end
 
+  type transport_writer := t
+
   val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+
+  module With_internal_writer : sig
+    type t
+
+    val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
+    val transport_writer : t -> transport_writer
+
+    module For_testing : sig
+      val buffer_capacity : t -> int
+      val buffer_flushed_pos : t -> int
+    end
+  end
 end
 
 include module type of struct
@@ -106,10 +120,10 @@ include module type of struct
 
 val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t
 
-module With_internal_reader : sig
+module With_internal : sig
   type t =
     { reader_with_internal_reader : Reader.With_internal_reader.t
-    ; writer : Writer.t
+    ; writer_with_internal_writer : Writer.With_internal_writer.t
     }
 
   val create : ?config:Config.t -> max_message_size:int -> Fd.t -> t

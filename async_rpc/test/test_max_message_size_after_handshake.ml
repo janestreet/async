@@ -17,7 +17,7 @@ let triangle_query'
   =
   (* We set the env var to the same value in every test, but do so here as it causes
      problems for other tests when it is a toplevel operation *)
-  Unix.putenv
+  (Unix.putenv [@ocaml.alert "-unsafe_multidomain"])
     ~key:"ASYNC_RPC_MAX_MESSAGE_SIZE"
     ~data:(Int.to_string env_var_max_message_size);
   let make_transport_default_size (fd_r, fd_w) : Rpc.Transport.t =
