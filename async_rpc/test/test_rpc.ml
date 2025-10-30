@@ -7,36 +7,46 @@ let make_tests ~trace ~make_transport ~transport_name =
     test1
       ~trace
       ~on_handshake_error:`Raise
-      ~state:()
+      ~server_state:()
       ~make_transport
       ~make_client_transport:make_transport
   in
   List.mapi
     ~f:(fun i f -> sprintf "rpc-%s-%d" transport_name i, f)
-    [ test1 ~imp:[ pipe_count_imp ] ~f:(fun _ conn ->
-        let n = 3 in
-        let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn n in
-        let%bind x =
-          Pipe.fold_without_pushback pipe_r ~init:0 ~f:(fun x i ->
-            assert (x = i);
-            i + 1)
-        in
-        [%test_result: int] ~expect:n x;
-        Deferred.unit)
-    ; test1 ~imp:[ pipe_count_imp ] ~f:(fun _ conn ->
-        let%bind result = Rpc.Pipe_rpc.dispatch pipe_count_rpc conn (-1) in
-        match result with
-        | Ok (Ok _) | Error _ -> assert false
-        | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
+    [ test1
+        ~server_implementations:[ pipe_count_imp ]
+        ~f:(fun ~server_side_connection:_ ~client_side_connection ->
+          let n = 3 in
+          let%bind pipe_r, _id =
+            Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc client_side_connection n
+          in
+          let%bind x =
+            Pipe.fold_without_pushback pipe_r ~init:0 ~f:(fun x i ->
+              assert (x = i);
+              i + 1)
+          in
+          [%test_result: int] ~expect:n x;
+          Deferred.unit)
+    ; test1
+        ~server_implementations:[ pipe_count_imp ]
+        ~f:(fun ~server_side_connection:_ ~client_side_connection ->
+          let%bind result =
+            Rpc.Pipe_rpc.dispatch pipe_count_rpc client_side_connection (-1)
+          in
+          match result with
+          | Ok (Ok _) | Error _ -> assert false
+          | Ok (Error `Argument_must_be_positive) -> Deferred.unit)
     ; (let ivar = Ivar.create () in
        test1
-         ~imp:[ pipe_wait_imp ivar ]
-         ~f:(fun conn1 conn2 ->
+         ~server_implementations:[ pipe_wait_imp ivar ]
+         ~f:(fun ~server_side_connection ~client_side_connection ->
            (* Test that the pipe is flushed when the connection is closed. *)
-           let%bind pipe_r, _id = Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc conn2 () in
+           let%bind pipe_r, _id =
+             Rpc.Pipe_rpc.dispatch_exn pipe_wait_rpc client_side_connection ()
+           in
            let%bind res = Pipe.read pipe_r in
            [%test_result: [ `Ok of unit | `Eof ]] res ~expect:(`Ok ());
-           don't_wait_for (Rpc.Connection.close conn1);
+           don't_wait_for (Rpc.Connection.close server_side_connection);
            Ivar.fill_exn ivar ();
            let%bind res = Pipe.read pipe_r in
            [%test_result: [ `Ok of unit | `Eof ]] res ~expect:(`Ok ());
@@ -70,8 +80,8 @@ let%expect_test _ =
   [%expect
     {|
     rpc-std-0
-    B (pipe_count)    22B (Sent Query)
-    A (pipe_count)    22B (Received Query)
+    B (pipe_count)    12B (Sent Query)
+    A (pipe_count)    12B (Received Query)
     A (pipe_count)     9B (Sent (Response Streaming_initial))
     A (pipe_count)    12B (Sent (Response Streaming_update))
     A (pipe_count)    12B (Sent (Response Streaming_update))
@@ -83,13 +93,13 @@ let%expect_test _ =
     B (pipe_count)    12B (Received (Response Partial_response))
     B (pipe_count)    10B (Received (Response Response_finished_ok))
     rpc-std-1
-    B (pipe_count)    23B (Sent Query)
-    A (pipe_count)    23B (Received Query)
+    B (pipe_count)    13B (Sent Query)
+    A (pipe_count)    13B (Received Query)
     A (pipe_count)    12B (Sent (Response Single_or_streaming_user_defined_error))
     B (pipe_count)    12B (Received (Response Response_finished_user_defined_error))
     rpc-std-2
-    B (pipe_wait)     21B (Sent Query)
-    A (pipe_wait)     21B (Received Query)
+    B (pipe_wait)     12B (Sent Query)
+    A (pipe_wait)     12B (Received Query)
     A (pipe_wait)      9B (Sent (Response Streaming_initial))
     A (pipe_wait)     12B (Sent (Response Streaming_update))
     B (pipe_wait)      9B (Received (Response Partial_response))
@@ -97,8 +107,8 @@ let%expect_test _ =
     A (pipe_wait)     12B (Sent (Response Streaming_update))
     B (pipe_wait)     12B (Received (Response Partial_response))
     rpc-low-latency-0
-    B (pipe_count)    22B (Sent Query)
-    A (pipe_count)    22B (Received Query)
+    B (pipe_count)    12B (Sent Query)
+    A (pipe_count)    12B (Received Query)
     A (pipe_count)     9B (Sent (Response Streaming_initial))
     A (pipe_count)    12B (Sent (Response Streaming_update))
     A (pipe_count)    12B (Sent (Response Streaming_update))
@@ -110,13 +120,13 @@ let%expect_test _ =
     B (pipe_count)    12B (Received (Response Partial_response))
     B (pipe_count)    10B (Received (Response Response_finished_ok))
     rpc-low-latency-1
-    B (pipe_count)    23B (Sent Query)
-    A (pipe_count)    23B (Received Query)
+    B (pipe_count)    13B (Sent Query)
+    A (pipe_count)    13B (Received Query)
     A (pipe_count)    12B (Sent (Response Single_or_streaming_user_defined_error))
     B (pipe_count)    12B (Received (Response Response_finished_user_defined_error))
     rpc-low-latency-2
-    B (pipe_wait)     21B (Sent Query)
-    A (pipe_wait)     21B (Received Query)
+    B (pipe_wait)     12B (Sent Query)
+    A (pipe_wait)     12B (Received Query)
     A (pipe_wait)      9B (Sent (Response Streaming_initial))
     A (pipe_wait)     12B (Sent (Response Streaming_update))
     B (pipe_wait)      9B (Received (Response Partial_response))

@@ -63,6 +63,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?description
+    ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
     ~connection_state
@@ -77,6 +78,7 @@ module Connection = struct
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
       ?description
+      ?provide_rpc_shapes
       ?heartbeat_timeout_style
       ?validate_connection
       ~connection_state
@@ -90,6 +92,7 @@ module Connection = struct
     ?handshake_timeout
     ?heartbeat_config
     ?description
+    ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
     reader
@@ -103,6 +106,7 @@ module Connection = struct
         (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
       ?heartbeat_config
       ?description
+      ?provide_rpc_shapes
       ?heartbeat_timeout_style
       ?validate_connection
       (Transport.of_reader_writer reader writer ?max_message_size)
@@ -188,6 +192,7 @@ module Connection = struct
     ~initial_connection_state
     ~where_to_listen
     ?max_connections
+    ?max_accepts_per_batch
     ?backlog
     ?drop_incoming_connections
     ?time_source
@@ -208,6 +213,7 @@ module Connection = struct
     serve_with_transport_handler
       ~where_to_listen
       ?max_connections
+      ?max_accepts_per_batch
       ?backlog
       ?drop_incoming_connections
       ?time_source
@@ -244,6 +250,7 @@ module Connection = struct
     ~initial_connection_state
     ~where_to_listen
     ?max_connections
+    ?max_accepts_per_batch
     ?backlog
     ?drop_incoming_connections
     ?time_source
@@ -264,6 +271,7 @@ module Connection = struct
     Rpc_transport.Tcp.serve_unix
       ~where_to_listen
       ?max_connections
+      ?max_accepts_per_batch
       ?backlog
       ?drop_incoming_connections
       ?time_source

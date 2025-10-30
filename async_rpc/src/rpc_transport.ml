@@ -129,6 +129,8 @@ module Unix_reader = struct
       ret_val
   ;;
 
+  let number_of_unique_deferreds_to_wait_for_before_reading_next_chunk = ref 0
+
   let read_forever t ~on_message ~on_end_of_batch =
     let finish_loop ~consumed ~need ~wait_before_reading =
       on_end_of_batch ();
@@ -163,7 +165,19 @@ module Unix_reader = struct
             let wait_before_reading =
               if Deferred.is_determined d
               then wait_before_reading
-              else d :: wait_before_reading
+              else (
+                (* Because we don't immediately bind on [d], we check that we haven't
+                   received the same deferred before to limit the number of deferreds in
+                   [wait_before_reading].
+
+                   If this behavior changes, please update the comment/code in
+                   [async_rpc/kernel/src/rpc.ml] about [cached_flush_deferred].  *)
+                match wait_before_reading with
+                | hd :: (_ : unit Deferred.t list) when phys_equal hd d ->
+                  wait_before_reading
+                | (_ : unit Deferred.t list) ->
+                  incr number_of_unique_deferreds_to_wait_for_before_reading_next_chunk;
+                  d :: wait_before_reading)
             in
             loop
               buf
@@ -260,6 +274,12 @@ module Reader = struct
   let of_reader ?max_message_size reader =
     pack (module Unix_reader) (Unix_reader.create ~reader ~max_message_size)
   ;;
+
+  module For_testing = struct
+    let number_of_unique_deferreds_to_wait_for_before_reading_next_chunk =
+      Unix_reader.number_of_unique_deferreds_to_wait_for_before_reading_next_chunk
+    ;;
+  end
 end
 
 module Writer = struct
@@ -298,6 +318,7 @@ module Tcp = struct
     tcp_creator
     ~where_to_listen
     ?max_connections
+    ?max_accepts_per_batch
     ?backlog
     ?drop_incoming_connections
     ?time_source
@@ -309,7 +330,7 @@ module Tcp = struct
     =
     tcp_creator
       ?max_connections
-      ?max_accepts_per_batch:None
+      ?max_accepts_per_batch
       ?backlog
       ?drop_incoming_connections
       ?socket:None
@@ -341,6 +362,7 @@ module Tcp = struct
     tcp_creator
     ~where_to_listen
     ?max_connections
+    ?max_accepts_per_batch
     ?backlog
     ?drop_incoming_connections
     ?time_source
@@ -354,6 +376,7 @@ module Tcp = struct
       tcp_creator
       ~where_to_listen
       ?max_connections
+      ?max_accepts_per_batch
       ?backlog
       ?drop_incoming_connections
       ?time_source
@@ -376,6 +399,7 @@ module Tcp = struct
   let serve_unix
     ~(where_to_listen : Tcp.Where_to_listen.unix)
     ?max_connections
+    ?max_accepts_per_batch
     ?backlog
     ?drop_incoming_connections
     ?time_source
@@ -389,6 +413,7 @@ module Tcp = struct
       Tcp.Server.create_sock
       ~where_to_listen
       ?max_connections
+      ?max_accepts_per_batch
       ?backlog
       ?drop_incoming_connections
       ?time_source

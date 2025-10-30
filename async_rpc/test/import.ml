@@ -22,76 +22,76 @@ let print_trace (conn : Rpc.Connection.t) ?filter_events source =
 
 let test
   ?filter_events
-  ~trace
+  ?(trace = false)
+  ()
   ~on_handshake_error
   ~make_transport
-  ~make_transport2
-  ~imp1
-  ~imp2
-  ~state1
-  ~state2
+  ~make_client_transport
+  ~server_implementations
+  ~client_implementations
+  ~server_state
+  ~client_state
   ~f
-  ()
   =
   let%bind `Reader r1, `Writer w2 = Unix.pipe (Info.of_string "rpc_test 1") in
   let%bind `Reader r2, `Writer w1 = Unix.pipe (Info.of_string "rpc_test 2") in
-  let t1 = make_transport (r1, w1) in
-  let t2 = make_transport2 (r2, w2) in
-  let s imp =
-    if List.length imp > 0
+  let server_transport = make_transport (r1, w1) in
+  let client_transport = make_client_transport (r2, w2) in
+  let create_implementations implementations =
+    if List.length implementations > 0
     then
       Some
         (Rpc.Implementations.create_exn
-           ~implementations:imp
+           ~implementations
            ~on_unknown_rpc:`Close_connection
-           ~on_exception:Log_on_background_exn)
+           ~on_exception:Close_connection)
     else None
   in
-  let s1 = s imp1 in
-  let s2 = s imp2 in
-  let conn1_ivar = Ivar.create () in
-  let f2_done =
+  let server_implementations = create_implementations server_implementations in
+  let client_implementations = create_implementations client_implementations in
+  let server_side_connection_ivar = Ivar.create () in
+  let client_done =
     Async_rpc_kernel.Rpc.Connection.with_close
-      ?implementations:s2
-      t2
-      ~dispatch_queries:(fun conn2 ->
-        if trace then print_trace ?filter_events conn2 "B";
-        let%bind conn1 = Ivar.read conn1_ivar in
-        f conn1 conn2)
-      ~connection_state:(fun _ -> state2)
+      ?implementations:client_implementations
+      client_transport
+      ~dispatch_queries:(fun client_side_connection ->
+        if trace then print_trace ?filter_events client_side_connection "B";
+        let%bind server_side_connection = Ivar.read server_side_connection_ivar in
+        f ~server_side_connection ~client_side_connection)
+      ~connection_state:(fun _ -> client_state)
       ~on_handshake_error
   in
   Async_rpc_kernel.Rpc.Connection.with_close
-    ?implementations:s1
-    t1
-    ~dispatch_queries:(fun conn1 ->
-      if trace then print_trace ?filter_events conn1 "A";
-      Ivar.fill_exn conn1_ivar conn1;
-      f2_done)
-    ~connection_state:(fun _ -> state1)
+    ?implementations:server_implementations
+    server_transport
+    ~dispatch_queries:(fun server_side_connection ->
+      if trace then print_trace ?filter_events server_side_connection "A";
+      Ivar.fill_exn server_side_connection_ivar server_side_connection;
+      client_done)
+    ~connection_state:(fun _ -> server_state)
     ~on_handshake_error
 ;;
 
 let test1
   ?filter_events
-  ~trace
+  ?trace
   ~make_transport
   ~make_client_transport
   ~on_handshake_error
-  ~imp
-  ~state
+  ~server_implementations
+  ~server_state
   ~f
   =
   test
     ?filter_events
-    ~make_transport2:make_client_transport
-    ~trace
+    ?trace
     ~on_handshake_error
     ~make_transport
-    ~imp1:imp
-    ~state1:state
-    ~imp2:[]
-    ~state2:()
+    ~make_client_transport
+    ~server_implementations
+    ~server_state
+    ~client_implementations:[]
+    ~client_state:()
     ~f
 ;;
 
