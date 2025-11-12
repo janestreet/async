@@ -12,6 +12,10 @@ module Reader : sig
   end
 
   val of_reader : ?max_message_size:int -> Async_reader.t -> t
+
+  module For_testing : sig
+    val number_of_unique_deferreds_to_wait_for_before_reading_next_chunk : int ref
+  end
 end
 
 module Writer : sig
@@ -51,6 +55,7 @@ module Tcp : sig
   val serve
     :  where_to_listen:('address, 'listening_on) Tcp.Where_to_listen.t
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
@@ -71,6 +76,7 @@ module Tcp : sig
   val serve_inet
     :  where_to_listen:(Socket.Address.Inet.t, int) Tcp.Where_to_listen.t
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
@@ -90,6 +96,7 @@ module Tcp : sig
   val serve_unix
     :  where_to_listen:Tcp.Where_to_listen.unix
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t

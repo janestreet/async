@@ -8,7 +8,7 @@ open! Core
 open! Import
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
-module How_to_recognise_errors = Rpc_kernel.How_to_recognise_errors
+module How_to_recognize_errors = Rpc_kernel.How_to_recognize_errors
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
 module Low_latency_transport = Rpc_transport_low_latency
@@ -67,6 +67,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -83,6 +84,7 @@ module Connection : sig
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.t
+    -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -117,6 +119,7 @@ module Connection : sig
     -> initial_connection_state:('address -> t -> 's)
     -> where_to_listen:('address, 'listening_on) Tcp.Where_to_listen.t
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
@@ -145,6 +148,7 @@ module Connection : sig
     -> initial_connection_state:(Socket.Address.Inet.t -> t -> 's)
     -> where_to_listen:Tcp.Where_to_listen.inet
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t
@@ -176,6 +180,7 @@ module Connection : sig
          (Socket.Address.Unix.t -> Linux_ext.Peer_credentials.t -> t -> 's)
     -> where_to_listen:Tcp.Where_to_listen.unix
     -> ?max_connections:int
+    -> ?max_accepts_per_batch:int
     -> ?backlog:int
     -> ?drop_incoming_connections:bool
     -> ?time_source:[> read ] Time_source.T1.t

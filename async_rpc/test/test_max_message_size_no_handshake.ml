@@ -25,10 +25,11 @@ let%expect_test "handshake is too large" =
       ~on_handshake_error:(`Call on_handshake_error)
       ~make_transport:make_transport_default_size
       ~make_client_transport:make_transport_default_size
-      ~imp:[ pipe_count_imp ]
-      ~state:()
-      ~f:(fun _ conn ->
-        Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc conn 1 |> Deferred.ignore_m)
+      ~server_implementations:[ pipe_count_imp ]
+      ~server_state:()
+      ~f:(fun ~server_side_connection:_ ~client_side_connection ->
+        Rpc.Pipe_rpc.dispatch_exn pipe_count_rpc client_side_connection 1
+        |> Deferred.ignore_m)
       ()
   in
   let%bind exn = Ivar.read handshake_exn in
@@ -37,7 +38,7 @@ let%expect_test "handshake is too large" =
     {|
     (handshake_error.ml.Handshake_error
      ((Message_too_big_during_step (step Header)
-       (message_too_big ((size 16) (max_message_size 1))))
+       (message_too_big ((size 17) (max_message_size 1))))
       <created-directly>))
     |}];
   return ()
