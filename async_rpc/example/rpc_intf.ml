@@ -13,16 +13,15 @@ let get_unique_id =
 let set_id_counter =
   Rpc.Rpc.create
     ~name:"set-id-counter"
-      (* Note that the version number is 1, because there is an older v0 query defined below
-       around. *)
+      (* Note that the version number is 1, because there is an older v0 query defined
+         below around. *)
     ~version:1
     ~bin_query:Int.bin_t
     ~bin_response:Unit.bin_t
     ~include_in_error_count:Only_on_exn
 ;;
 
-(* This type is here only for the purpose of getting the ability to bin_prot an int
-   pair. *)
+(* This type is here only for the purpose of getting the ability to bin_prot an int pair. *)
 module Int_pair = struct
   type t = int * int [@@deriving bin_io]
 end

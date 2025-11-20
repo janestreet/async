@@ -91,7 +91,7 @@ module Nfs = struct
     Monitor.protect
       ~rest:`Log
         (* `Log for compatibility. Ideally, we'd forward a ?rest argument, and push the
-         ~rest:`Log into the callers *)
+           ~rest:`Log into the callers *)
       ~finally:(fun () -> unlock_exn path)
       f
   ;;

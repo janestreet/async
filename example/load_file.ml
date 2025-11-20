@@ -21,12 +21,8 @@ let lines file =
 
 let main () =
   let file = (Sys.get_argv ()).(1) in
-  (*  Gc.set
-      { (Gc.get ()) with Gc.Control.
-      minor_heap_size = 8_388_608;
-      space_overhead = 150;
-      max_overhead = 1_000_000;
-      major_heap_increment = 1_048_576 }; *)
+  (* Gc.set
+     [{ (Gc.get ()) with Gc.Control. minor_heap_size = 8_388_608; space_overhead = 150; max_overhead = 1_000_000; major_heap_increment = 1_048_576 }]; *)
   upon (lines file) (fun _lines -> Shutdown.shutdown 0);
   never_returns (Scheduler.go ())
 ;;

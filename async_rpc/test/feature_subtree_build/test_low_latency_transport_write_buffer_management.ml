@@ -99,7 +99,7 @@ let payload_len_from_target_msg_len target_msg_len =
   let target_bin_prot_len = target_msg_len - Rpc.Low_latency_transport.Header.length in
   let bin_prot_header_len =
     (* This is techincally not accurate since the [nat0] also takes up a variable number
-      of bytes, but it's close enough and we check anyways *)
+       of bytes, but it's close enough and we check anyways *)
     Bin_prot.Size.bin_size_nat0 (Bin_prot.Nat0.of_int target_bin_prot_len)
   in
   let payload_len = target_bin_prot_len - bin_prot_header_len in
@@ -141,20 +141,21 @@ struct
 
   let%expect_test "writev2 works when writing from middle of buffer" =
     (* This test works by carefully managing both the unix pipe's buffer and the transport
-    writer's buffer. The pipe buffer is 64 KiB, so all writes until that limit will
-    succeed, even if the reader is not reading yet.
+       writer's buffer. The pipe buffer is 64 KiB, so all writes until that limit will
+       succeed, even if the reader is not reading yet.
 
-    The idea is to fill that pipe buffer so messages are buffered on the transport
-    writer's buffer. We then read some data off the pipe and trigger a partial flush of
-    the transport writer's buffer so [flushed_pos] is non-zero. We then read all the
-    data off the pipe and trigger another flush, which will now write from a nonzero
-    [flushed_pos]
+       The idea is to fill that pipe buffer so messages are buffered on the transport
+       writer's buffer. We then read some data off the pipe and trigger a partial flush of
+       the transport writer's buffer so [flushed_pos] is non-zero. We then read all the
+       data off the pipe and trigger another flush, which will now write from a nonzero
+       [flushed_pos]
 
-    We need to perform the reads off the pipe synchronously, since otherwise there is an
-    an async job that flushes the write buffer automatically, without using [writev2] *)
+       We need to perform the reads off the pipe synchronously, since otherwise there is
+       an an async job that flushes the write buffer automatically, without using
+       [writev2] *)
     let%bind default_pipe_buffer_size in
     (* We want the write buffer to be large enough to not deal with resizing and to never
-    buffer if we can still write to the pipe *)
+       buffer if we can still write to the pipe *)
     let%bind t =
       setup
         (Rpc.Low_latency_transport.Config.create
@@ -164,10 +165,10 @@ struct
     in
     let msg_len = t.pipe_buffer_size / 4 in
     (* Payload message length that will make sure the overall messages + header are
-   exactly 1/4 the size of the pipe buffer *)
+       exactly 1/4 the size of the pipe buffer *)
     let payload_len = payload_len_from_target_msg_len msg_len in
     (* We first fill the pipe buffer with 4 messages, as well as having another message
-     buffered in the transport writer *)
+       buffered in the transport writer *)
     let num_messages_to_read_from_fd = 5 in
     let strings_to_read_from_fd =
       List.init num_messages_to_read_from_fd ~f:(fun _ -> random_string payload_len)
@@ -200,14 +201,14 @@ struct
       ~written:t.pipe_buffer_size
       ~buffered:(msg_len * 2);
     (* We read 1 message from the pipe directly. This allows an additional message to be
-     flushed from the write buffer. *)
+       flushed from the write buffer. *)
     let buf = Bigstring.create (msg_len * num_messages_to_read_from_fd) in
     let read_len_1_message =
       Bigstring_unix.read (Fd.file_descr_exn t.read_fd) ~len:msg_len buf
     in
     [%test_result: int] read_len_1_message ~expect:msg_len;
     (* To flush a message, we need to perform another write. The pipe buffer should be
-     full now, and there should be two messages buffered in the transport writer. *)
+       full now, and there should be two messages buffered in the transport writer. *)
     write_bin_prot_string t (List.nth_exn strings_to_read_from_transport 1);
     [%expect {| (Sent (result ()) (bytes 4088)) |}];
     test_expected_bytes_written_and_buffered
@@ -215,9 +216,9 @@ struct
       ~here:[%here]
       ~written:(t.pipe_buffer_size + msg_len)
       ~buffered:(msg_len * 2);
-    (* The part of the buffer containing the message that was just flushed should now
-       be wasted. Compaction shouldn't have happened since we are not wasting at least
-       half the buffer yet. *)
+    (* The part of the buffer containing the message that was just flushed should now be
+       wasted. Compaction shouldn't have happened since we are not wasting at least half
+       the buffer yet. *)
     [%test_result: int]
       (Rpc.Low_latency_transport.Writer.With_internal_writer.For_testing
        .buffer_flushed_pos
@@ -233,7 +234,7 @@ struct
     in
     [%test_result: int] read_len_4_messages ~expect:(msg_len * 4);
     (* There are now 5 messages in the buffer corresponding to [strings_to_read_from_fd].
-     We check that the messages are received correctly. *)
+       We check that the messages are received correctly. *)
     List.iteri strings_to_read_from_fd ~f:(fun i s ->
       let str =
         String.bin_read_t
@@ -246,8 +247,8 @@ struct
       in
       [%test_result: string] str ~expect:s);
     (* This next write will flush the buffer when [flushed_pos] is non-zero. We also want
-     to write another message to ensure we didn't send any garbage after the flush from
-     the middle *)
+       to write another message to ensure we didn't send any garbage after the flush from
+       the middle *)
     write_bin_prot_string t (List.nth_exn strings_to_read_from_transport 2);
     write_bin_prot_string t (List.nth_exn strings_to_read_from_transport 3);
     [%expect
@@ -282,7 +283,7 @@ struct
     in
     let msg_len = t.pipe_buffer_size / 4 in
     (* Payload message length that will make sure the overall messages + header are
-     exactly 1/4 the size of the pipe buffer *)
+       exactly 1/4 the size of the pipe buffer *)
     let payload_len = payload_len_from_target_msg_len msg_len in
     (* We want the write buffer to be large enough to not deal with resizing and to never
      buffer if we can still write to the pipe *)
@@ -322,14 +323,14 @@ struct
       ~written:t.pipe_buffer_size
       ~buffered:(msg_len * 2);
     (* We read 1 message from the pipe directly. This allows an additional message to be
-     flushed from the write buffer. *)
+       flushed from the write buffer. *)
     let buf = Bigstring.create (msg_len * num_messages_to_read_from_fd) in
     let read_len_1_message =
       Bigstring_unix.read (Fd.file_descr_exn t.read_fd) ~len:msg_len buf
     in
     [%test_result: int] read_len_1_message ~expect:msg_len;
     (* To flush a message, we need to perform another write. The pipe buffer should be
-     full now, and there should be two messages buffered in the transport writer. *)
+       full now, and there should be two messages buffered in the transport writer. *)
     write_bin_prot_nat0_and_bigstring_like_bin_prot_string
       t
       (List.nth_exn strings_to_buffer 1);
@@ -339,9 +340,9 @@ struct
       ~here:[%here]
       ~written:(t.pipe_buffer_size + msg_len)
       ~buffered:(msg_len * 2);
-    (* The part of the buffer containing the message that was just flushed should now
-       be wasted. Compaction shouldn't have happened since we are not wasting at least
-       half the buffer yet. *)
+    (* The part of the buffer containing the message that was just flushed should now be
+       wasted. Compaction shouldn't have happened since we are not wasting at least half
+       the buffer yet. *)
     [%test_result: int]
       (Rpc.Low_latency_transport.Writer.With_internal_writer.For_testing
        .buffer_flushed_pos
@@ -357,7 +358,7 @@ struct
     in
     [%test_result: int] read_len_4_messages ~expect:(msg_len * 4);
     (* There are now 5 messages in the buffer corresponding to [strings_to_read_from_fd].
-     We check that the messages are received correctly. *)
+       We check that the messages are received correctly. *)
     List.iteri strings_to_read_from_fd ~f:(fun i s ->
       let str =
         String.bin_read_t
@@ -369,9 +370,9 @@ struct
                 + (i * msg_len)))
       in
       [%test_result: string] str ~expect:s);
-    (* This next write will flush the buffer when [flushed_pos] is non-zero. We also
-       want to flush with a message that will be partially written out, so we write one
-       that's as large as the pipe buffer.*)
+    (* This next write will flush the buffer when [flushed_pos] is non-zero. We also want
+       to flush with a message that will be partially written out, so we write one that's
+       as large as the pipe buffer. *)
     let string_to_partially_flush =
       random_string (payload_len_from_target_msg_len t.pipe_buffer_size)
     in
@@ -415,7 +416,7 @@ struct
     in
     let msg_len = t.pipe_buffer_size / 4 in
     (* Payload message length that will make sure the overall messages + header are
-          exactly 1/4 the size of the pipe buffer *)
+       exactly 1/4 the size of the pipe buffer *)
     let payload_len = payload_len_from_target_msg_len msg_len in
     let strings_to_fill_buffers = List.init 7 ~f:(fun _ -> random_string payload_len) in
     List.iter strings_to_fill_buffers ~f:(fun s -> write_bin_prot_string t s);
@@ -435,7 +436,7 @@ struct
       ~written:(msg_len * 4)
       ~buffered:(msg_len * 3);
     (* The pipe buffer has 4 messages buffered and the write buffer has 3. We now read one
-    message off the pipe and partially flush the buffer by writing another message *)
+       message off the pipe and partially flush the buffer by writing another message *)
     let%bind () =
       read_one_message_bin_prot t ~allow_buffering:false
       >>| [%test_result: string] ~expect:(List.hd_exn strings_to_fill_buffers)
@@ -454,8 +455,8 @@ struct
          t.writer)
       ~expect:msg_len;
     (* The write buffer now has 3 messages buffered, and the empty space for the fourth
-     message is at the front of the buffer. We now write another message, which should
-     grow the buffer to the next power of 2 *)
+       message is at the front of the buffer. We now write another message, which should
+       grow the buffer to the next power of 2 *)
     let payload_to_resize = random_string payload_len in
     write_bin_prot_string t payload_to_resize;
     [%expect {| (Sent (result ()) (bytes 4088)) |}];

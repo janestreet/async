@@ -4,8 +4,8 @@ open Import
 
 let env_var_max_message_size = 125
 
-(* These tests must be in a file by themselves because of lazy evaluation of the environment
-   variable *)
+(* These tests must be in a file by themselves because of lazy evaluation of the
+   environment variable *)
 let triangle_query'
   ?filter_events
   ~kind

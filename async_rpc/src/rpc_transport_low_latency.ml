@@ -119,7 +119,7 @@ module Reader_internal = struct
     ; close_finished : unit Ivar.t
     ; mutable buf : (Bigstring.t[@sexp.opaque])
     ; mutable pos : int (* Start of unconsumed data. *)
-    ; mutable max : int (* End   of unconsumed data. *)
+    ; mutable max : int (*=End   of unconsumed data. *)
     ; mutable bytes_read : Int63.t
     }
   [@@deriving sexp_of]
@@ -166,8 +166,8 @@ module Reader_internal = struct
     let value_exn t = if t < 0 then failwith "Message_len.value_exn of None" else t
   end
 
-  (* If one full message is available, returns its length (not including the
-     header). Returns [Message_len.none] otherwise. *)
+  (* If one full message is available, returns its length (not including the header).
+     Returns [Message_len.none] otherwise. *)
   let get_payload_length_of_next_available_message t =
     let pos = t.pos in
     let available = t.max - pos in
@@ -427,8 +427,8 @@ module Reader_internal = struct
               if can_process_message t
               then (
                 let peek_len =
-                  (* [Fd.syscall_exn] catches EINTR and retries the function. This is better
-                      than calling [recv_peek_assume_fd_is_nonblocking] directly.
+                  (* [Fd.syscall_exn] catches EINTR and retries the function. This is
+                     better than calling [recv_peek_assume_fd_is_nonblocking] directly.
                   *)
                   Fd.syscall_exn t.reader.fd (fun file_descr ->
                     Bigstring_unix.recv_peek_assume_fd_is_nonblocking
@@ -872,8 +872,8 @@ module Writer_internal = struct
         let remaining_in_other_buf = len - written_from_other_buf in
         discard t existing_data_len;
         (* [discard] advanced [bytes_written] by [existing_data_len] but we want to
-           advance [n] in this case, so we manually advance by [written_from_other_buf =
-           n - existing_data_len] *)
+           advance [n] in this case, so we manually advance by
+           [written_from_other_buf = n - existing_data_len] *)
         t.bytes_written
         <- Int63.( + ) t.bytes_written (Int63.of_int written_from_other_buf);
         if remaining_in_other_buf > 0

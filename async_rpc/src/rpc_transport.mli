@@ -2,7 +2,7 @@ open! Core
 open! Import
 
 (*_ The [Reader] and [Writer] modules from [Async], renamed to avoid conflicting with
-  [Reader] and [Writer] below. *)
+    [Reader] and [Writer] below. *)
 module Async_reader := Reader
 module Async_writer := Writer
 

@@ -171,7 +171,7 @@ module Unix_reader = struct
                    [wait_before_reading].
 
                    If this behavior changes, please update the comment/code in
-                   [async_rpc/kernel/src/rpc.ml] about [cached_flush_deferred].  *)
+                   [async_rpc/kernel/src/rpc.ml] about [cached_flush_deferred]. *)
                 match wait_before_reading with
                 | hd :: (_ : unit Deferred.t list) when phys_equal hd d ->
                   wait_before_reading
