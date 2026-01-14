@@ -42,9 +42,8 @@ let nqueens nq =
     then
       Deferred.all (List.map ~f:(step (n + 1)) (gen [ b ]))
       >>= fun rs ->
-      (* Should be Empty
-         let r = ticky_return (List.concat rs)
-         in print_endline (Sexp.to_string (Deferred.sexp_of_t (fun _ -> Sexp.Atom "...") r)); r *)
+      (* Should be Empty let r = ticky_return (List.concat rs) in print_endline
+         (Sexp.to_string (Deferred.sexp_of_t (fun _ -> Sexp.Atom "...") r)); r *)
       ticky_return (List.concat rs)
     else ticky_return [ b ]
   in

@@ -136,7 +136,7 @@ let%expect_test "transport is closed when handle_transport returns #2" =
   assert (not (Rpc.Connection.is_closed client_connection));
   assert (not (Rpc.Connection.is_closed server_connection));
   (* returning from the handle_transport callback causes the transport to be closed on
-     both ends*)
+     both ends *)
   Ivar.fill_exn server_has_finished_with_connection ();
   let%bind () =
     with_timeout

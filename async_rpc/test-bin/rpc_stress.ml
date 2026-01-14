@@ -71,7 +71,7 @@ let client_command =
          ~doc:"size of message sent in pipe rpc in (number of ints)"
      and freq = flag "freq" (required Time_ns.Span.arg_type) ~doc:"message frequency"
      and host =
-       flag_optional_with_default_doc
+       flag_optional_with_default_doc_sexp
          "host"
          string
          sexp_of_string

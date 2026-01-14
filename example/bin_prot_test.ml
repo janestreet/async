@@ -54,15 +54,15 @@ let start_reader fd =
   never_returns (Scheduler.go ())
 ;;
 
-(* Writer writes binary protocol messages to a pipe and waits for its
-   reader child process to successfully finish reading *)
+(* Writer writes binary protocol messages to a pipe and waits for its reader child process
+   to successfully finish reading *)
 let start_writer pid fd =
   let writer = Writer.create fd in
   let rec loop n =
     if n = 0
     then (
-      (* All messages sent; make sure to flush writer buffers (easy to
-         forget!) and close the underlying file descriptor *)
+      (* All messages sent; make sure to flush writer buffers (easy to forget!) and close
+         the underlying file descriptor *)
       Writer.close writer
       >>> fun () ->
       let bytes_written = Writer.bytes_written writer in
@@ -75,10 +75,9 @@ let start_writer pid fd =
     else (
       (* Write a value to the writer using the binary protocol *)
       Writer.write_bin_prot writer bin_writer_test test;
-      (* It's usually a good idea performance-wise to flush if the buffer
-         is close to full before putting in more messages, because
-         otherwise the buffer has to be grown (assuming default size of
-         131_072) - possibly without bounds. *)
+      (* It's usually a good idea performance-wise to flush if the buffer is close to full
+         before putting in more messages, because otherwise the buffer has to be grown
+         (assuming default size of 131_072) - possibly without bounds. *)
       if Writer.bytes_to_write writer > 100_000
       then upon (Writer.flushed writer) (fun _ -> loop (n - 1))
       else loop (n - 1))

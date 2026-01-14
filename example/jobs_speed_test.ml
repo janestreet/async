@@ -35,7 +35,7 @@ let () =
   never_returns (Scheduler.go ())
 ;;
 
-(* jobs_per_cycle
+(*=jobs_per_cycle
    = 2000, time = 9.3s
    = 1200, time = 10.24s
    = 1100, time = 10.25s

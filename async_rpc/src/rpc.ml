@@ -2,7 +2,7 @@ open Core
 open Import
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
-module How_to_recognise_errors = Rpc_kernel.How_to_recognise_errors
+module How_to_recognize_errors = Rpc_kernel.How_to_recognize_errors
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
 module Low_latency_transport = Rpc_transport_low_latency
@@ -202,7 +202,7 @@ module Connection = struct
     ?heartbeat_config
     ?auth
     ?(on_handshake_error = default_on_handshake_error)
-    ?on_handler_error
+    ?on_initial_connection_state_error
     ?description
     ?identification
     ?provide_rpc_shapes
@@ -220,7 +220,7 @@ module Connection = struct
       ?max_message_size
       ?make_transport
       ?auth
-      ?on_handler_error
+      ?on_initial_connection_state_error
       (fun ~client_addr ~server_addr transport ->
          serve_with_transport
            ~handshake_timeout
@@ -260,7 +260,7 @@ module Connection = struct
     ?heartbeat_config
     ?auth
     ?(on_handshake_error = default_on_handshake_error)
-    ?on_handler_error
+    ?on_initial_connection_state_error
     ?description
     ?identification
     ?provide_rpc_shapes
@@ -278,7 +278,7 @@ module Connection = struct
       ?max_message_size
       ?make_transport
       ?auth
-      ?on_handler_error
+      ?on_initial_connection_state_error
       (fun ~client_addr ~server_addr peer_creds transport ->
          serve_with_transport
            ~handshake_timeout

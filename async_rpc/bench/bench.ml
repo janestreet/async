@@ -6,13 +6,13 @@ module%bench [@name "low latency transport"] _ = struct
     Rpc.Low_latency_transport.Config.create
       ~buffering_threshold_in_bytes:0
         (* Never automatically buffer, we want to make sure we are only buffering messages
-       because the reader is behind. *)
+           because the reader is behind. *)
       ~write_timeout:(Time_ns.Span.of_min 20.)
         (* Once a benchmark finishes running, the write buffer is still nonempty so the
-      writer still attempts to wait until the file descriptor can be written to
-      without blocking. This times out since the reader is no longer reading, so we
-      just make the timeout long enough that the entire run finishes running before the error
-      message prints *)
+           writer still attempts to wait until the file descriptor can be written to
+           without blocking. This times out since the reader is no longer reading, so we
+           just make the timeout long enough that the entire run finishes running before
+           the error message prints *)
       ()
   ;;
 

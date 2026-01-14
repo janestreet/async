@@ -13,13 +13,13 @@ let max_message_size_from_environment =
        Sys.getenv max_message_size_env_var |> Option.map ~f:Int.of_string))
 ;;
 
+(* The message size limit serves to protect against being OOM-killed due to a peer sending
+   us a huge message accidentally. *)
+let default_max_message_size = Rpc_kernel.default_max_message_size
+
 let aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max =
-  let default =
-    (* unfortunately, copied from reader0.ml *)
-    100 * 1024 * 1024
-  in
   match proposed_max, max_message_size_from_environment with
-  | None, None -> default
+  | None, None -> default_max_message_size
   | Some x, None | None, Some x -> x
   | Some x, Some y -> Int.max x y
 ;;
@@ -27,7 +27,7 @@ let aux_effective_max_message_size ~max_message_size_from_environment ~proposed_
 let%expect_test " " =
   let test ~max_message_size_from_environment =
     List.iter
-      [ None; Some 1; Some (200 * 1024 * 1024) ]
+      [ None; Some 1; Some (default_max_message_size * 2) ]
       ~f:(fun proposed_max ->
         let effective_max =
           aux_effective_max_message_size ~max_message_size_from_environment ~proposed_max
@@ -37,23 +37,23 @@ let%expect_test " " =
   test ~max_message_size_from_environment:None;
   [%expect
     {|
-    ((proposed_max ()) (effective_max 104857600))
+    ((proposed_max ()) (effective_max 1073741824))
     ((proposed_max (1)) (effective_max 1))
-    ((proposed_max (209715200)) (effective_max 209715200))
+    ((proposed_max (2147483648)) (effective_max 2147483648))
     |}];
   test ~max_message_size_from_environment:(Some 1024);
   [%expect
     {|
     ((proposed_max ()) (effective_max 1024))
     ((proposed_max (1)) (effective_max 1024))
-    ((proposed_max (209715200)) (effective_max 209715200))
+    ((proposed_max (2147483648)) (effective_max 2147483648))
     |}];
-  test ~max_message_size_from_environment:(Some (300 * 1024 * 1024));
+  test ~max_message_size_from_environment:(Some (default_max_message_size * 3));
   [%expect
     {|
-    ((proposed_max ()) (effective_max 314572800))
-    ((proposed_max (1)) (effective_max 314572800))
-    ((proposed_max (209715200)) (effective_max 314572800))
+    ((proposed_max ()) (effective_max 3221225472))
+    ((proposed_max (1)) (effective_max 3221225472))
+    ((proposed_max (2147483648)) (effective_max 3221225472))
     |}]
 ;;
 
@@ -171,7 +171,7 @@ module Unix_reader = struct
                    [wait_before_reading].
 
                    If this behavior changes, please update the comment/code in
-                   [async_rpc/kernel/src/rpc.ml] about [cached_flush_deferred].  *)
+                   [async_rpc/kernel/src/rpc.ml] about [cached_flush_deferred]. *)
                 match wait_before_reading with
                 | hd :: (_ : unit Deferred.t list) when phys_equal hd d ->
                   wait_before_reading
@@ -325,7 +325,7 @@ module Tcp = struct
     ?max_message_size:proposed_max
     ?(make_transport = default_transport_maker)
     ?(auth = fun _ -> Deferred.return true)
-    ?(on_handler_error = `Ignore)
+    ?(on_initial_connection_state_error = `Ignore)
     handle_transport
     =
     tcp_creator
@@ -335,7 +335,7 @@ module Tcp = struct
       ?drop_incoming_connections
       ?socket:None
       ?time_source
-      ~on_handler_error
+      ~on_handler_error:on_initial_connection_state_error
       where_to_listen
       (fun client_addr socket ->
          match%bind auth client_addr with
@@ -369,7 +369,7 @@ module Tcp = struct
     ?max_message_size
     ?make_transport
     ?auth
-    ?on_handler_error
+    ?on_initial_connection_state_error
     handle_transport
     =
     make_serve_func_with_fd
@@ -383,7 +383,7 @@ module Tcp = struct
       ?max_message_size
       ?make_transport
       ?auth
-      ?on_handler_error
+      ?on_initial_connection_state_error
       (fun (_ : Fd.t) ~client_addr ~server_addr transport ->
          handle_transport ~client_addr ~server_addr transport)
   ;;
@@ -406,7 +406,7 @@ module Tcp = struct
     ?max_message_size
     ?make_transport
     ?auth
-    ?on_handler_error
+    ?on_initial_connection_state_error
     handle_transport
     =
     make_serve_func_with_fd
@@ -420,7 +420,7 @@ module Tcp = struct
       ?max_message_size
       ?make_transport
       ?auth
-      ?on_handler_error
+      ?on_initial_connection_state_error
       (fun fd ~client_addr ~server_addr transport ->
          let peer_credentials =
            Or_error.try_with (fun () ->

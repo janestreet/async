@@ -1,7 +1,7 @@
 open Core
 open Async
 
-(* The list of implementations supported by the server.  The server state is simply a
+(* The list of implementations supported by the server. The server state is simply a
    counter used for allocating unique ids. *)
 let implementations =
   [ Rpc.Rpc.implement Rpc_intf.get_unique_id (fun ctr () ->

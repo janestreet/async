@@ -2,7 +2,7 @@ open! Core
 open! Import
 
 (*_ The [Reader] and [Writer] modules from [Async], renamed to avoid conflicting with
-  [Reader] and [Writer] below. *)
+    [Reader] and [Writer] below. *)
 module Async_reader := Reader
 module Async_writer := Writer
 
@@ -25,6 +25,8 @@ module Writer : sig
 
   val of_writer : ?max_message_size:int -> Async_writer.t -> t
 end
+
+val default_max_message_size : int
 
 include module type of struct
     include Rpc_kernel.Transport
@@ -63,7 +65,8 @@ module Tcp : sig
     -> ?make_transport:transport_maker
          (** default is [of_fd] (as opposed to [Rpc_transport_low_latency]) *)
     -> ?auth:('address -> bool Deferred.t)
-    -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
+    -> ?on_initial_connection_state_error:
+         [ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
          (** default is [`Ignore] *)
     -> (client_addr:'address
         -> server_addr:'address
@@ -83,7 +86,7 @@ module Tcp : sig
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?auth:(Socket.Address.Inet.t -> bool Deferred.t)
-    -> ?on_handler_error:
+    -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> (client_addr:Socket.Address.Inet.t
         -> server_addr:Socket.Address.Inet.t
@@ -103,7 +106,7 @@ module Tcp : sig
     -> ?max_message_size:int
     -> ?make_transport:transport_maker
     -> ?auth:(Socket.Address.Unix.t -> bool Deferred.t)
-    -> ?on_handler_error:
+    -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
     -> (client_addr:Socket.Address.Unix.t
         -> server_addr:Socket.Address.Unix.t

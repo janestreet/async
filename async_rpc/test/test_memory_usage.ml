@@ -56,7 +56,7 @@ let%expect_test "regression test for memory leak per RPC dispatch" =
       let%bind response = Rpc.Rpc.dispatch rpc client query >>| ok_exn in
       [%test_result: string] response ~expect:query;
       (* We additionally want to ensure that peeking at the close reason does not leak
-             memory. *)
+         memory. *)
       let close_started =
         Rpc.Connection.close_reason ~on_close:`started client
         |> Deferred.peek
@@ -95,11 +95,11 @@ module%test [@name "pipe-rpc pushback"] _ = struct
   let max_message_size = 1024 * 1024
 
   let create_connection_and_dispatch_batches rpc ~make_transport ~is_tcp_transport =
-    (* We write [batches] of [messages_per_batch] to the pipe-rpc, with batches
-       separated by a [Scheduler.yield ()]. This is to simulate bursts of messages coming
-       through from a pipe-rpc implementation. [500] was chosen to try and interact
-       negatively with the pipe-rpc default of setting the buffer size to [100] and with
-       the async scheduler number of jobs run per cycle.
+    (* We write [batches] of [messages_per_batch] to the pipe-rpc, with batches separated
+       by a [Scheduler.yield ()]. This is to simulate bursts of messages coming through
+       from a pipe-rpc implementation. [500] was chosen to try and interact negatively
+       with the pipe-rpc default of setting the buffer size to [100] and with the async
+       scheduler number of jobs run per cycle.
 
        We wait until [all_written] to start reading from the client connection to maximize
        pushback on the server connection. *)
@@ -173,8 +173,8 @@ module%test [@name "pipe-rpc pushback"] _ = struct
           Async_rpc_kernel.Pipe_transport.Kind.string
       in
       (* The test1 function calls make_transport twice: once with (r1, w1) for server,
-         once with (r2, w2) for client. We ignore these file descriptors and return
-         our pre-created transports *)
+         once with (r2, w2) for client. We ignore these file descriptors and return our
+         pre-created transports *)
       let first_call = ref true in
       let make_transport _ =
         if !first_call

@@ -101,7 +101,7 @@ let unpack_all ~(from : Unpack_from.t) ~(to_ : _ Unpack_to.t) ~using:unpack_buff
   let finished_with_input =
     match from with
     | Reader input ->
-      (* In rare situations, a reader can asynchronously raise.  We'd rather not raise
+      (* In rare situations, a reader can asynchronously raise. We'd rather not raise
          here, since we have a natural place to report the error. *)
       try_with ~run:`Schedule ~rest:`Log (fun () ->
         Reader.read_one_chunk_at_a_time input ~handle_chunk:(fun buf ~pos ~len ->
@@ -255,10 +255,10 @@ module%test _ = struct
     ;;
 
     (* A partial [Value.t] bin prot, which will cause [Unpack_buffer] to expect more data
-         when unpacked. *)
+       when unpacked. *)
     let partial_data =
-      (* The size header should be more than 1 byte, so this is enough to make unpack
-           wait for more data. *)
+      (* The size header should be more than 1 byte, so this is enough to make unpack wait
+         for more data. *)
       String.make 1 ' '
     ;;
 

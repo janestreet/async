@@ -63,9 +63,9 @@ module Pipe_simple_test = struct
         let string = String.init bytes ~f:(fun _ -> 'A') in
         let stop = Pipe.closed writer in
         Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
-          [%log.global.format "Queue size: %d" (Pipe.length reader)]);
+          [%log.format "Queue size: %d" (Pipe.length reader)]);
         Clock.every ~stop (Time_float.Span.of_sec 1.) (fun () ->
-          [%log.global.format
+          [%log.format
             "Messages per sec: %f"
               (Float.of_int !total_msgs
                /. Time_float.Span.to_sec (Time_float.diff (Time_float.now ()) start))]);
@@ -85,7 +85,7 @@ module Pipe_simple_test = struct
               let msgs =
                 let new_time = Time_float.now () in
                 let diff = Time_float.Span.to_sec (Time_float.diff new_time !prev) in
-                [%log.global.format "The diff is %f\n" diff];
+                [%log.format "The diff is %f\n" diff];
                 prev := new_time;
                 Int.of_float (diff *. Int.to_float t.msgs_per_sec)
               in
@@ -122,7 +122,7 @@ module Pipe_simple_test = struct
       let major_cycles = ref 0 in
       ignore (Gc.Alarm.create (fun () -> incr major_cycles));
       Clock.every (Time_float.Span.of_sec 5.) (fun () ->
-        [%log.global.format "%d major cycles" !major_cycles])
+        [%log.format "%d major cycles" !major_cycles])
     ;;
   end
 
@@ -146,7 +146,7 @@ module Pipe_simple_test = struct
         Clock.every (Time_float.Span.of_sec 1.) (fun () ->
           let now = Time_float.now () in
           let secs = Time_float.Span.to_sec (Time_float.diff now start) in
-          [%log.global.format "%f msgs per sec" (Float.of_int !msgs /. secs)]);
+          [%log.format "%f msgs per sec" (Float.of_int !msgs /. secs)]);
         Pipe.iter_without_pushback pipe ~f:(fun _string -> incr msgs)
     ;;
 

@@ -8,7 +8,7 @@ open! Core
 open! Import
 module Any = Rpc_kernel.Any
 module Description = Rpc_kernel.Description
-module How_to_recognise_errors = Rpc_kernel.How_to_recognise_errors
+module How_to_recognize_errors = Rpc_kernel.How_to_recognize_errors
 module Implementation = Rpc_kernel.Implementation
 module Implementations = Rpc_kernel.Implementations
 module Low_latency_transport = Rpc_transport_low_latency
@@ -130,7 +130,8 @@ module Connection : sig
     -> ?auth:('address -> bool Deferred.t) (** default is [`Ignore] *)
     -> ?on_handshake_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
          (** default is [`Ignore] *)
-    -> ?on_handler_error:[ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
+    -> ?on_initial_connection_state_error:
+         [ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
     -> ?description:Info.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
@@ -160,7 +161,7 @@ module Connection : sig
     -> ?on_handshake_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
          (** default is [`Ignore] *)
-    -> ?on_handler_error:
+    -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> ?description:Info.t
     -> ?identification:Bigstring.t
@@ -192,7 +193,7 @@ module Connection : sig
     -> ?on_handshake_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
          (** default is [`Ignore] *)
-    -> ?on_handler_error:
+    -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
     -> ?description:Info.t
     -> ?identification:Bigstring.t
