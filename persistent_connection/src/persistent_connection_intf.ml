@@ -9,8 +9,14 @@ module type Address = Persistent_connection_kernel.Address
 module type Connection_error = Persistent_connection_kernel.Connection_error
 module type Closable = Persistent_connection_kernel.Closable
 
+(** The subset of [S'] that excludes the [create] functions. Useful for modules that wrap
+    a persistent connection but don't want to expose the create functions. *)
+module type S'_without_create = Persistent_connection_kernel.S'_without_create
+
+module type S_without_create = S'_without_create with type conn_error := Error.t
+
 module type S' = sig
-  include Persistent_connection_kernel.S'
+  include S'_without_create
 
   val create
     :  created_at:[%call_pos]
@@ -27,6 +33,25 @@ module type S' = sig
              default is [`State Random.State.default]. *)
     -> ?time_source:Time_source.t
     -> connect:('address -> (conn, conn_error) Result.t Deferred.t)
+    -> address:(module Address with type t = 'address)
+    -> (unit -> ('address, conn_error) Result.t Deferred.t)
+    -> t
+
+  (** Like [create], but passes a [Connect_context.t] to the [connect] callback. This
+      allows the callback to abort the persistent connection from within the connect
+      logic. *)
+  val create_with_connect_context
+    :  created_at:[%call_pos]
+    -> server_name:string
+    -> ?log:Log.t
+    -> ?on_event:('address Event.t -> unit Deferred.t)
+    -> ?retry_delay:(unit -> Time_float.Span.t)
+    -> ?random_state:[ `Non_random | `State of Random.State.t ]
+    -> ?time_source:Time_source.t
+    -> connect:
+         (Persistent_connection_kernel.Connect_context.t
+          -> 'address
+          -> (conn, conn_error) Result.t Deferred.t)
     -> address:(module Address with type t = 'address)
     -> (unit -> ('address, conn_error) Result.t Deferred.t)
     -> t
@@ -64,9 +89,13 @@ module type Persistent_connection = sig
   module type Address = Address
   module type Closable = Closable
   module type Connection_error = Connection_error
+  module type S'_without_create = S'_without_create
+  module type S_without_create = S_without_create
   module type S = S
   module type S' = S'
   module type S_rpc = S_rpc
+
+  module Connect_context = Persistent_connection_kernel.Connect_context
 
   module Make (Conn : Closable) :
     S with type conn = Conn.t and type t = Persistent_connection_kernel.Make(Conn).t

@@ -7,7 +7,7 @@ type 'a with_options = ?behave_nicely_in_pipeline:bool -> ?extract_exn:bool -> '
 let shutdown_with_error e =
   (* This logging is best-effort because if [shutdown] has already been called, there's no
      guarantee that the log lines will flush. *)
-  Async_log.Global.error_from_async_command
+  Async_log.Global.For_async_shutdown.log_error
     "%s"
     (Error.to_string_mach e) [@alert "-private_async_log_function"];
   Stdlib.at_exit (fun () ->

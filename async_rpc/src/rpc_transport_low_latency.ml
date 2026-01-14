@@ -364,8 +364,8 @@ module Reader_internal = struct
         Scheduler.within' ~monitor (fun () ->
           (* Process messages currently in the buffer. *)
           (* This will fill [t.interrupt] if [on_message] returns [Wait _]. However, we
-             expect [on_message] to almost never return [Wait _] with this transport, since
-             even the "non-copying" writes return [Deferred.unit]. *)
+             expect [on_message] to almost never return [Wait _] with this transport,
+             since even the "non-copying" writes return [Deferred.unit]. *)
           process_received_messages t ~read_or_peek;
           let interrupt =
             Deferred.any [ Ivar.read t.interrupt; close_finished t.reader ]
@@ -783,7 +783,7 @@ module Writer_internal = struct
       | `Result `Ready -> write_everything t
       | `Timeout ->
         Async_log.Ppx_log_syntax.(
-          [%log.global.error
+          [%log.error
             "Rpc_transport_low_latency.Writer timed out waiting to write on file \
              descriptor. Closing the writer."
               ~timeout:(t.config.write_timeout : Time_ns.Span.t)
@@ -830,8 +830,8 @@ module Writer_internal = struct
          beginning of the buffer. *)
       let new_size_request = Int.max (buf_len + 1) (existing_data_len + needed) in
       t.buf <- Config.grow_buffer t.config t.buf ~new_size_request;
-      (* Since we are already doing an expensive operation by resizing the buffer, we
-         also compact here. *)
+      (* Since we are already doing an expensive operation by resizing the buffer, we also
+         compact here. *)
       compact t)
   ;;
 

@@ -160,7 +160,7 @@ let%expect_test "event logging" =
     {|
     (Code (
       (pos_fname lib/persistent_connection/src/persistent_connection.ml)
-      (pos_lnum     44)
+      (pos_lnum     35)
       (library_name Persistent_connection)))
     ((time  "1970-01-01 00:00:00Z")
      (level Info)

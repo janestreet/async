@@ -286,9 +286,9 @@ struct
        exactly 1/4 the size of the pipe buffer *)
     let payload_len = payload_len_from_target_msg_len msg_len in
     (* We want the write buffer to be large enough to not deal with resizing and to never
-     buffer if we can still write to the pipe *)
+       buffer if we can still write to the pipe *)
     (* We first fill the pipe buffer with 4 messages, as well as having another message
-     buffered in the transport writer *)
+       buffered in the transport writer *)
     let num_messages_to_read_from_fd = 5 in
     let strings_to_read_from_fd =
       List.init num_messages_to_read_from_fd ~f:(fun _ -> random_string payload_len)

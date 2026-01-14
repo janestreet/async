@@ -78,7 +78,7 @@ let make_server ?heartbeat_config ?port ~implementations ~initial_connection_sta
       ?heartbeat_config
       ~implementations
       ~initial_connection_state:(fun _ x -> initial_connection_state x)
-      ~on_handler_error:`Ignore
+      ~on_initial_connection_state_error:`Ignore
       network
       sockaddr
     |> Server.Netkit
