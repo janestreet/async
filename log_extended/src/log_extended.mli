@@ -16,6 +16,7 @@ module Console : sig
   val output
     :  ?debug:Console.Ansi.attr list
     -> ?info:Console.Ansi.attr list
+    -> ?warn:Console.Ansi.attr list
     -> ?error:Console.Ansi.attr list
     -> Writer.t
     -> Log.Output.t
@@ -25,6 +26,7 @@ module Console : sig
     val output
       :  ?debug:Console.Ansi.attr list
       -> ?info:Console.Ansi.attr list
+      -> ?warn:Console.Ansi.attr list
       -> ?error:Console.Ansi.attr list
       -> Out_channel.t
       -> Log.Blocking.Output.t

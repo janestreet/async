@@ -5,12 +5,13 @@ include Log
 module Console = struct
   module Ansi = Console.Ansi
 
-  let with_style ~debug ~info ~error msg =
+  let with_style ~debug ~info ~warn ~error msg =
     let style, prefix =
       match Log.Message.level msg with
       | None -> info, ""
       | Some `Debug -> debug, "[DEBUG]"
       | Some `Info -> info, " [INFO]"
+      | Some `Warn -> warn, " [WARN]"
       | Some `Error -> error, "[ERROR]"
     in
     String.concat ~sep:" " [ prefix; Log.Message.message msg ]
@@ -18,8 +19,9 @@ module Console = struct
   ;;
 
   let output
-    ?(debug = ([ `Yellow ] :> Ansi.attr list))
+    ?(debug = ([ `Cyan ] :> Ansi.attr list))
     ?(info = ([] :> Ansi.attr list))
+    ?(warn = ([ `Yellow ] :> Ansi.attr list))
     ?(error = ([ `Red ] :> Ansi.attr list))
     writer
     =
@@ -27,7 +29,7 @@ module Console = struct
       ~flush:(fun () -> return ())
       (fun msgs ->
         Queue.iter msgs ~f:(fun msg ->
-          with_style ~debug ~info ~error msg
+          with_style ~debug ~info ~warn ~error msg
           |> fun styled_msg ->
           Writer.write writer styled_msg;
           Writer.newline writer);
@@ -36,13 +38,14 @@ module Console = struct
 
   module Blocking = struct
     let output
-      ?(debug = ([ `Yellow ] :> Ansi.attr list))
+      ?(debug = ([ `Cyan ] :> Ansi.attr list))
       ?(info = ([] :> Ansi.attr list))
+      ?(warn = ([ `Yellow ] :> Ansi.attr list))
       ?(error = ([ `Red ] :> Ansi.attr list))
       outc
       =
       Log.Blocking.Output.create (fun msg ->
-        with_style ~debug ~info ~error msg
+        with_style ~debug ~info ~warn ~error msg
         |> fun line -> Out_channel.output_lines outc [ line ])
     ;;
   end
@@ -64,6 +67,7 @@ module Syslog = struct
     | None -> Syslog.Level.INFO
     | Some `Debug -> Syslog.Level.INFO
     | Some `Info -> Syslog.Level.INFO
+    | Some `Warn -> Syslog.Level.WARNING
     | Some `Error -> Syslog.Level.ERR
   ;;
 

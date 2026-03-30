@@ -1,5 +1,5 @@
 (library
  (name async_rpc_core_bench)
- (libraries async async_rpc_kernel core_kernel.bus core core_unix)
+ (libraries async core)
  (preprocess
   (pps ppx_jane)))
