@@ -6,7 +6,8 @@ module type Quickcheck_async_configured = sig
 
   (** Like [test], but for asynchronous tests. *)
   val async_test
-    :  ?seed:Quickcheck.seed
+    : ('a : value_or_null).
+    ?seed:Quickcheck.seed
     -> ?sizes:int Sequence.t
     -> ?trials:int
     -> ?shrinker:'a Quickcheck.Shrinker.t
@@ -21,7 +22,8 @@ module type Quickcheck_async_configured = sig
       [Or_error.t]. Any exceptions raised by [f] are also treated as failures. The failing
       input and the error are returned in a [Result.t]. *)
   val async_test_or_error
-    :  ?seed:Quickcheck.seed
+    : ('a : value_or_null).
+    ?seed:Quickcheck.seed
     -> ?sizes:int Sequence.t
     -> ?trials:int
     -> ?shrinker:'a Quickcheck.Shrinker.t

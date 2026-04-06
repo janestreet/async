@@ -100,7 +100,7 @@ let spec =
     with
     | Some network -> network
     | None ->
-      let network = Netkit_sockets.create ~ifname () in
+      let network = Netkit_sockets.create_labeled_str ~ifname () in
       Netkit.Network.This_is_the_wrong_api_for_creating_or_retrieving_a_network.add_exn
         ~name:ifname
         (module Netkit_sockets)
