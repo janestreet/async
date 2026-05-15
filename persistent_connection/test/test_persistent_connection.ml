@@ -160,7 +160,7 @@ let%expect_test "event logging" =
     {|
     (Code (
       (pos_fname lib/persistent_connection/src/persistent_connection.ml)
-      (pos_lnum     35)
+      (pos_lnum     36)
       (library_name Persistent_connection)))
     ((time  "1970-01-01 00:00:00Z")
      (level Info)
@@ -220,5 +220,55 @@ let%expect_test "event logging" =
            ((name created_at) (data (Sexp <hidden_in_test>))))))))
      (source <hidden_in_test>))
     |}];
+  return ()
+;;
+
+let%expect_test "custom event_log_level" =
+  let implementations =
+    Rpc.Implementations.create_exn
+      ~on_unknown_rpc:`Close_connection
+      ~implementations:[ Rpc.Rpc.implement Hello.V1.rpc (fun () () -> return ()) ]
+      ~on_exception:Log_on_background_exn
+  in
+  let%bind server =
+    Rpc.Connection.serve
+      ~implementations
+      ~initial_connection_state:(fun _addr _conn -> ())
+      ~where_to_listen:Tcp.Where_to_listen.of_port_chosen_by_os
+      ()
+  in
+  let host_and_port =
+    Host_and_port.create ~host:"localhost" ~port:(Tcp.Server.listening_on server)
+  in
+  let persistent_conn =
+    Persistent_connection.Rpc.create'
+      ~server_name:"custom-level test"
+      ~event_log_level:(function
+        | Attempting_to_connect | Obtained_address _ -> `Debug
+        | Connected _ | Disconnected -> `Info
+        | Failed_to_connect _ -> `Warn)
+      ~log:
+        (Log.create
+           ~level:`Debug
+           ~output:
+             [ Log.Output.create_unbuffered
+                 ~flush:(fun () -> return ())
+                 (fun e -> print_s [%sexp (e : Log.Message_event.Unstable.t)])
+             ]
+           ~on_error:`Raise
+           ())
+      (fun () -> return (Ok host_and_port))
+  in
+  let%bind _conn = Persistent_connection.Rpc.connected persistent_conn in
+  Sexpresso.rewrite_expect_output (Sexpresso.select [ "level"; "label" ]) [%expect.output];
+  [%expect
+    {|
+    ((level Debug) (label (String Attempting_to_connect)))
+    ((level Debug) (label (String Obtained_address)))
+    ((level Info) (label (String Connected)))
+    |}];
+  let%bind () = Persistent_connection.Rpc.close persistent_conn in
+  Sexpresso.rewrite_expect_output (Sexpresso.select [ "level"; "label" ]) [%expect.output];
+  [%expect {| ((level Info) (label (String Disconnected))) |}];
   return ()
 ;;

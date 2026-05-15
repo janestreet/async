@@ -80,8 +80,8 @@ module Syslog = struct
   let output ?id ?options ?facility () =
     let ready =
       Lazy_deferred.create (fun () ->
-        (* openlog () shouldn't block by default, but In_thread.run's a
-           cheap cure for paranoia *)
+        (* openlog () shouldn't block by default, but In_thread.run's a cheap cure for
+           paranoia *)
         In_thread.run (openlog ?id ?options ?facility))
     in
     Log.Output.create

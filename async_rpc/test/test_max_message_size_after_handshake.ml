@@ -120,7 +120,8 @@ let triangle_query'
   in
   print_endline "(client, server) connection close reasons:";
   print_s_without_error_locations
-    ([%sexp_of: (Info.t * Info.t) Clock_ns.Or_timeout.t] client_server_close_reason);
+    ([%sexp_of: (Info.Portable.t * Info.Portable.t) Clock_ns.Or_timeout.t]
+       client_server_close_reason);
   return ()
 ;;
 

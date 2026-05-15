@@ -1,6 +1,6 @@
 (library
  (name test_async_quickcheck)
  (libraries async async_quickcheck core expect_test_helpers_async
-   expect_test_helpers_core.expect_test_helpers_base)
+   expect_test_helpers_base)
  (preprocess
   (pps ppx_jane)))

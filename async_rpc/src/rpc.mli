@@ -41,7 +41,7 @@ module Connection : sig
     -> ?max_message_size:int
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
@@ -66,7 +66,7 @@ module Connection : sig
     -> ?max_message_size:int
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -83,7 +83,7 @@ module Connection : sig
     :  ?max_message_size:int
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -132,9 +132,10 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -163,9 +164,10 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -195,9 +197,10 @@ module Connection : sig
          (** default is [`Ignore] *)
     -> ?on_initial_connection_state_error:
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -217,7 +220,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
@@ -235,7 +238,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
@@ -256,7 +259,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
@@ -275,7 +278,7 @@ module Connection : sig
     -> ?make_transport:transport_maker
     -> ?handshake_timeout:Time_float.Span.t
     -> ?heartbeat_config:Heartbeat_config.t
-    -> ?description:Info.t
+    -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
