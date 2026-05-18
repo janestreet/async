@@ -25,6 +25,10 @@ module type S' = sig
          (** If [~log] is supplied then all events that would be passed to [on_event] will
              be written there as well, with a "persistent-connection-to" tag value of
              [server_name], which should be the name of the server we are connecting to. *)
+    -> ?event_log_level:('address Event.t -> [ `Info | `Debug | `Warn | `Error ])
+         (** If [~event_log_level] is supplied, it overrides the default mapping from
+             events to log levels. The default is
+             [Persistent_connection_kernel.Event.log_level]. *)
     -> ?on_event:('address Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
@@ -44,6 +48,7 @@ module type S' = sig
     :  created_at:[%call_pos]
     -> server_name:string
     -> ?log:Log.t
+    -> ?event_log_level:('address Event.t -> [ `Info | `Debug | `Warn | `Error ])
     -> ?on_event:('address Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]
@@ -69,6 +74,7 @@ module type S_rpc = sig
     :  created_at:[%call_pos]
     -> server_name:string
     -> ?log:Log.t
+    -> ?event_log_level:(Host_and_port.t Event.t -> [ `Info | `Debug | `Warn | `Error ])
     -> ?on_event:(Host_and_port.t Event.t -> unit Deferred.t)
     -> ?retry_delay:(unit -> Time_float.Span.t)
     -> ?random_state:[ `Non_random | `State of Random.State.t ]

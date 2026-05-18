@@ -17,6 +17,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
     ~created_at
     ~server_name
     ~log
+    ~event_log_level
     ~on_event
     event
     =
@@ -34,7 +35,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
           ~persistent_connection_to:(server_name : string)
           (created_at
            : (Source_code_position.t Sexp_hidden_in_test.t option[@sexp.option]))
-        [@@level Some (Persistent_connection_kernel.Event.log_level event)]]);
+        [@@level Some (event_log_level event)]]);
     on_event event
   ;;
 
@@ -42,6 +43,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
     ~(created_at : [%call_pos])
     ~server_name
     ?log
+    ?(event_log_level = Persistent_connection_kernel.Event.log_level)
     ?(on_event = fun _ -> Deferred.unit)
     ?retry_delay
     ?random_state
@@ -54,7 +56,9 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
       Option.map retry_delay ~f:(fun f () ->
         f () |> Time_ns.Span.of_span_float_round_nearest)
     in
-    let on_event = make_on_event ~address ~created_at ~server_name ~log ~on_event in
+    let on_event =
+      make_on_event ~address ~created_at ~server_name ~log ~event_log_level ~on_event
+    in
     create
       ~server_name
       ~on_event
@@ -70,6 +74,7 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
     ~(created_at : [%call_pos])
     ~server_name
     ?log
+    ?(event_log_level = Persistent_connection_kernel.Event.log_level)
     ?(on_event = fun _ -> Deferred.unit)
     ?retry_delay
     ?random_state
@@ -82,7 +87,9 @@ module Make' (Conn_err : Connection_error) (Conn : Closable) = struct
       Option.map retry_delay ~f:(fun f () ->
         f () |> Time_ns.Span.of_span_float_round_nearest)
     in
-    let on_event = make_on_event ~address ~created_at ~server_name ~log ~on_event in
+    let on_event =
+      make_on_event ~address ~created_at ~server_name ~log ~event_log_level ~on_event
+    in
     create_with_connect_context
       ~server_name
       ~on_event
@@ -105,6 +112,7 @@ let create_convenience_wrapper
   ~server_name
   ~created_at
   ?log
+  ?event_log_level
   ?on_event
   ?retry_delay
   ?random_state
@@ -126,7 +134,7 @@ let create_convenience_wrapper
         ?make_transport
         ?handshake_timeout
         ?heartbeat_config
-        ~description:(Info.of_string ("persistent connection to " ^ server_name))
+        ~description:(Info.Portable.of_string ("persistent connection to " ^ server_name))
       >>| Or_error.of_exn_result
     in
     connection_of_rpc_connection conn
@@ -134,6 +142,7 @@ let create_convenience_wrapper
   create
     ~server_name
     ?log
+    ?event_log_level
     ?on_event
     ?retry_delay
     ?random_state

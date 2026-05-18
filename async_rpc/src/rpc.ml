@@ -132,6 +132,7 @@ module Connection = struct
   let serve_with_transport
     ?identification
     ?provide_rpc_shapes
+    ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
     transport
@@ -152,6 +153,7 @@ module Connection = struct
             ?heartbeat_config
             ?identification
             ?provide_rpc_shapes
+            ?custom_menu
             ?heartbeat_timeout_style
             ?validate_connection
             ~implementations
@@ -175,13 +177,13 @@ module Connection = struct
     let server_addr = (server_addr :> Socket.Address.t) in
     let client_addr = (client_addr :> Socket.Address.t) in
     let connection_description =
-      Info.create_s
+      Info.Portable.create_s
         [%message
           "TCP server" (server_addr : Socket.Address.t) (client_addr : Socket.Address.t)]
     in
     match description with
     | None -> connection_description
-    | Some description -> Info.of_list [ description; connection_description ]
+    | Some description -> Info.Portable.of_list [ description; connection_description ]
   ;;
 
   let default_on_handshake_error = `Ignore
@@ -206,6 +208,7 @@ module Connection = struct
     ?description
     ?identification
     ?provide_rpc_shapes
+    ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
     ()
@@ -233,6 +236,7 @@ module Connection = struct
            ~client_addr
            ?identification
            ?provide_rpc_shapes
+           ?custom_menu
            ?validate_connection
            transport)
   ;;
@@ -264,6 +268,7 @@ module Connection = struct
     ?description
     ?identification
     ?provide_rpc_shapes
+    ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
     ()
@@ -292,6 +297,7 @@ module Connection = struct
            ~client_addr
            ?identification
            ?provide_rpc_shapes
+           ?custom_menu
            ?validate_connection
            transport)
   ;;
@@ -330,14 +336,13 @@ module Connection = struct
       let description =
         match description with
         | None ->
-          Info.create
-            "Client connected via TCP"
-            where_to_connect
-            [%sexp_of: _ Tcp.Where_to_connect.t]
+          Info.Portable.create_s
+            [%message
+              "Client connected via TCP" ~_:(where_to_connect : _ Tcp.Where_to_connect.t)]
         | Some desc ->
-          Info.of_list
+          Info.Portable.of_list
             [ desc
-            ; Info.create_s
+            ; Info.Portable.create_s
                 [%message "via TCP" ~_:(where_to_connect : _ Tcp.Where_to_connect.t)]
             ]
       in
@@ -435,7 +440,9 @@ module Connection = struct
       where_to_connect
     >>=? fun (remote_server, t) ->
     let%bind result = Monitor.try_with_local ~rest:`Log (fun () -> f ~remote_server t) in
-    let%map () = close t ~reason:(Info.of_string "Rpc.Connection.with_client finished") in
+    let%map () =
+      close t ~reason:(Info.Portable.of_string "Rpc.Connection.with_client finished")
+    in
     result
   ;;
 

@@ -24,7 +24,7 @@ depends: [
   "textutils"
   "dune"             {>= "3.17.0"}
 ]
-available: arch != "arm32" & arch != "x86_32"
+available: arch != "x86_32"
 synopsis: "Monadic concurrency library"
 description: "
 Part of Jane Street's Core library

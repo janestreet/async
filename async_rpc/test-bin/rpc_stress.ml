@@ -100,7 +100,9 @@ let client_command =
                (fun conn ->
                  don't_wait_for
                    (let%bind () = Clock_ns.after close_after in
-                    Rpc.Connection.close conn ~reason:(Info.of_string close_reason));
+                    Rpc.Connection.close
+                      conn
+                      ~reason:(Info.Portable.of_string close_reason));
                  conn)
            ; implementations =
                implementations
@@ -132,7 +134,8 @@ let server_command =
            ~initial_connection_state:(fun (_ : Socket.Address.Inet.t) conn ->
              Deferred.upon
                (Rpc.Connection.close_reason conn ~on_close:`finished)
-               (fun reason -> print_s [%message "Connection closed" (reason : Info.t)]);
+               (fun reason ->
+                  print_s [%message "Connection closed" (reason : Info.Portable.t)]);
              conn)
            ~implementations:
              (implementations
