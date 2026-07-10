@@ -805,7 +805,7 @@ module Rpc_expert_test = struct
           Rpc.Expert.Responder.write_error responder (Error.of_exn e);
           Deferred.unit
       in
-      Implementations.Expert.create_exn
+      Implementations.create_exn
         ~implementations:
           [ Rpc.implement normal_rpc (fun () query ->
               [%test_result: string] query ~expect:the_query;
