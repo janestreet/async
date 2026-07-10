@@ -7,7 +7,7 @@ let max_message_size = 1_000_000
 let print_trace (conn : Rpc.Connection.t) ?filter_events source =
   Bus.subscribe_permanently_exn
     (Async_rpc_kernel.Async_rpc_kernel_private.Connection.tracing_events conn)
-    ~f:(fun (local_ (event : Async_rpc_kernel.Tracing_event.t)) ->
+    ~f:(fun (event : Async_rpc_kernel.Tracing_event.t @ local) ->
       match filter_events with
       | Some matches_filter when matches_filter event -> ()
       | None | Some _ ->
