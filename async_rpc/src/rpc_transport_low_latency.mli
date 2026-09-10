@@ -3,6 +3,25 @@
 open! Core
 open! Import
 
+(**/**)
+
+(*_ Buffer pool functions for managing reuse of internal Bigstring buffers across
+    reader/writer instances. Pooling reduces allocation overhead in high-throughput
+    scenarios with many short-lived connections.
+
+    NOTE: Buffer pooling can expose stale data from previous connections. If your
+    application handles sensitive data, call [disable_buffer_pool] to disable pooling
+    (pooling is disabled by default; call [enable_buffer_pool] to activate it). *)
+val enable_buffer_pool
+  :  ?max_pool_size:int (** default 100 *)
+  -> ?max_buffer_size:int (** default 256 KiB *)
+  -> unit
+  -> unit
+
+val disable_buffer_pool : unit -> unit
+
+(**/**)
+
 module Config : sig
   type t [@@deriving sexp]
 
