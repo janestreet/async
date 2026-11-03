@@ -261,7 +261,12 @@ module Unix_writer = struct
     | Sent { result = (); bytes } ->
       Writer.schedule_bigstring t.t buf ~pos ~len;
       Sent
-        { result = Writer.flushed t.t
+        { result =
+            (* [result] tells the caller when it is safe to reuse [buf], i.e. when the
+               writer will never read the scheduled region again: either the bytes were
+               flushed or the writer failed. [Writer.flushed] would never become
+               determined if a prior write fails, leaving callers waiting forever. *)
+            Writer.flushed_or_failed_unit t.t
         ; bytes (* The response from [send_bin_prot_internal] includes [followup_len] *)
         }
     | (Closed | Message_too_big _) as r -> r

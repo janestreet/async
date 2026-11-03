@@ -38,7 +38,7 @@ let%expect_test "handshake is too large" =
     {|
     (handshake_error.ml.Handshake_error
      ((Message_too_big_during_step (step Header)
-       (message_too_big ((size 17) (max_message_size 1))))
+       (message_too_big ((size 24) (max_message_size 1))))
       <created-directly>))
     |}];
   return ()
