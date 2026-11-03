@@ -28,6 +28,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
@@ -42,6 +43,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
+      ?connection_metadata
       ?provide_rpc_shapes
       ?heartbeat_timeout_style
       ?validate_connection
@@ -131,10 +133,12 @@ module Connection = struct
 
   let serve_with_transport
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
+    ?time_source
     transport
     ~handshake_timeout
     ~heartbeat_config
@@ -152,10 +156,12 @@ module Connection = struct
               (Option.map handshake_timeout ~f:Time_ns.Span.of_span_float_round_nearest)
             ?heartbeat_config
             ?identification
+            ?connection_metadata
             ?provide_rpc_shapes
             ?custom_menu
             ?heartbeat_timeout_style
             ?validate_connection
+            ?time_source
             ~implementations
             ~description
             ~connection_state
@@ -207,12 +213,17 @@ module Connection = struct
     ?on_initial_connection_state_error
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
     ()
     =
+    let connection_time_source =
+      Option.map time_source ~f:(fun time_source ->
+        Time_source.to_synchronous (Time_source.read_only time_source))
+    in
     serve_with_transport_handler
       ~where_to_listen
       ?max_connections
@@ -235,9 +246,11 @@ module Connection = struct
            ~on_handshake_error
            ~client_addr
            ?identification
+           ?connection_metadata
            ?provide_rpc_shapes
            ?custom_menu
            ?validate_connection
+           ?time_source:connection_time_source
            transport)
   ;;
 
@@ -267,12 +280,17 @@ module Connection = struct
     ?on_initial_connection_state_error
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?custom_menu
     ?heartbeat_timeout_style
     ?validate_connection
     ()
     =
+    let connection_time_source =
+      Option.map time_source ~f:(fun time_source ->
+        Time_source.to_synchronous (Time_source.read_only time_source))
+    in
     Rpc_transport.Tcp.serve_unix
       ~where_to_listen
       ?max_connections
@@ -296,9 +314,11 @@ module Connection = struct
            ~on_handshake_error
            ~client_addr
            ?identification
+           ?connection_metadata
            ?provide_rpc_shapes
            ?custom_menu
            ?validate_connection
+           ?time_source:connection_time_source
            transport)
   ;;
 
@@ -315,6 +335,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
@@ -358,6 +379,7 @@ module Connection = struct
             ~handshake_timeout
             ?heartbeat_config
             ?identification
+            ?connection_metadata
             ?provide_rpc_shapes
             ?heartbeat_timeout_style
             ?validate_connection
@@ -370,6 +392,7 @@ module Connection = struct
             ~handshake_timeout
             ?heartbeat_config
             ?identification
+            ?connection_metadata
             ?provide_rpc_shapes
             ?heartbeat_timeout_style
             ?validate_connection
@@ -392,6 +415,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
@@ -405,6 +429,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
+      ?connection_metadata
       ?provide_rpc_shapes
       ?heartbeat_timeout_style
       ?validate_connection
@@ -420,6 +445,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
@@ -434,6 +460,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
+      ?connection_metadata
       ?provide_rpc_shapes
       ?heartbeat_timeout_style
       ?validate_connection
@@ -454,6 +481,7 @@ module Connection = struct
     ?heartbeat_config
     ?description
     ?identification
+    ?connection_metadata
     ?provide_rpc_shapes
     ?heartbeat_timeout_style
     ?validate_connection
@@ -468,6 +496,7 @@ module Connection = struct
       ?heartbeat_config
       ?description
       ?identification
+      ?connection_metadata
       ?validate_connection
       ?provide_rpc_shapes
       ?heartbeat_timeout_style

@@ -43,6 +43,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -134,8 +135,9 @@ module Connection : sig
          [ `Raise | `Ignore | `Call of 'address -> exn -> unit ]
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
-    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.With_kinds.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -166,8 +168,9 @@ module Connection : sig
          [ `Raise | `Ignore | `Call of Socket.Address.Inet.t -> exn -> unit ]
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
-    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.With_kinds.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -199,8 +202,9 @@ module Connection : sig
          [ `Raise | `Ignore | `Call of Socket.Address.Unix.t -> exn -> unit ]
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
-    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.t)
+    -> ?custom_menu:(unit -> Async_rpc_kernel.Menu.With_kinds.t)
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
          (identification_from_peer:Bigstring.t option
@@ -222,6 +226,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -240,6 +245,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -261,6 +267,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:
@@ -280,6 +287,7 @@ module Connection : sig
     -> ?heartbeat_config:Heartbeat_config.t
     -> ?description:Info.Portable.t
     -> ?identification:Bigstring.t
+    -> ?connection_metadata:Rpc_metadata.V2.t
     -> ?provide_rpc_shapes:bool
     -> ?heartbeat_timeout_style:Heartbeat_timeout_style.t
     -> ?validate_connection:

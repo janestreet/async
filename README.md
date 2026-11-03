@@ -1,5 +1,4 @@
-"Async"
-=======
+# Async
 
 `Async` is a library for asynchronous programming, i.e., programming where some
 part of the program must wait for things that happen at times determined by

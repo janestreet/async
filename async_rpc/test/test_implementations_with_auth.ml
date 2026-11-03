@@ -158,6 +158,50 @@ module%test [@name "pipe-rpc"] _ = struct
   ;;
 end
 
+module%test [@name "expert-rpc"] _ = struct
+  let rpc =
+    Rpc.Rpc.create
+      ~name:"test-expert-rpc-with-auth"
+      ~version:1
+      ~bin_query:[%bin_type_class: int]
+      ~bin_response:[%bin_type_class: int]
+      ~include_in_error_count:Only_on_exn
+  ;;
+
+  let implementation =
+    Rpc.Rpc.Expert.implement' rpc (fun () responder buf ~pos ~len:(_ : int) ->
+      let query = Int.bin_read_t buf ~pos_ref:(ref pos) in
+      if query < 0
+      then
+        Rpc.Rpc.Expert.Responder.write_authorization_failure
+          responder
+          (Error.of_string "query negative")
+      else Rpc.Rpc.Expert.Responder.write_bin_prot responder Int.bin_writer_t query;
+      Rpc.Rpc.Expert.Replied)
+  ;;
+
+  let%expect_test "expert rpc responder can write an authorization failure" =
+    with_conn [ implementation ] ~f:(fun conn ->
+      let print_response response =
+        match response with
+        | Ok response -> print_s [%sexp Ok (response : int)]
+        | Error error -> print_s [%sexp Error (error : Async_rpc_kernel.Rpc_error.t)]
+      in
+      let%bind response = Rpc.Rpc.dispatch' rpc conn 135 in
+      print_response response;
+      [%expect {| (Ok 135) |}];
+      let%bind response = Rpc.Rpc.dispatch' rpc conn (-136) in
+      print_response response;
+      [%expect
+        {|
+        (Error
+         (Authorization_failure
+          ((location "server-side raw rpc authorization") (exn "query negative"))))
+        |}];
+      Deferred.unit)
+  ;;
+end
+
 module%test [@name "state-rpc"] _ = struct
   let rpc_with_name ~name =
     Rpc.State_rpc.create

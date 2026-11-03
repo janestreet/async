@@ -9,6 +9,6 @@
  (names rpc_test rpc_latency_test test_low_latency_transport_close rpc_stress)
  (libraries async async_rpc async_rpc_kernel core_unix.command_unix core
    core_unix.core_thread cpu_usage jane async_kernel.limiter_async
-   core_unix.linux_ext netkit netkit_rpc netkit_sockets sockaddr)
+   core_unix.linux_ext netkit netkit_rpc netkit_sockets netlib.sockaddr)
  (preprocess
   (pps ppx_jane)))
