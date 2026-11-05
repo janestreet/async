@@ -5,6 +5,64 @@ module Header = Kernel_transport.Header
 module Handler_result = Kernel_transport.Handler_result
 module Send_result = Kernel_transport.Send_result
 
+module Buffer_pool = struct
+  type t = {
+    mutable free_by_size : (int * Bigstring.t) list;
+    mutable total_pooled : int;
+    max_pool_size : int;
+    max_buffer_size : int;
+  }
+
+  let create ?(max_pool_size = 100) ?(max_buffer_size = 256 * 1024) () = {
+    free_by_size = [];
+    total_pooled = 0;
+    max_pool_size;
+    max_buffer_size;
+  }
+
+  let get t ~min_size =
+    let rec loop = function
+      | [] -> None
+      | (size, buf) :: rest ->
+        if size >= min_size && size <= t.max_buffer_size then (
+          t.free_by_size <- rest;
+          t.total_pooled <- t.total_pooled - 1;
+          Some buf)
+        else (
+          match loop rest with
+          | None -> None
+          | Some b -> Some b)
+    in
+    loop t.free_by_size
+  ;;
+
+  let put t buf =
+    let size = Bigstring.length buf in
+    if size <= t.max_buffer_size && t.total_pooled < t.max_pool_size then (
+      t.free_by_size <- (size, buf) :: t.free_by_size;
+      t.total_pooled <- t.total_pooled + 1;
+      true)
+    else false
+  ;;
+
+  let clear t =
+    t.free_by_size <- [];
+    t.total_pooled <- 0
+  ;;
+end
+
+let global_buffer_pool = ref (Buffer_pool.create ())
+
+let enable_buffer_pool ?max_pool_size ?max_buffer_size () =
+  global_buffer_pool := Buffer_pool.create ?max_pool_size ?max_buffer_size ()
+
+let disable_buffer_pool () = Buffer_pool.clear !global_buffer_pool
+
+let retrieve_buffer_from_pool ~min_size =
+  Buffer_pool.get !global_buffer_pool ~min_size
+
+let return_buffer_to_pool buf = Buffer_pool.put !global_buffer_pool buf
+
 external writev2
   :  Core_unix.File_descr.t
   -> buf1:Bigstring.t
@@ -126,12 +184,17 @@ module Reader_internal = struct
 
   let create fd config =
     set_nonblocking fd;
+    let buf =
+      match retrieve_buffer_from_pool ~min_size:config.initial_buffer_size with
+      | Some buf -> buf
+      | None -> Bigstring.create config.initial_buffer_size
+    in
     { fd
     ; config
     ; reading = false
     ; closed = false
     ; close_finished = Ivar.create ()
-    ; buf = Bigstring.create config.initial_buffer_size
+    ; buf
     ; pos = 0
     ; max = 0
     ; bytes_read = Int63.zero
@@ -559,7 +622,9 @@ module Reader_internal = struct
     if not t.closed
     then (
       t.closed <- true;
-      Fd.close t.fd >>> fun () -> Ivar.fill_exn t.close_finished ());
+      Fd.close t.fd >>> fun () ->
+      Ivar.fill_exn t.close_finished ();
+      ignore (return_buffer_to_pool t.buf));
     close_finished t
   ;;
 end
@@ -636,11 +701,16 @@ module Writer_internal = struct
 
   let create fd config =
     set_nonblocking fd;
+    let buf =
+      match retrieve_buffer_from_pool ~min_size:config.initial_buffer_size with
+      | Some buf -> buf
+      | None -> Bigstring.create config.initial_buffer_size
+    in
     { fd
     ; config
     ; writing = false
     ; connection_state = Connection_state.create ()
-    ; buf = Bigstring.create config.initial_buffer_size
+    ; buf
     ; flushed_pos = 0
     ; writer_pos = 0
     ; bytes_written = Int63.zero
@@ -760,7 +830,8 @@ module Writer_internal = struct
   let finish_close t =
     let fd_closed = Fd.close t.fd in
     t.writing <- false;
-    Connection_state.finish_close t.connection_state ~fd_closed
+    Connection_state.finish_close t.connection_state ~fd_closed;
+    upon fd_closed (fun () -> ignore (return_buffer_to_pool t.buf))
   ;;
 
   let rec write_everything t =
